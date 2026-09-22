@@ -15,6 +15,8 @@ interface AppContextType {
   setSearchQuery: (query: string) => void;
   myBookingsOpen: boolean;
   setMyBookingsOpen: (open: boolean) => void;
+  profileModalOpen: boolean;
+  setProfileModalOpen: (open: boolean) => void;
   login: (phone: string, pass: string) => { success: boolean; message: string };
   register: (phone: string, pass: string, name: string, address: string, district: string) => { success: boolean; message: string };
   logout: () => void;
@@ -95,6 +97,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [myBookingsOpen, setMyBookingsOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('সব');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -527,6 +530,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSearchQuery,
         myBookingsOpen,
         setMyBookingsOpen,
+        profileModalOpen,
+        setProfileModalOpen,
         login,
         register,
         logout,

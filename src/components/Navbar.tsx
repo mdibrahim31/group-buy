@@ -1,40 +1,24 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { ShoppingBag, User as UserIcon, LogOut, Search, Users } from 'lucide-react';
+import { ShoppingBag, User as UserIcon, Search, Users } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const {
     user,
     setAuthModalOpen,
-    logout,
+    setProfileModalOpen,
     orders,
     setMyBookingsOpen,
     selectedCategory,
     setSelectedCategory,
     searchQuery,
     setSearchQuery,
-    bundles
   } = useApp();
 
   const categories = ['সব', 'জুতা', 'কাপড়'];
-  const totalActiveBatches = bundles.filter(b => b.status === 'open').length;
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200">
-      {/* Top Announcement Bar */}
-      <div className="bg-stone-900 text-stone-100 text-xs py-1.5 px-4 font-medium">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>সরাসরি হোলসেলার রেট • কোনো মধ্যস্বত্বভোগী নেই • দলবদ্ধ হয়ে অর্ডার করুন</span>
-          </div>
-          <div className="flex items-center gap-4 text-stone-300">
-            <span>সক্রিয় ব্যাচ: <strong className="text-emerald-400">{totalActiveBatches} টি</strong></span>
-            <span>টোকেন অগ্রিম: <strong>মাত্র ৳১৫০</strong></span>
-          </div>
-        </div>
-      </div>
-
       {/* Main Nav */}
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
         {/* Brand */}
@@ -69,7 +53,7 @@ export const Navbar: React.FC = () => {
           {/* My Bookings Button */}
           <button
             onClick={() => setMyBookingsOpen(true)}
-            className="relative flex items-center gap-2 px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-lg text-sm font-medium transition-colors"
+            className="relative flex items-center gap-2 px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-lg text-sm font-medium transition-colors cursor-pointer"
           >
             <ShoppingBag className="w-4 h-4 text-stone-700" />
             <span className="hidden sm:inline">আমার স্লট</span>
@@ -80,25 +64,27 @@ export const Navbar: React.FC = () => {
             )}
           </button>
 
-          {/* User Auth */}
+          {/* User Auth / Profile */}
           {user ? (
-            <div className="flex items-center gap-2 pl-1 border-l border-stone-200">
-              <div className="hidden lg:block text-right">
-                <p className="text-xs font-semibold text-stone-900 truncate max-w-[120px]">{user.fullName}</p>
-                <p className="text-[11px] text-stone-500">{user.phone}</p>
+            <button
+              onClick={() => setProfileModalOpen(true)}
+              className="flex items-center gap-2 px-2.5 py-1.5 bg-stone-100 hover:bg-stone-200 border border-stone-200 rounded-lg transition-all cursor-pointer"
+              title="প্রোফাইল দেখুন"
+            >
+              <div className="w-7 h-7 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                {(user.fullName || 'ক').charAt(0).toUpperCase()}
               </div>
-              <button
-                onClick={logout}
-                className="p-2 text-stone-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                title="লগআউট"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
+              <div className="text-left hidden sm:block pr-1">
+                <p className="text-xs font-semibold text-stone-900 truncate max-w-[110px] leading-tight">
+                  {user.fullName}
+                </p>
+                <p className="text-[10px] text-stone-500 leading-none">প্রোফাইল</p>
+              </div>
+            </button>
           ) : (
             <button
               onClick={() => setAuthModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold shadow-sm transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold shadow-sm transition-all cursor-pointer"
             >
               <UserIcon className="w-4 h-4" />
               <span>লগইন / সাইন-আপ</span>
@@ -115,7 +101,7 @@ export const Navbar: React.FC = () => {
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap cursor-pointer ${
                 selectedCategory === cat
                   ? 'bg-stone-900 text-white shadow-sm'
                   : 'bg-stone-100 text-stone-600 hover:bg-stone-200'

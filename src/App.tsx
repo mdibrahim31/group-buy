@@ -8,6 +8,7 @@ import { StartNewBatchModal } from './components/StartNewBatchModal';
 import { BuyWholeBundleModal } from './components/BuyWholeBundleModal';
 import { AuthModal } from './components/AuthModal';
 import { MyBookingsModal } from './components/MyBookingsModal';
+import { ProfileModal } from './components/ProfileModal';
 import { Product, Bundle, BundleSlot } from './types';
 import { Sparkles, HelpCircle, CheckCircle2, ShieldAlert, PhoneCall, RefreshCcw } from 'lucide-react';
 
@@ -221,6 +222,7 @@ const MainContent: React.FC = () => {
 
       <AuthModal />
       <MyBookingsModal />
+      <ProfileModal />
     </div>
   );
 };
