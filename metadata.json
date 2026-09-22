@@ -2,5 +2,7 @@
   "name": "GroupBuy Wholesale",
   "description": "Dynamic group buying and batch slot booking platform connecting customers directly to wholesale prices.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
