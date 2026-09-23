@@ -6,6 +6,7 @@ import { BookingModal } from './components/BookingModal';
 import { StartNewBatchModal } from './components/StartNewBatchModal';
 import { BuyWholeBundleModal } from './components/BuyWholeBundleModal';
 import { AuthModal } from './components/AuthModal';
+import { AuthScreen } from './components/AuthScreen';
 import { MyBookingsModal } from './components/MyBookingsModal';
 import { ProfileModal } from './components/ProfileModal';
 import { AdminPanelModal } from './components/AdminPanelModal';
@@ -14,7 +15,7 @@ import { Sparkles, CheckCircle2 } from 'lucide-react';
 import { WhatsAppSupport, WhatsAppIcon } from './components/WhatsAppSupport';
 
 const MainContent: React.FC = () => {
-  const { products, selectedCategory, searchQuery, setMyBookingsOpen } = useApp();
+  const { user, products, selectedCategory, searchQuery, setMyBookingsOpen } = useApp();
 
   // Booking Modal State
   const [selectedBooking, setSelectedBooking] = useState<{
@@ -42,6 +43,16 @@ const MainContent: React.FC = () => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
   };
+
+  // If user is not logged in, gate access with the login/registration page
+  if (!user) {
+    return (
+      <>
+        <AuthScreen onOpenAdmin={() => setAdminModalOpen(true)} />
+        <AdminPanelModal isOpen={adminModalOpen} onClose={() => setAdminModalOpen(false)} />
+      </>
+    );
+  }
 
   // Filter products by category and search query
   const filteredProducts = products.filter(product => {

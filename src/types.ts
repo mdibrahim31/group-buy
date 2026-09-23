@@ -53,6 +53,7 @@ export interface Order {
   customerName?: string;
   customerPhone?: string;
   bundleId: string;
+  slotId?: string;
   batchNumber: number;
   productId: string;
   productTitle: string;

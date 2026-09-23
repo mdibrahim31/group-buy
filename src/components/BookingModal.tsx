@@ -20,8 +20,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 }) => {
   const { user, bookSlot, setAuthModalOpen } = useApp();
 
-  const tokenAmount = 150;
-  const dueAmount = product.groupPrice - tokenAmount;
+  const tokenAmount = Math.min(150, product.groupPrice);
+  const dueAmount = Math.max(0, product.groupPrice - tokenAmount);
 
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [phone, setPhone] = useState(user?.phone || '');

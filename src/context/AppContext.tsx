@@ -232,16 +232,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         // Fetch their orders from Supabase
         const remoteOrders = await dbGetOrdersByCustomerId(remoteCustomer.id, cleanPhone);
-        if (remoteOrders.length > 0) {
-          setOrders(prev => {
-            const map = new Map<string, Order>();
-            remoteOrders.forEach(o => map.set(o.id, o));
-            prev.forEach(o => {
-              if (!map.has(o.id)) map.set(o.id, o);
-            });
-            return Array.from(map.values());
-          });
-        }
+        setOrders(remoteOrders);
+        localStorage.setItem(LOCAL_STORAGE_KEY_ORDERS, JSON.stringify(remoteOrders));
 
         return { success: true, message: 'সফলভাবে লগইন হয়েছে।' };
       }
@@ -256,6 +248,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setUser(localUser);
           // Sync to Supabase in background
           dbSaveCustomer({ ...localUser, password: pass });
+          const remoteOrders = await dbGetOrdersByCustomerId(localUser.id, cleanPhone);
+          setOrders(remoteOrders);
           return { success: true, message: 'সফলভাবে লগইন হয়েছে।' };
         } else {
           return { success: false, message: 'ভুল পাসওয়ার্ড। আবার চেষ্টা করুন।' };
@@ -316,11 +310,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           console.error('Supabase customer registration failed:', dbResult.error);
           return {
             success: false,
-            message: `ডাটাবেজ ত্রুটি: ${dbResult.error || 'তথ্য সংরক্ষণ করা যায়নি।'} (Supabase RLS বা টেবিল পারমিশন চেক করুন)`,
+            message: `ডাটাবেজ ত্রুটি: ${dbResult.error || 'তথ্য সংরক্ষণ করা যায়নি।'} (Supabase RLS বা টেবিল চেক করুন)`,
           };
         }
-      } else {
-        console.warn('VITE_SUPABASE_URL অথবা VITE_SUPABASE_ANON_KEY অনুপস্থিত! তথ্য শুধু লোকাল ব্রাউজারে সংরক্ষিত হচ্ছে।');
       }
 
       // Save to localStorage cache
@@ -328,6 +320,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem(LOCAL_STORAGE_KEY_USERS_DB, JSON.stringify(usersDb));
 
       setUser(newCustomer);
+      setOrders([]);
       return { success: true, message: 'রেজিস্ট্রেশন সফলভাবে সম্পন্ন হয়েছে।' };
     } catch (err: any) {
       return { success: false, message: err?.message || 'রেজিস্ট্রেশনে সমস্যা হয়েছে।' };
@@ -336,6 +329,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const logout = () => {
     setUser(null);
+    setOrders([]);
+    localStorage.removeItem(LOCAL_STORAGE_KEY_USER);
+    localStorage.removeItem(LOCAL_STORAGE_KEY_ORDERS);
   };
 
   // Mask phone number for public slot visibility (e.g. 0171****82)
@@ -369,7 +365,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, message: 'পণ্য খুঁজে পাওয়া যায়নি।' };
     }
 
-    const currentCustomerId = user?.id || `guest-${Date.now()}`;
+    const currentCustomerId = user?.id || (user?.phone ? `cust-${user.phone}` : `cust-${Date.now()}`);
     const currentCustomerName = buyerName || user?.fullName || 'গ্রাহক';
     const currentPhone = contactPhone || user?.phone || '01700000000';
 
@@ -395,21 +391,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setBundles(prev => prev.map(b => b.id === bundleId ? updatedBundle : b));
 
-    // Create Order record linked with customer ID
+    // Unique slot and order identification
+    const effectiveAdvance = Math.min(advanceAmount, product.groupPrice);
+    const effectiveDue = Math.max(0, product.groupPrice - effectiveAdvance);
+
     const newOrder: Order = {
-      id: 'ord-' + Date.now(),
+      id: `ord-${targetBundle.id.replace('bundle-', '')}-${targetSlot.size}-${Date.now().toString().slice(-6)}`,
       customerId: currentCustomerId,
       customerName: currentCustomerName,
       customerPhone: currentPhone,
       bundleId: targetBundle.id,
+      slotId: targetSlot.id,
       batchNumber: targetBundle.batchNumber,
       productId: product.id,
       productTitle: product.title,
       productImage: product.imageUrl,
       size: targetSlot.size,
       groupPrice: product.groupPrice,
-      advanceAmount: advanceAmount,
-      dueAmount: product.groupPrice - advanceAmount,
+      advanceAmount: effectiveAdvance,
+      dueAmount: effectiveDue,
       deliveryAddress,
       contactPhone: currentPhone,
       paymentMethod,

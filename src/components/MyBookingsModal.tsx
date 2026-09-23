@@ -96,7 +96,7 @@ export const MyBookingsModal: React.FC = () => {
                             ব্যাচ #{order.batchNumber}
                           </span>
                           <span className="text-emerald-700 font-bold">
-                            মোট: ৳{order.groupPrice} (টোকেন পেইড ৳{order.advanceAmount}, বাকি ৳{order.dueAmount})
+                            মোট: ৳{order.groupPrice} (টোকেন পেইড ৳{Math.min(order.advanceAmount, order.groupPrice)}, বাকি ৳{Math.max(0, order.dueAmount)})
                           </span>
                         </div>
                       </div>
@@ -127,12 +127,12 @@ export const MyBookingsModal: React.FC = () => {
                         {isCompleted ? (
                           <span className="text-emerald-700 font-semibold flex items-center gap-1">
                             <CheckCircle2 className="w-3.5 h-3.5" />
-                            দল পূর্ণ! হোলসেলার থেকে মাল সরবরাহ হচ্ছে।
+                            দল পূর্ণ! হোলসেলার থেকে প্রস্তুত হচ্ছে।
                           </span>
                         ) : (
                           <span className="text-stone-500 flex items-center gap-1">
                             <Clock className="w-3.5 h-3.5 text-amber-500" />
-                            আর মাত্র {totalSlots - filledSlots} জন গ্রাহক জয়েন করলেই হোলসেলার ডেলিভারি দেবে।
+                            আর মাত্র {totalSlots - filledSlots} জন গ্রাহক জয়েন করলেই হোলসেলার অর্ডার শুরু হবে।
                           </span>
                         )}
 
@@ -156,14 +156,14 @@ export const MyBookingsModal: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Delivery & Status row */}
+                    {/* Address & Status row */}
                     <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-stone-500 pt-1">
                       <div>
-                        ঠিকানা: <span className="text-stone-700 font-medium">{order.deliveryAddress}</span>
+                        পার্সেল পাঠানোর ঠিকানা: <span className="text-stone-700 font-medium">{order.deliveryAddress}</span>
                       </div>
                       <div className="flex items-center gap-1.5 font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
-                        <Truck className="w-3.5 h-3.5" />
-                        <span>স্ট্যাটাস: {isCompleted ? 'হোলসেলার অর্ডার কনফার্ম' : 'স্লট নিশ্চিত (দল অপেক্ষমান)'}</span>
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>স্ট্যাটাস: {isCompleted ? 'হোলসেলার প্রসেসিং' : 'স্লট নিশ্চিত (দল গঠন চলছে)'}</span>
                       </div>
                     </div>
                   </div>
