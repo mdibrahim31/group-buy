@@ -66,7 +66,7 @@ export interface Order {
   dueAmount: number;
   deliveryAddress: string;
   contactPhone: string;
-  paymentMethod: 'bKash' | 'Nagad' | 'COD';
+  paymentMethod: 'bKash' | 'Nagad' | 'Rocket' | 'COD';
   transactionId?: string;
   status: 'confirmed' | 'ordered_wholesale' | 'in_transit' | 'delivered';
   createdAt: string;

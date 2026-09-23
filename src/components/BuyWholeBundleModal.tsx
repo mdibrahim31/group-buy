@@ -29,7 +29,7 @@ export const BuyWholeBundleModal: React.FC<BuyWholeBundleModalProps> = ({
   const [phone, setPhone] = useState(user?.phone || '');
   const [address, setAddress] = useState(user?.deliveryAddress || '');
   const [district, setDistrict] = useState(user?.district || 'ঢাকা');
-  const [paymentMethod, setPaymentMethod] = useState<'bKash' | 'Nagad' | 'COD'>('bKash');
+  const [paymentMethod, setPaymentMethod] = useState<'bKash' | 'Nagad' | 'Rocket'>('bKash');
   const [transactionId, setTransactionId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -236,13 +236,13 @@ export const BuyWholeBundleModal: React.FC<BuyWholeBundleModalProps> = ({
               {[
                 { id: 'bKash', name: 'বিকাশ', number: '01700-112233' },
                 { id: 'Nagad', name: 'নগদ', number: '01800-445566' },
-                { id: 'COD', name: 'টোকেন COD', number: 'ডেলিভারিতে' }
+                { id: 'Rocket', name: 'রকেট', number: '01900-778899' }
               ].map(method => (
                 <button
                   key={method.id}
                   type="button"
                   onClick={() => setPaymentMethod(method.id as any)}
-                  className={`p-2 rounded-xl border text-center transition-all ${
+                  className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
                     paymentMethod === method.id
                       ? 'border-emerald-600 bg-emerald-50 font-bold text-emerald-900 shadow-xs'
                       : 'border-stone-200 text-stone-700 hover:bg-stone-50'
@@ -254,18 +254,26 @@ export const BuyWholeBundleModal: React.FC<BuyWholeBundleModalProps> = ({
               ))}
             </div>
 
-            {paymentMethod !== 'COD' && (
-              <div className="bg-stone-50 p-2 rounded-lg border border-stone-200 text-xs text-stone-600">
-                আমাদের {paymentMethod} পার্সোনাল নম্বরে (01700-112233) ৳{tokenAmount} সেন্ড মানি করুন।
-                <input
-                  type="text"
-                  placeholder="ট্রানজেকশন আইডি (TrxID) ঐচ্ছিক"
-                  value={transactionId}
-                  onChange={(e) => setTransactionId(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-white border border-stone-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 mt-1"
-                />
+            <div className="bg-stone-50 p-3 rounded-xl border border-stone-200 text-xs text-stone-600 space-y-2">
+              <div className="flex items-center justify-between">
+                <span>
+                  আমাদের <strong>{paymentMethod === 'bKash' ? 'বিকাশ' : paymentMethod === 'Nagad' ? 'নগদ' : 'রকেট'}</strong> পার্সোনাল নম্বর:
+                </span>
+                <span className="font-mono font-bold text-stone-900 bg-white px-2 py-0.5 rounded border border-stone-200">
+                  {paymentMethod === 'bKash' ? '01700-112233' : paymentMethod === 'Nagad' ? '01800-445566' : '01900-778899'}
+                </span>
               </div>
-            )}
+              <p className="text-[11px] text-stone-500">
+                উপরের নম্বরে ৳{tokenAmount} সেন্ড মানি করে নিচের বক্সে ট্রানজেকশন আইডি দিন (ঐচ্ছিক):
+              </p>
+              <input
+                type="text"
+                placeholder="ট্রানজেকশন আইডি (TrxID) ঐচ্ছিক"
+                value={transactionId}
+                onChange={(e) => setTransactionId(e.target.value)}
+                className="w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
           </div>
 
           {/* Submit */}
