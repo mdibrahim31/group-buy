@@ -10,7 +10,6 @@ import { AuthModal } from './components/AuthModal';
 import { AuthScreen } from './components/AuthScreen';
 import { MyBookingsModal } from './components/MyBookingsModal';
 import { ProfileModal } from './components/ProfileModal';
-import { AdminPanelModal } from './components/AdminPanelModal';
 import { NotificationModal } from './components/NotificationModal';
 import { Product, Bundle, BundleSlot } from './types';
 import { Sparkles, CheckCircle2, Bell, ChevronRight, Flame, SlidersHorizontal, X, Tag } from 'lucide-react';
@@ -71,12 +70,7 @@ const MainContent: React.FC = () => {
 
   // If user is not logged in, gate access with the login/registration page
   if (!user) {
-    return (
-      <>
-        <AuthScreen onOpenAdmin={() => setAdminModalOpen(true)} />
-        <AdminPanelModal isOpen={adminModalOpen} onClose={() => setAdminModalOpen(false)} />
-      </>
-    );
+    return <AuthScreen />;
   }
 
   // Dynamically extract all available unique sizes across all products

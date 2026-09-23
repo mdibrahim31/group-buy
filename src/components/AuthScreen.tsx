@@ -3,11 +3,7 @@ import { useApp } from '../context/AppContext';
 import { Lock, Phone, User as UserIcon, MapPin, CheckCircle, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import { WhatsAppIcon } from './WhatsAppSupport';
 
-interface AuthScreenProps {
-  onOpenAdmin: () => void;
-}
-
-export const AuthScreen: React.FC<AuthScreenProps> = ({ onOpenAdmin }) => {
+export const AuthScreen: React.FC = () => {
   const { login, register } = useApp();
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -285,7 +281,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onOpenAdmin }) => {
         </form>
       </div>
 
-      {/* Bottom Footer & Admin Access */}
+      {/* Bottom Footer */}
       <div className="max-w-md w-full mx-auto text-center pb-4 text-xs text-stone-400 space-y-2">
         <div className="flex items-center justify-center gap-3">
           <a
@@ -297,14 +293,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onOpenAdmin }) => {
             <WhatsAppIcon className="w-3.5 h-3.5 fill-emerald-400" />
             <span>সাপোর্ট: 01882208531</span>
           </a>
-          <span>•</span>
-          <button
-            type="button"
-            onClick={onOpenAdmin}
-            className="text-stone-400 hover:text-stone-200 hover:underline cursor-pointer"
-          >
-            🔒 অ্যাডমিন প্রবেশ
-          </button>
         </div>
         <p className="text-[11px] text-stone-500">© 2026 GroupBuy Wholesale</p>
       </div>
