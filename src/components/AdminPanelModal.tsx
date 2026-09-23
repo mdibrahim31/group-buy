@@ -867,11 +867,11 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                       />
                     </div>
 
-                    {/* Submit Button - Elevated for mobile visibility */}
-                    <div className="pt-4 pb-2 sticky bottom-2 z-10">
+                    {/* Submit Button */}
+                    <div className="pt-6 pb-4">
                       <button
                         type="submit"
-                        className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-extrabold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all cursor-pointer ring-2 ring-emerald-500/20"
+                        className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-extrabold rounded-xl text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
                       >
                         <PlusCircle className="w-5 h-5 shrink-0" />
                         <span>নতুন বান্ডিল পোস্ট করুন (শপে লাইভ যুক্ত হবে)</span>
