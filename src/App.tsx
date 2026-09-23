@@ -68,11 +68,6 @@ const MainContent: React.FC = () => {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  // If user is not logged in, gate access with the login/registration page
-  if (!user) {
-    return <AuthScreen />;
-  }
-
   // Dynamically extract all available unique sizes across all products
   const allAvailableSizes = useMemo(() => {
     const sizeSet = new Set<string>();
@@ -141,6 +136,11 @@ const MainContent: React.FC = () => {
     setSelectedSizeFilter('all');
     setOnlyLastSlotFilter(false);
   };
+
+  // If user is not logged in, gate access with the login/registration page
+  if (!user) {
+    return <AuthScreen />;
+  }
 
   return (
     <div className="min-h-screen bg-stone-100/70 text-stone-900 flex flex-col font-sans">
