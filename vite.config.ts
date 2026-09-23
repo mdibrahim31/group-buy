@@ -4,9 +4,20 @@ import path from 'path';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
+  const adminPassword = (
+    process.env.VITE_ADMIN_PASSWORD ||
+    process.env.ADMIN_PASSWORD ||
+    process.env.VITE_PASSWORD ||
+    process.env.PASSWORD ||
+    ''
+  ).trim();
+
   return {
     base: './',
     plugins: [react(), tailwindcss()],
+    define: {
+      __APP_ADMIN_PASSWORD__: JSON.stringify(adminPassword),
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

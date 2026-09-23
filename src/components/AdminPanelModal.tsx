@@ -115,33 +115,30 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
 
   // Environment variable for admin password (e.g., VITE_ADMIN_PASSWORD in GitHub / .env)
   const envAdminPassword = (
+    // @ts-ignore
+    (typeof __APP_ADMIN_PASSWORD__ !== 'undefined' ? __APP_ADMIN_PASSWORD__ : '') ||
     import.meta.env.VITE_ADMIN_PASSWORD ||
-    import.meta.env.VITE_ADMIN_PIN ||
+    (import.meta.env as any).ADMIN_PASSWORD ||
+    (import.meta.env as any).VITE_PASSWORD ||
+    (import.meta.env as any).PASSWORD ||
     ''
-  ).trim();
+  ).trim().replace(/^["']|["']$/g, '');
 
-  // Simple PIN / Password verification
+  // Strict Password verification - Only accepts value from environment variable
   const handlePinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const entered = adminPin.trim();
 
-    // 1. If VITE_ADMIN_PASSWORD is set in environment variables
-    if (envAdminPassword) {
-      if (entered === envAdminPassword) {
-        setIsAuthenticated(true);
-        setPinError('');
-      } else {
-        setPinError('ভুল পাসওয়ার্ড! আপনার ভ্যারিয়েবলে (VITE_ADMIN_PASSWORD) সেট করা পাসওয়ার্ড দিন।');
-      }
+    if (!envAdminPassword) {
+      setPinError('ভ্যারিয়েবলে (VITE_ADMIN_PASSWORD) পাসওয়ার্ড সেট করা নেই! অনুগ্রহ করে GitHub Secrets/Variables-এ পাসওয়ার্ড যুক্ত করে রি-ডিপ্লয় করুন।');
       return;
     }
 
-    // 2. Default fallback if no variable is configured
-    if (entered === '1234' || entered === 'admin' || entered === '0000') {
+    if (entered === envAdminPassword) {
       setIsAuthenticated(true);
       setPinError('');
     } else {
-      setPinError('ভুল পাসওয়ার্ড! (ডিফল্ট: 1234)');
+      setPinError('ভুল পাসওয়ার্ড! আপনার ভ্যারিয়েবলে সেট করা পাসওয়ার্ডটি সঠিকভাবে লিখুন।');
     }
   };
 
@@ -265,14 +262,14 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
               <h3 className="text-base font-bold text-stone-900">অ্যাডমিন পাসওয়ার্ড</h3>
               <p className="text-xs text-stone-500 mt-1">
                 {envAdminPassword
-                  ? 'আপনার সেট করা সিক্রেট পাসওয়ার্ড দিন।'
-                  : 'বান্ডিল পোস্ট ও অর্ডার দেখতে পাসওয়ার্ড দিন।'}
+                  ? 'আপনার ভ্যারিয়েবলে সেট করা সিক্রেট পাসওয়ার্ড দিন।'
+                  : 'ভ্যারিয়েবলে (VITE_ADMIN_PASSWORD) সেট করা পাসওয়ার্ড দিন।'}
               </p>
             </div>
             <form onSubmit={handlePinSubmit} className="space-y-3">
               <input
                 type="password"
-                placeholder={envAdminPassword ? "পাসওয়ার্ড লিখুন..." : "পাসওয়ার্ড (ডিফল্ট: 1234)"}
+                placeholder="পাসওয়ার্ড লিখুন..."
                 value={adminPin}
                 onChange={(e) => setAdminPin(e.target.value)}
                 className="w-full text-center tracking-widest text-base font-mono py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -287,9 +284,9 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
               </button>
               <div className="text-[11px] text-stone-400">
                 {envAdminPassword ? (
-                  <span className="text-emerald-600 font-medium">✓ ভ্যারিয়েবল থেকে সিক্রেট পাসওয়ার্ড সক্রিয়</span>
+                  <span className="text-emerald-600 font-medium">✓ ভ্যারিয়েবল সিকিউরিটি সক্রিয়</span>
                 ) : (
-                  <span>ডিফল্ট পাসওয়ার্ড: <span className="font-mono text-stone-600 font-bold">1234</span></span>
+                  <span className="text-amber-600 font-medium">⚠️ VITE_ADMIN_PASSWORD সেট করা প্রয়োজন</span>
                 )}
               </div>
             </form>

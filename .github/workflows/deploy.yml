@@ -33,14 +33,22 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_ADMIN_PASSWORD: ${{ vars.VITE_ADMIN_PASSWORD || secrets.VITE_ADMIN_PASSWORD || vars.ADMIN_PASSWORD || secrets.ADMIN_PASSWORD || vars.PASSWORD || secrets.PASSWORD }}
         run: |
           echo "Setting up environment variables for build..."
+          touch .env
           if [ -n "${VITE_SUPABASE_URL}" ]; then
-            echo "VITE_SUPABASE_URL=${VITE_SUPABASE_URL}" > .env
+            echo "VITE_SUPABASE_URL=${VITE_SUPABASE_URL}" >> .env
             echo "VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}" >> .env
             echo "Successfully injected Supabase environment variables into .env"
           else
             echo "NOTICE: VITE_SUPABASE_URL is not set in GitHub Actions variables/secrets."
+          fi
+          if [ -n "${VITE_ADMIN_PASSWORD}" ]; then
+            echo "VITE_ADMIN_PASSWORD=${VITE_ADMIN_PASSWORD}" >> .env
+            echo "Successfully injected VITE_ADMIN_PASSWORD into .env"
+          else
+            echo "NOTICE: VITE_ADMIN_PASSWORD is not set in GitHub Actions variables/secrets."
           fi
           npm run build
 
