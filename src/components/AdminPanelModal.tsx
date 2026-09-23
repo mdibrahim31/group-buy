@@ -26,6 +26,7 @@ import {
   Sparkles,
   Users,
   Eye,
+  Trash2,
 } from 'lucide-react';
 import { Order, Product, Bundle } from '../types';
 import { dbGetAllOrders, isSupabaseConfigured } from '../lib/supabase';
@@ -36,7 +37,7 @@ interface AdminPanelModalProps {
 }
 
 export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClose }) => {
-  const { orders: localOrders, products, bundles, addProduct, updateBatchStatus } = useApp();
+  const { orders: localOrders, products, bundles, addProduct, updateBatchStatus, removeCustomerSlot } = useApp();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [adminPin, setAdminPin] = useState('');
   const [pinError, setPinError] = useState('');
@@ -232,154 +233,169 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-900/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] overflow-hidden shadow-2xl border border-stone-200 flex flex-col">
-        {/* Admin Header */}
-        <div className="p-4 bg-stone-900 text-white flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm font-bold tracking-wide">অ্যাডমিন ড্যাশবোর্ড (Admin Panel)</h2>
-                {isSupabaseConfigured() ? (
-                  <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-700 px-2 py-0.5 rounded-full font-mono flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    Supabase লাইভ
-                  </span>
-                ) : (
-                  <span className="text-[10px] bg-amber-950 text-amber-300 border border-amber-700 px-2 py-0.5 rounded-full font-mono flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                    লোকাল মোড
-                  </span>
-                )}
+    <div className="fixed inset-0 z-50 bg-stone-900/95 backdrop-blur-md flex flex-col w-screen h-screen overflow-hidden animate-in fade-in duration-200">
+      <div className="bg-stone-100 w-full h-full flex flex-col overflow-hidden">
+        {/* Fullscreen Admin Header */}
+        <div className="bg-stone-900 text-white border-b border-stone-800 shrink-0">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shadow-xs">
+                <ShieldCheck className="w-6 h-6" />
               </div>
-              <p className="text-[11px] text-stone-400">বান্ডিল পোস্ট ও অর্ডার ট্র্যাকিং কন্ট্রোল</p>
+              <div>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h2 className="text-base sm:text-lg font-black tracking-tight text-white">
+                    অ্যাডমিন কন্ট্রোল সেন্টার (Admin Panel)
+                  </h2>
+                  {isSupabaseConfigured() ? (
+                    <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-700 px-2.5 py-0.5 rounded-full font-mono font-bold flex items-center gap-1.5 shadow-xs">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                      Supabase লাইভ
+                    </span>
+                  ) : (
+                    <span className="text-[10px] bg-amber-950 text-amber-300 border border-amber-700 px-2.5 py-0.5 rounded-full font-mono font-bold flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                      লোকাল মোড
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-stone-400 mt-0.5">
+                  হোলসেল বান্ডিল পোস্ট, সাইজ স্লট ম্যানেজমেন্ট ও ফুলফিলমেন্ট কন্ট্রোল
+                </p>
+              </div>
             </div>
+
+            {/* Corner Close Button */}
+            <button
+              onClick={onClose}
+              className="px-3.5 py-2 bg-stone-800 hover:bg-rose-700 text-stone-200 hover:text-white rounded-xl transition-all cursor-pointer flex items-center gap-2 font-bold text-xs shadow-md border border-stone-700 hover:border-rose-600"
+              title="অ্যাডমিন প্যানেল বন্ধ করুন"
+            >
+              <span className="hidden sm:inline">প্যানেল বন্ধ করুন</span>
+              <X className="w-4 h-4 text-stone-300 group-hover:text-white" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-stone-400 hover:text-white rounded-lg transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
 
         {/* PIN / Password Auth Screen */}
         {!isAuthenticated ? (
-          <div className="p-8 text-center max-w-sm mx-auto my-auto space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-stone-100 text-stone-700 flex items-center justify-center mx-auto">
-              <Lock className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-stone-900">অ্যাডমিন পাসওয়ার্ড</h3>
-              <p className="text-xs text-stone-500 mt-1">
-                {envAdminPassword
-                  ? 'আপনার ভ্যারিয়েবলে সেট করা সিক্রেট পাসওয়ার্ড দিন।'
-                  : 'ভ্যারিয়েবলে (VITE_ADMIN_PASSWORD) সেট করা পাসওয়ার্ড দিন।'}
-              </p>
-            </div>
-            <form onSubmit={handlePinSubmit} className="space-y-3">
-              <input
-                type="password"
-                placeholder="পাসওয়ার্ড লিখুন..."
-                value={adminPin}
-                onChange={(e) => setAdminPin(e.target.value)}
-                className="w-full text-center tracking-widest text-base font-mono py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                autoFocus
-              />
-              {pinError && <p className="text-xs text-rose-600 font-medium">{pinError}</p>}
-              <button
-                type="submit"
-                className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-semibold rounded-xl text-xs transition-all cursor-pointer"
-              >
-                লগইন করুন
-              </button>
-              <div className="text-[11px] text-stone-400">
-                {envAdminPassword ? (
-                  <span className="text-emerald-600 font-medium">✓ ভ্যারিয়েবল সিকিউরিটি সক্রিয়</span>
-                ) : (
-                  <span className="text-amber-600 font-medium">⚠️ VITE_ADMIN_PASSWORD সেট করা প্রয়োজন</span>
-                )}
+          <div className="flex-1 flex items-center justify-center p-6 bg-stone-100">
+            <div className="p-8 sm:p-10 text-center max-w-md w-full bg-white rounded-3xl shadow-xl border border-stone-200 space-y-5">
+              <div className="w-14 h-14 rounded-2xl bg-stone-100 text-stone-800 flex items-center justify-center mx-auto shadow-inner">
+                <Lock className="w-7 h-7" />
               </div>
-            </form>
+              <div>
+                <h3 className="text-lg font-bold text-stone-900">অ্যাডমিন পাসওয়ার্ড দিন</h3>
+                <p className="text-xs text-stone-500 mt-1.5 leading-relaxed">
+                  {envAdminPassword
+                    ? 'আপনার ভ্যারিয়েবলে সেট করা সিক্রেট পাসওয়ার্ড দিন।'
+                    : 'ভ্যারিয়েবলে (VITE_ADMIN_PASSWORD) সেট করা পাসওয়ার্ড দিন।'}
+                </p>
+              </div>
+              <form onSubmit={handlePinSubmit} className="space-y-3.5">
+                <input
+                  type="password"
+                  placeholder="পাসওয়ার্ড লিখুন..."
+                  value={adminPin}
+                  onChange={(e) => setAdminPin(e.target.value)}
+                  className="w-full text-center tracking-widest text-lg font-mono py-3 border border-stone-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
+                  autoFocus
+                />
+                {pinError && <p className="text-xs text-rose-600 font-bold">{pinError}</p>}
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-stone-900 hover:bg-stone-800 text-white font-bold rounded-2xl text-xs sm:text-sm transition-all cursor-pointer shadow-md"
+                >
+                  লগইন করুন
+                </button>
+                <div className="text-xs text-stone-400 pt-1">
+                  {envAdminPassword ? (
+                    <span className="text-emerald-700 font-bold">✓ ভ্যারিয়েবল সিকিউরিটি সক্রিয়</span>
+                  ) : (
+                    <span className="text-amber-600 font-medium">⚠️ VITE_ADMIN_PASSWORD সেট করা প্রয়োজন</span>
+                  )}
+                </div>
+              </form>
+            </div>
           </div>
         ) : (
           <>
-            {/* Nav Tabs & Actions */}
-            <div className="border-b border-stone-200 bg-stone-50 p-3 sm:px-5 flex flex-col sm:flex-row gap-3 items-center justify-between">
-              <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                <button
-                  onClick={() => setActiveTab('new-bundle')}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    activeTab === 'new-bundle'
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'bg-white text-stone-700 border border-stone-200 hover:bg-stone-100'
-                  }`}
-                >
-                  <PlusCircle className="w-3.5 h-3.5" />
-                  <span>নতুন বান্ডিল পোস্ট করুন</span>
-                </button>
+            {/* Nav Tabs & Actions Bar */}
+            <div className="border-b border-stone-200 bg-white shrink-0 shadow-xs">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row gap-3 items-center justify-between">
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                  <button
+                    onClick={() => setActiveTab('bundles')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                      activeTab === 'bundles'
+                        ? 'bg-stone-900 text-white shadow-sm'
+                        : 'bg-stone-100 text-stone-700 border border-stone-200 hover:bg-stone-200'
+                    }`}
+                  >
+                    <Layers className="w-4 h-4" />
+                    <span>চলতি বান্ডিল ও ব্যাচসমূহ ({bundles.length})</span>
+                  </button>
 
-                <button
-                  onClick={() => setActiveTab('orders')}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    activeTab === 'orders'
-                      ? 'bg-stone-900 text-white shadow-xs'
-                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
-                  }`}
-                >
-                  <Package className="w-3.5 h-3.5" />
-                  <span>সকল অর্ডার ({allOrders.length})</span>
-                </button>
+                  <button
+                    onClick={() => setActiveTab('new-bundle')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                      activeTab === 'new-bundle'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'bg-stone-100 text-stone-700 border border-stone-200 hover:bg-stone-200'
+                    }`}
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    <span>নতুন বান্ডিল পোস্ট</span>
+                  </button>
 
-                <button
-                  onClick={() => setActiveTab('bundles')}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    activeTab === 'bundles'
-                      ? 'bg-stone-900 text-white shadow-xs'
-                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
-                  }`}
-                >
-                  <Layers className="w-3.5 h-3.5" />
-                  <span>চলতি বান্ডিলসমূহ ({bundles.length})</span>
-                </button>
+                  <button
+                    onClick={() => setActiveTab('orders')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                      activeTab === 'orders'
+                        ? 'bg-stone-900 text-white shadow-sm'
+                        : 'bg-stone-100 text-stone-700 border border-stone-200 hover:bg-stone-200'
+                    }`}
+                  >
+                    <Package className="w-4 h-4" />
+                    <span>সকল অর্ডার তালিকা ({allOrders.length})</span>
+                  </button>
 
-                <button
-                  onClick={refreshAdminData}
-                  className="p-1.5 bg-white border border-stone-200 text-stone-600 hover:text-stone-900 rounded-lg text-xs cursor-pointer ml-auto sm:ml-0"
-                  title="রিফ্রেশ করুন"
-                >
-                  <RefreshCcw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-                </button>
-              </div>
-
-              {/* Search (when in Orders tab) */}
-              {activeTab === 'orders' && (
-                <div className="relative w-full sm:w-64">
-                  <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="ফোন বা অর্ডার নম্বর..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-8 pr-7 py-1.5 bg-white border border-stone-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+                  <button
+                    onClick={refreshAdminData}
+                    className="p-2 bg-stone-100 border border-stone-200 text-stone-700 hover:bg-stone-200 rounded-xl text-xs cursor-pointer ml-auto sm:ml-1 transition-colors"
+                    title="ডাটা রিফ্রেশ করুন"
+                  >
+                    <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  </button>
                 </div>
-              )}
+
+                {/* Search (when in Orders tab) */}
+                {activeTab === 'orders' && (
+                  <div className="relative w-full sm:w-72">
+                    <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="ফোন, নাম বা অর্ডার নম্বর..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-8 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Tab Contents */}
-            <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4">
+            {/* Tab Contents - Fullscreen Container */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-stone-100/70">
+              <div className="max-w-7xl mx-auto w-full space-y-6">
               {/* TAB 1: POST NEW BUNDLE */}
               {activeTab === 'new-bundle' && (
                 <div className="max-w-2xl mx-auto bg-stone-50 border border-stone-200 rounded-2xl p-5 sm:p-6">
@@ -907,6 +923,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                                       <th className="p-3">অগ্রিম ও বাকি টাকা</th>
                                       <th className="p-3">ডেলিভারি ঠিকানা ও জেলা</th>
                                       <th className="p-3">বুকিং সময়</th>
+                                      <th className="p-3 text-right">অ্যাকশন</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-stone-200">
@@ -998,6 +1015,24 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                                             minute: '2-digit',
                                           }) : 'সম্প্রতি'}
                                         </td>
+                                        <td className="p-3 text-right whitespace-nowrap">
+                                          <button
+                                            onClick={() => {
+                                              if (confirm(`আপনি কি কাস্টমার "${ord.customerName || 'গ্রাহক'}" (সাইজ: ${ord.size}) এর বুকিং বাতিল করে এই স্লটটি খালি করতে চান?`)) {
+                                                const res = removeCustomerSlot(selectedBundle.id, ord.slotId || '', 'অ্যাডমিন কর্তৃক বাতিল');
+                                                if (res.success) {
+                                                  setCopiedNotification(res.message);
+                                                  setTimeout(() => setCopiedNotification(null), 3000);
+                                                }
+                                              }
+                                            }}
+                                            className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 transition-colors cursor-pointer"
+                                            title="স্লট খালি ও কাস্টমার রিমুভ করুন"
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                            <span>রিমুভ</span>
+                                          </button>
+                                        </td>
                                       </tr>
                                     ))}
                                   </tbody>
@@ -1015,7 +1050,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                                 return (
                                   <div
                                     key={slot.id}
-                                    className={`p-2.5 rounded-xl border text-center ${
+                                    className={`p-2.5 rounded-xl border text-center relative group ${
                                       isBooked
                                         ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-xs'
                                         : 'bg-white border-dashed border-stone-300 text-stone-500'
@@ -1026,7 +1061,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                                       {isBooked ? (
                                         <span className="text-emerald-800 flex items-center justify-center gap-0.5">
                                           <Check className="w-3 h-3" />
-                                          <span>{slot.userName || 'বুকড'}</span>
+                                          <span className="truncate max-w-[80px]">{slot.userName || 'বুকড'}</span>
                                         </span>
                                       ) : (
                                         <span className="text-stone-400">খালি স্লট</span>
@@ -1036,6 +1071,23 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                                       <div className="text-[9px] text-emerald-700 font-mono mt-0.5">
                                         {slot.userPhoneMasked}
                                       </div>
+                                    )}
+                                    {isBooked && (
+                                      <button
+                                        onClick={() => {
+                                          if (confirm(`আপনি কি সাইজ ${slot.size} এর বুকিং বাতিল করে স্লটটি উন্মুক্ত করতে চান?`)) {
+                                            const res = removeCustomerSlot(selectedBundle.id, slot.id, 'অ্যাডমিন কর্তৃক বাতিল');
+                                            if (res.success) {
+                                              setCopiedNotification(res.message);
+                                              setTimeout(() => setCopiedNotification(null), 3000);
+                                            }
+                                          }
+                                        }}
+                                        className="mt-1.5 px-2 py-0.5 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded text-[9px] font-bold block mx-auto cursor-pointer transition-colors"
+                                        title="স্লট খালি করুন"
+                                      >
+                                        ✕ রিমুভ
+                                      </button>
                                     )}
                                   </div>
                                 );
@@ -1226,6 +1278,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                   )}
                 </div>
               )}
+              </div>
             </div>
           </>
         )}

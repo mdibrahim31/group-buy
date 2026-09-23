@@ -72,6 +72,7 @@ interface AppContextType {
     transactionId?: string
   ) => { success: boolean; order?: Order; message: string };
   updateBatchStatus: (bundleId: string, status: Bundle['status']) => void;
+  removeCustomerSlot: (bundleId: string, slotId: string, reason?: string) => { success: boolean; message: string };
   addProduct: (product: Omit<Product, 'id'>) => void;
   findOrderByIdOrCustomer: (query: string) => Promise<Order[]>;
 }
@@ -477,21 +478,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setOrders(prev => [newOrder, ...prev]);
 
-    // Add confirmation notification
+    // 1. Notification for the customer who booked
     addNotification({
       title: '✅ স্লট বুকিং সফল হয়েছে!',
-      message: `${product.title} (সাইজ: ${targetSlot.size}) এর জন্য আপনার স্লট সংরক্ষিত হয়েছে। অগ্রিম ৳${effectiveAdvance} পরিশোধিত।`,
+      message: `${product.title} (সাইজ: ${targetSlot.size}, ব্যাচ #${targetBundle.batchNumber}) এর জন্য আপনার স্লট সংরক্ষিত হয়েছে। অগ্রিম ৳${effectiveAdvance} পরিশোধিত।`,
       type: 'order',
       linkAction: 'my_bookings',
       bundleId: targetBundle.id,
       productId: product.id,
     });
 
+    // 2. Notification for same bundle participants (when a co-buyer joins a slot)
+    if (!isNowCompleted) {
+      addNotification({
+        title: '👥 আপনার বান্ডিলে নতুন ক্রেতা যুক্ত হয়েছেন!',
+        message: `${product.title} (ব্যাচ #${targetBundle.batchNumber}) এ সাইজ ${targetSlot.size} এর আরও ১টি স্লট বুক হয়েছে! বাকি আছে মাত্র ${targetBundle.totalSlots - newFilledSlots}টি স্লট।`,
+        type: 'slot_booked',
+        linkAction: 'bundle',
+        bundleId: targetBundle.id,
+        productId: product.id,
+      });
+    }
+
+    // 3. When the bundle becomes 100% full
     if (isNowCompleted) {
+      // Customer notification
       addNotification({
         title: '🎉 স্লট সম্পূর্ণ হয়েছে (Slot Completed)!',
-        message: `অভিনন্দন! ${product.title} (ব্যাচ #${targetBundle.batchNumber}) এর সবকটি স্লট পূর্ণ হয়েছে! হোলসেলার অর্ডার সফলভাবে প্লেস করা হয়েছে।`,
+        message: `অভিনন্দন! ${product.title} (ব্যাচ #${targetBundle.batchNumber}) এর সবকটি (${targetBundle.totalSlots}টি) স্লট পূর্ণ হয়েছে! হোলসেলার অর্ডার সফলভাবে প্রস্তুত।`,
         type: 'bundle_complete',
+        linkAction: 'bundle',
+        bundleId: targetBundle.id,
+        productId: product.id,
+      });
+
+      // Admin alert notification
+      addNotification({
+        title: '🚨 [অ্যাডমিন অ্যালার্ট] বান্ডিল ১০০% পূরণ হয়েছে!',
+        message: `${product.title} (ব্যাচ #${targetBundle.batchNumber}) এর সবকটি (${targetBundle.totalSlots}টি) স্লট বুক সম্পন্ন হয়েছে। হোলসেলার অর্ডার ও প্যাকেজিং প্রসেস শুরু করুন।`,
+        type: 'system',
         linkAction: 'bundle',
         bundleId: targetBundle.id,
         productId: product.id,
@@ -763,9 +788,80 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setBundles(prev => [firstBundle, ...prev]);
 
-    // Save directly to Supabase products and bundles tables
-    dbSaveProduct(product);
-    dbSaveBundle(firstBundle);
+    // Broadcast notification to all customers that a new wholesale bundle is posted
+    addNotification({
+      title: '🔥 নতুন হোলসেল বান্ডিল যুক্ত হয়েছে!',
+      message: `${product.title} এর নতুন হোলসেল বান্ডিল শপে উন্মুক্ত করা হয়েছে! দ্রুত পাইকারি মূল্যে সাইজ স্লট বুক করুন।`,
+      type: 'promo',
+      linkAction: 'product',
+      productId: product.id,
+    });
+  };
+
+  // Admin remove customer from a slot
+  const removeCustomerSlot = (
+    bundleId: string,
+    slotId: string,
+    reason?: string
+  ): { success: boolean; message: string } => {
+    const targetBundle = bundles.find(b => b.id === bundleId);
+    if (!targetBundle) {
+      return { success: false, message: 'বান্ডিল খুঁজে পাওয়া যায়নি।' };
+    }
+
+    const targetSlot = targetBundle.slots.find(s => s.id === slotId);
+    if (!targetSlot || targetSlot.status !== 'booked') {
+      return { success: false, message: 'এই স্লটটি বুক করা অবস্থায় পাওয়া যায়নি।' };
+    }
+
+    const product = products.find(p => p.id === targetBundle.productId);
+    const removedUserName = targetSlot.userName || 'গ্রাহক';
+    const removedSize = targetSlot.size;
+
+    const clearedSlot: BundleSlot = {
+      id: targetSlot.id,
+      bundleId: targetSlot.bundleId,
+      size: targetSlot.size,
+      status: 'available',
+      userId: undefined,
+      userName: undefined,
+      userPhoneMasked: undefined,
+      bookedAt: undefined,
+    };
+
+    const updatedSlots = targetBundle.slots.map(s => (s.id === slotId ? clearedSlot : s));
+    const newFilledSlots = updatedSlots.filter(s => s.status === 'booked').length;
+
+    const updatedBundle: Bundle = {
+      ...targetBundle,
+      slots: updatedSlots,
+      filledSlots: newFilledSlots,
+      status: targetBundle.status === 'completed' || targetBundle.status === 'ordered' ? 'open' : targetBundle.status,
+    };
+
+    setBundles(prev => prev.map(b => (b.id === bundleId ? updatedBundle : b)));
+
+    // Remove or cancel the order associated with this slot
+    setOrders(prev => prev.filter(o => !(o.bundleId === bundleId && (o.slotId === slotId || (o.size === removedSize && o.customerId === targetSlot.userId)))));
+
+    // Send notification about slot cancellation
+    addNotification({
+      title: '⚠️ স্লট বুকিং বাতিল করা হয়েছে',
+      message: `${product?.title || 'পণ্য'} (সাইজ: ${removedSize}, ব্যাচ #${targetBundle.batchNumber}) এর স্লট থেকে কাস্টমার (${removedUserName}) কে রিমুভ করা হয়েছে। ${reason ? `কারণ: ${reason}` : ''}`,
+      type: 'system',
+      linkAction: 'bundle',
+      bundleId: targetBundle.id,
+      productId: product?.id,
+    });
+
+    // Update Supabase
+    dbUpdateBundleSlot(clearedSlot);
+    dbUpdateBundleStatus(updatedBundle.id, updatedBundle.status, updatedBundle.filledSlots);
+
+    return {
+      success: true,
+      message: `সাইজ ${removedSize} এর স্লটটি সফলভাবে খালি করা হয়েছে এবং কাস্টমারকে রিমুভ করা হয়েছে।`
+    };
   };
 
   // Find order by Order ID or Customer ID
@@ -828,6 +924,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         createNewBatchForProduct,
         buyWholeBundle,
         updateBatchStatus,
+        removeCustomerSlot,
         addProduct,
         findOrderByIdOrCustomer,
       }}
