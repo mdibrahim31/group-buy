@@ -9,6 +9,7 @@ import { BuyWholeBundleModal } from './components/BuyWholeBundleModal';
 import { AuthModal } from './components/AuthModal';
 import { MyBookingsModal } from './components/MyBookingsModal';
 import { ProfileModal } from './components/ProfileModal';
+import { AdminPanelModal } from './components/AdminPanelModal';
 import { Product, Bundle, BundleSlot } from './types';
 import { Sparkles, HelpCircle, CheckCircle2, ShieldAlert, PhoneCall, RefreshCcw } from 'lucide-react';
 
@@ -30,6 +31,9 @@ const MainContent: React.FC = () => {
 
   // Buy Whole Bundle Modal State
   const [wholeBundleTarget, setWholeBundleTarget] = useState<Product | null>(null);
+
+  // Admin Modal State
+  const [adminModalOpen, setAdminModalOpen] = useState(false);
 
   // Toast notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -170,12 +174,17 @@ const MainContent: React.FC = () => {
       <footer className="bg-stone-900 text-stone-400 py-6 border-t border-stone-800 text-xs mt-12">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <p>© 2026 GroupBuy Wholesale. সরাসরি কারখানা ও পাইকারি বাজার থেকে গ্রাহকের কাছে।</p>
-          <div className="flex items-center gap-4 text-stone-300">
+          <div className="flex items-center gap-4 text-stone-400">
             <span>হোলসেল ডাইরেক্ট</span>
             <span>•</span>
             <span>ক্যাশ অন ডেলিভারি</span>
             <span>•</span>
-            <span>১০০% সেফ বুকিং</span>
+            <button
+              onClick={() => setAdminModalOpen(true)}
+              className="text-stone-500 hover:text-stone-300 hover:underline transition-colors cursor-pointer"
+            >
+              🔒 অ্যাডমিন প্যানেল
+            </button>
           </div>
         </div>
       </footer>
@@ -223,6 +232,7 @@ const MainContent: React.FC = () => {
       <AuthModal />
       <MyBookingsModal />
       <ProfileModal />
+      <AdminPanelModal isOpen={adminModalOpen} onClose={() => setAdminModalOpen(false)} />
     </div>
   );
 };

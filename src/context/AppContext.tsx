@@ -218,24 +218,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       }
 
-      // If customer not found, create new customer profile automatically
-      const newCustomer: Customer = {
-        id: 'cust-' + Date.now(),
-        phone: cleanPhone,
-        password: pass,
-        fullName: 'কাস্টমার (' + cleanPhone.slice(-4) + ')',
-        deliveryAddress: 'ঢাকা, বাংলাদেশ',
-        district: 'ঢাকা',
-        createdAt: new Date().toISOString(),
+      // Account not found - Must register first
+      return {
+        success: false,
+        message: 'এই ফোন নম্বরে কোনো অ্যাকাউন্ট পাওয়া যায়নি। অনুগ্রহ করে আগে রেজিস্ট্রেশন করুন।',
       };
-
-      await dbSaveCustomer(newCustomer);
-      usersDb[cleanPhone] = { user: newCustomer, pass };
-      localStorage.setItem(LOCAL_STORAGE_KEY_USERS_DB, JSON.stringify(usersDb));
-      setUser(newCustomer);
-      return { success: true, message: 'লগইন সফল হয়েছে।' };
     } catch (err) {
-      return { success: false, message: 'লগইনে সমস্যা হয়েছে।' };
+      return { success: false, message: 'লগইনে সমস্যা হয়েছে। আবার চেষ্টা করুন।' };
     }
   };
 

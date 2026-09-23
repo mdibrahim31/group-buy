@@ -191,3 +191,62 @@ export async function dbFindOrderById(orderId: string): Promise<Order | null> {
     return null;
   }
 }
+
+export async function dbGetAllCustomers(): Promise<Customer[]> {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+    return data.map((d: any) => ({
+      id: d.id,
+      phone: d.phone,
+      password: d.password,
+      fullName: d.full_name || d.fullName || '',
+      deliveryAddress: d.delivery_address || d.deliveryAddress || '',
+      district: d.district || '',
+      createdAt: d.created_at,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function dbGetAllOrders(): Promise<Order[]> {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+    return data.map((d: any) => ({
+      id: d.id,
+      customerId: d.customer_id,
+      customerName: d.customer_name,
+      customerPhone: d.customer_phone,
+      bundleId: d.bundle_id,
+      batchNumber: d.batch_number,
+      productId: d.product_id,
+      productTitle: d.product_title,
+      productImage: d.product_image,
+      size: d.size,
+      isFullBundle: d.is_full_bundle,
+      totalPieces: d.total_pieces,
+      groupPrice: Number(d.group_price),
+      advanceAmount: Number(d.advance_amount),
+      dueAmount: Number(d.due_amount),
+      deliveryAddress: d.delivery_address,
+      contactPhone: d.customer_phone,
+      paymentMethod: d.payment_method,
+      status: d.status,
+      createdAt: d.created_at,
+    }));
+  } catch {
+    return [];
+  }
+}

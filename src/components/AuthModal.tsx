@@ -48,13 +48,6 @@ export const AuthModal: React.FC = () => {
     }
   };
 
-  const handleQuickDemoFill = () => {
-    setPhone('01712345678');
-    setPassword('123456');
-    setFullName('আহমেদ হাসান');
-    setAddress('বাড়ি ১২, রোড ৫, ধানমন্ডি');
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden">
@@ -100,9 +93,23 @@ export const AuthModal: React.FC = () => {
           </div>
 
           {error && (
-            <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
+            <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex flex-col gap-1.5">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                <span className="font-medium">{error}</span>
+              </div>
+              {mode === 'login' && error.includes('রেজিস্ট্রেশন') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('register');
+                    setError('');
+                  }}
+                  className="text-left text-xs font-bold text-emerald-800 hover:underline pl-6 cursor-pointer"
+                >
+                  👉 নতুন অ্যাকাউন্ট তৈরি করতে এখানে ক্লিক করুন
+                </button>
+              )}
             </div>
           )}
 
@@ -225,15 +232,38 @@ export const AuthModal: React.FC = () => {
             )}
           </button>
 
-          <div className="pt-2 text-center border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
-            <span>পরীক্ষা করার জন্য:</span>
-            <button
-              type="button"
-              onClick={handleQuickDemoFill}
-              className="text-emerald-700 font-semibold hover:underline cursor-pointer"
-            >
-              ডেমো তথ্য বসান
-            </button>
+          <div className="pt-3 text-center border-t border-stone-100 text-xs text-stone-500">
+            {mode === 'login' ? (
+              <span>
+                নতুন কাস্টমার?{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('register');
+                    setError('');
+                    setSuccess('');
+                  }}
+                  className="text-emerald-700 font-bold hover:underline cursor-pointer"
+                >
+                  রেজিস্ট্রেশন করুন
+                </button>
+              </span>
+            ) : (
+              <span>
+                ইতোমধ্যে অ্যাকাউন্ট আছে?{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('login');
+                    setError('');
+                    setSuccess('');
+                  }}
+                  className="text-emerald-700 font-bold hover:underline cursor-pointer"
+                >
+                  লগইন করুন
+                </button>
+              </span>
+            )}
           </div>
         </form>
       </div>

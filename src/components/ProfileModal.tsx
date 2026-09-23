@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useApp } from '../context/AppContext';
-import { X, User as UserIcon, Phone, MapPin, Package, LogOut, ShieldCheck, ShoppingBag, Copy, Check } from 'lucide-react';
+import { X, User as UserIcon, Phone, MapPin, LogOut, ShieldCheck, ShoppingBag } from 'lucide-react';
 
 export const ProfileModal: React.FC = () => {
   const { user, profileModalOpen, setProfileModalOpen, logout, orders, setMyBookingsOpen } = useApp();
-  const [copied, setCopied] = useState(false);
 
   if (!profileModalOpen || !user) return null;
 
@@ -16,12 +15,6 @@ export const ProfileModal: React.FC = () => {
   const handleOpenBookings = () => {
     setProfileModalOpen(false);
     setMyBookingsOpen(true);
-  };
-
-  const handleCopyId = () => {
-    navigator.clipboard.writeText(user.id);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   const firstLetter = (user.fullName || 'ক').charAt(0).toUpperCase();
@@ -63,24 +56,9 @@ export const ProfileModal: React.FC = () => {
               </div>
               <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-semibold mt-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                <span>ভেরিফাইড কাস্টমার অ্যাকাউন্ট</span>
+                <span>ভেরিফাইড অ্যাকাউন্ট</span>
               </div>
             </div>
-          </div>
-
-          {/* Customer ID Box */}
-          <div className="flex items-center justify-between p-2.5 bg-stone-100/80 rounded-xl border border-stone-200 text-xs">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-stone-500 text-[11px]">কাস্টমার আইডি:</span>
-              <span className="font-mono font-bold text-stone-800 text-[11px] truncate">{user.id}</span>
-            </div>
-            <button
-              onClick={handleCopyId}
-              className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 bg-white px-2 py-0.5 rounded border border-stone-200 cursor-pointer shrink-0 ml-2"
-            >
-              {copied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-stone-500" />}
-              <span>{copied ? 'কপি হয়েছে' : 'আইডি কপি'}</span>
-            </button>
           </div>
 
           {/* Delivery Details */}
