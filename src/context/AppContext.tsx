@@ -13,6 +13,9 @@ import {
   dbSaveBundle,
   dbUpdateBundleSlot,
   dbUpdateBundleStatus,
+  dbGetAllCategories,
+  dbSaveCategory,
+  dbDeleteCategory,
   isSupabaseConfigured,
 } from '../lib/supabase';
 
@@ -38,6 +41,10 @@ interface AppContextType {
   setSelectedCategory: (cat: string) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  selectedSizeFilter: string;
+  setSelectedSizeFilter: (size: string) => void;
+  onlyLastSlotFilter: boolean;
+  setOnlyLastSlotFilter: (value: boolean | ((prev: boolean) => boolean)) => void;
   myBookingsOpen: boolean;
   setMyBookingsOpen: (open: boolean) => void;
   profileModalOpen: boolean;
@@ -178,6 +185,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('সব');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSizeFilter, setSelectedSizeFilter] = useState('all');
+  const [onlyLastSlotFilter, setOnlyLastSlotFilter] = useState(false);
 
   // Sync state to local storage
   useEffect(() => {
@@ -271,14 +280,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     fetchRemoteUserOrders();
   }, [user?.id]);
 
-  // Load products and bundles from Supabase on launch
+  // Load products, bundles, and categories from Supabase on launch
   useEffect(() => {
     const loadSupabaseCatalog = async () => {
       if (!isSupabaseConfigured()) return;
       try {
-        const [remoteProducts, remoteBundles] = await Promise.all([
+        const [remoteProducts, remoteBundles, remoteCategories] = await Promise.all([
           dbGetAllProducts(),
           dbGetAllBundles(),
+          dbGetAllCategories(),
         ]);
 
         if (remoteProducts.length > 0) {
@@ -296,6 +306,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             prev.forEach(b => map.set(b.id, b));
             remoteBundles.forEach(b => map.set(b.id, b));
             return Array.from(map.values());
+          });
+        }
+
+        if (remoteCategories.length > 0) {
+          setCategories(prev => {
+            const combined = Array.from(new Set([...prev, ...remoteCategories]));
+            try {
+              localStorage.setItem(LOCAL_STORAGE_KEY_CATEGORIES, JSON.stringify(combined));
+            } catch (e) {
+              console.error(e);
+            }
+            return combined;
           });
         }
       } catch (err) {
@@ -992,7 +1014,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {
       console.error(e);
     }
-    return { success: true, message: `"${clean}" ক্যাটাগরি সফলভাবে যুক্ত হয়েছে` };
+    // Save to Supabase Database
+    dbSaveCategory(clean);
+
+    return { success: true, message: `"${clean}" ক্যাটাগরি সফলভাবে যুক্ত ও সেভ হয়েছে` };
   };
 
   // Delete category
@@ -1006,6 +1031,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {
       console.error(e);
     }
+    // Delete from Supabase Database
+    dbDeleteCategory(clean);
+
     if (selectedCategory === clean) {
       setSelectedCategory('সব');
     }
@@ -1064,6 +1092,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSelectedCategory,
         searchQuery,
         setSearchQuery,
+        selectedSizeFilter,
+        setSelectedSizeFilter,
+        onlyLastSlotFilter,
+        setOnlyLastSlotFilter,
         myBookingsOpen,
         setMyBookingsOpen,
         profileModalOpen,

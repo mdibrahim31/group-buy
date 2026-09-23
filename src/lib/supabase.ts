@@ -510,3 +510,60 @@ export async function dbUpdateBundleStatus(bundleId: string, status: string, fil
   }
 }
 
+// ======================= CATEGORIES DB =======================
+
+export async function dbGetAllCategories(): Promise<string[]> {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('name')
+      .order('name', { ascending: true });
+
+    if (error || !data) return [];
+    return data.map((d: any) => d.name).filter(Boolean);
+  } catch (err) {
+    console.warn('Supabase categories fetch notice:', err);
+    return [];
+  }
+}
+
+export async function dbSaveCategory(name: string): Promise<boolean> {
+  if (!supabase || !name.trim()) return false;
+  try {
+    const cleanName = name.trim();
+    const { error } = await supabase
+      .from('categories')
+      .upsert({ name: cleanName }, { onConflict: 'name' });
+
+    if (error) {
+      console.warn('Supabase dbSaveCategory error:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('Supabase dbSaveCategory exception:', err);
+    return false;
+  }
+}
+
+export async function dbDeleteCategory(name: string): Promise<boolean> {
+  if (!supabase || !name.trim()) return false;
+  try {
+    const cleanName = name.trim();
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('name', cleanName);
+
+    if (error) {
+      console.warn('Supabase dbDeleteCategory error:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('Supabase dbDeleteCategory exception:', err);
+    return false;
+  }
+}
+
