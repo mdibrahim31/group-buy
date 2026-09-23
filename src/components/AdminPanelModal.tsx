@@ -113,14 +113,35 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
 
   if (!isOpen) return null;
 
-  // Simple PIN verification (default: 1234 or admin)
+  // Environment variable for admin password (e.g., VITE_ADMIN_PASSWORD in GitHub / .env)
+  const envAdminPassword = (
+    import.meta.env.VITE_ADMIN_PASSWORD ||
+    import.meta.env.VITE_ADMIN_PIN ||
+    ''
+  ).trim();
+
+  // Simple PIN / Password verification
   const handlePinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminPin === '1234' || adminPin === 'admin' || adminPin === '0000') {
+    const entered = adminPin.trim();
+
+    // 1. If VITE_ADMIN_PASSWORD is set in environment variables
+    if (envAdminPassword) {
+      if (entered === envAdminPassword) {
+        setIsAuthenticated(true);
+        setPinError('');
+      } else {
+        setPinError('ভুল পাসওয়ার্ড! আপনার ভ্যারিয়েবলে (VITE_ADMIN_PASSWORD) সেট করা পাসওয়ার্ড দিন।');
+      }
+      return;
+    }
+
+    // 2. Default fallback if no variable is configured
+    if (entered === '1234' || entered === 'admin' || entered === '0000') {
       setIsAuthenticated(true);
       setPinError('');
     } else {
-      setPinError('ভুল পিন নম্বর। (ডেমো পিন: 1234)');
+      setPinError('ভুল পাসওয়ার্ড! (ডিফল্ট: 1234)');
     }
   };
 
@@ -234,25 +255,27 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
           </button>
         </div>
 
-        {/* PIN Auth Screen */}
+        {/* PIN / Password Auth Screen */}
         {!isAuthenticated ? (
           <div className="p-8 text-center max-w-sm mx-auto my-auto space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-stone-100 text-stone-700 flex items-center justify-center mx-auto">
               <Lock className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-stone-900">অ্যাডমিন সিকিউরিটি পিন</h3>
+              <h3 className="text-base font-bold text-stone-900">অ্যাডমিন পাসওয়ার্ড</h3>
               <p className="text-xs text-stone-500 mt-1">
-                বান্ডিল পোস্ট ও অর্ডার ম্যানেজ করতে ৪ সংখ্যার পিন দিন।
+                {envAdminPassword
+                  ? 'আপনার সেট করা সিক্রেট পাসওয়ার্ড দিন।'
+                  : 'বান্ডিল পোস্ট ও অর্ডার দেখতে পাসওয়ার্ড দিন।'}
               </p>
             </div>
             <form onSubmit={handlePinSubmit} className="space-y-3">
               <input
                 type="password"
-                placeholder="পিন লিখুন (যেমন: 1234)"
+                placeholder={envAdminPassword ? "পাসওয়ার্ড লিখুন..." : "পাসওয়ার্ড (ডিফল্ট: 1234)"}
                 value={adminPin}
                 onChange={(e) => setAdminPin(e.target.value)}
-                className="w-full text-center tracking-widest text-lg font-mono py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full text-center tracking-widest text-base font-mono py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 autoFocus
               />
               {pinError && <p className="text-xs text-rose-600 font-medium">{pinError}</p>}
@@ -262,7 +285,13 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
               >
                 লগইন করুন
               </button>
-              <p className="text-[11px] text-stone-400">ডেমো পিন: <span className="font-mono text-stone-600 font-bold">1234</span></p>
+              <div className="text-[11px] text-stone-400">
+                {envAdminPassword ? (
+                  <span className="text-emerald-600 font-medium">✓ ভ্যারিয়েবল থেকে সিক্রেট পাসওয়ার্ড সক্রিয়</span>
+                ) : (
+                  <span>ডিফল্ট পাসওয়ার্ড: <span className="font-mono text-stone-600 font-bold">1234</span></span>
+                )}
+              </div>
             </form>
           </div>
         ) : (
