@@ -201,23 +201,18 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
     (import.meta.env as any).VITE_PASSWORD ||
     (import.meta.env as any).PASSWORD ||
     ''
-  ).trim().replace(/^["']|["']$/g, '');
+  ).trim().replace(/^["']|["']$/g, '') || 'admin123';
 
-  // Strict Password verification - Only accepts value from environment variable
+  // Strict Password verification - Only accepts value from environment variable or default fallback
   const handlePinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const entered = adminPin.trim();
-
-    if (!envAdminPassword) {
-      setPinError('ভ্যারিয়েবলে (VITE_ADMIN_PASSWORD) পাসওয়ার্ড সেট করা নেই! অনুগ্রহ করে GitHub Secrets/Variables-এ পাসওয়ার্ড যুক্ত করে রি-ডিপ্লয় করুন।');
-      return;
-    }
 
     if (entered === envAdminPassword) {
       setIsAuthenticated(true);
       setPinError('');
     } else {
-      setPinError('ভুল পাসওয়ার্ড! আপনার ভ্যারিয়েবলে সেট করা পাসওয়ার্ডটি সঠিকভাবে লিখুন।');
+      setPinError('ভুল পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিন (ডিফল্ট: admin123)');
     }
   };
 
@@ -369,9 +364,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
               <div>
                 <h3 className="text-lg font-bold text-stone-900">অ্যাডমিন পাসওয়ার্ড দিন</h3>
                 <p className="text-xs text-stone-500 mt-1.5 leading-relaxed">
-                  {envAdminPassword
-                    ? 'আপনার ভ্যারিয়েবলে সেট করা সিক্রেট পাসওয়ার্ড দিন।'
-                    : 'ভ্যারিয়েবলে (VITE_ADMIN_PASSWORD) সেট করা পাসওয়ার্ড দিন।'}
+                  ডিফল্ট পাসওয়ার্ড: <strong className="text-emerald-700 font-mono">admin123</strong> অথবা আপনার সেট করা পাসওয়ার্ড।
                 </p>
               </div>
               <form onSubmit={handlePinSubmit} className="space-y-3.5">
@@ -390,12 +383,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                 >
                   লগইন করুন
                 </button>
-                <div className="text-xs text-stone-400 pt-1">
-                  {envAdminPassword ? (
-                    <span className="text-emerald-700 font-bold">✓ ভ্যারিয়েবল সিকিউরিটি সক্রিয়</span>
-                  ) : (
-                    <span className="text-amber-600 font-medium">⚠️ VITE_ADMIN_PASSWORD সেট করা প্রয়োজন</span>
-                  )}
+                <div className="text-xs text-stone-500 pt-1">
+                  💡 পাসওয়ার্ড: <code className="bg-stone-100 px-2 py-0.5 rounded font-mono font-bold text-stone-800">admin123</code>
                 </div>
               </form>
             </div>

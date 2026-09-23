@@ -924,6 +924,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setBundles(prev => [firstBundle, ...prev]);
 
+    // Save to Supabase so all customers see it
+    dbSaveProduct(product);
+    dbSaveBundle(firstBundle);
+
     // Broadcast notification to all customers that a new wholesale bundle is posted
     addNotification({
       title: '🔥 নতুন হোলসেল বান্ডিল যুক্ত হয়েছে!',
