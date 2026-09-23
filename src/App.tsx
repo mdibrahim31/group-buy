@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
-import { HowItWorksBanner } from './components/HowItWorksBanner';
 import { ProductCard } from './components/ProductCard';
 import { BookingModal } from './components/BookingModal';
 import { StartNewBatchModal } from './components/StartNewBatchModal';
@@ -71,11 +70,8 @@ const MainContent: React.FC = () => {
       )}
 
       <main className="max-w-7xl mx-auto px-4 py-4 sm:py-6 flex-1 w-full">
-        {/* Business Logic Explainer Banner */}
-        <HowItWorksBanner />
-
         {/* Section Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 mt-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div>
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
