@@ -173,9 +173,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               {/* Urgency message */}
               <div className="mt-2 text-[11px] text-stone-600 flex items-center justify-between">
                 {filledSlots >= totalSlots ? (
-                  <span className="text-emerald-700 font-semibold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    সবকটি স্লট পূর্ণ! হোলসেলার অর্ডার প্রক্রিয়াধীন।
+                  <span className="text-emerald-800 bg-emerald-100/90 border border-emerald-300 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>✓ স্লট পূরণ হয়েছে (Slot Completed) - হোলসেলার অর্ডার প্রক্রিয়াধীন</span>
                   </span>
                 ) : (
                   <span className="text-stone-600 flex items-center gap-1">

@@ -60,7 +60,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         paymentMethod,
         fullDeliveryAddress,
         phone.trim(),
-        fullName.trim()
+        fullName.trim(),
+        transactionId.trim()
       );
 
       setLoading(false);

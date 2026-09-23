@@ -138,3 +138,35 @@ export const INITIAL_BUNDLES: Bundle[] = [
     ]
   }
 ];
+
+export const INITIAL_NOTIFICATIONS = [
+  {
+    id: 'notif-1',
+    title: '🎉 স্লট সম্পূর্ণ হয়েছে (Slot Completed)!',
+    message: 'প্রিমিয়াম লেদার ফর্মাল সু (ব্যাচ #১) এর সকল ৬টি স্লট পূরণ হয়েছে! হোলসেলার অর্ডার সফলভাবে প্লেস করা হয়েছে।',
+    type: 'bundle_complete' as const,
+    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+    read: false,
+    linkAction: 'bundle' as const,
+    bundleId: 'bundle-prod-1-batch-1',
+  },
+  {
+    id: 'notif-2',
+    title: '🔥 নতুন ব্যাচ চালু হয়েছে!',
+    message: 'এক্সক্লুসিভ জ্যাকার্ড কটন পাঞ্জাবি এর নতুন ব্যাচ #২ উন্মুক্ত করা হয়েছে। এখনই আপনার সাইজ স্লট বুক করুন।',
+    type: 'slot_booked' as const,
+    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+    read: false,
+    linkAction: 'product' as const,
+    productId: 'prod-3',
+  },
+  {
+    id: 'notif-3',
+    title: '📦 হোলসেল গ্রুপবাই সুবিধাসমূহ',
+    message: 'টোকেন অগ্রিম মাত্র ৳১৫০ দিয়ে সাইজ বুক করুন, বান্ডিল পূরণ হলে বাকি টাকা ক্যাশ অন ডেলিভারিতে প্রদান করুন।',
+    type: 'promo' as const,
+    createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
+    read: true,
+  },
+];
+

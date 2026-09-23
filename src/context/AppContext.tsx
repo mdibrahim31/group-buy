@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Product, Bundle, Order, BundleSlot, Customer } from '../types';
-import { INITIAL_PRODUCTS, INITIAL_BUNDLES } from '../data/initialData';
+import { User, Product, Bundle, Order, BundleSlot, Customer, AppNotification } from '../types';
+import { INITIAL_PRODUCTS, INITIAL_BUNDLES, INITIAL_NOTIFICATIONS } from '../data/initialData';
 import {
   dbGetCustomerByPhone,
   dbSaveCustomer,
@@ -21,6 +21,14 @@ interface AppContextType {
   products: Product[];
   bundles: Bundle[];
   orders: Order[];
+  notifications: AppNotification[];
+  unreadNotificationsCount: number;
+  notificationModalOpen: boolean;
+  setNotificationModalOpen: (open: boolean) => void;
+  markNotificationAsRead: (id: string) => void;
+  markAllNotificationsAsRead: () => void;
+  clearNotifications: () => void;
+  addNotification: (notification: Omit<AppNotification, 'id' | 'createdAt' | 'read'>) => void;
   authModalOpen: boolean;
   setAuthModalOpen: (open: boolean) => void;
   selectedCategory: string;
@@ -41,7 +49,8 @@ interface AppContextType {
     paymentMethod: 'bKash' | 'Nagad' | 'COD',
     deliveryAddress: string,
     contactPhone: string,
-    buyerName: string
+    buyerName: string,
+    transactionId?: string
   ) => { success: boolean; order?: Order; message: string };
   createNewBatchForProduct: (
     productId: string,
@@ -50,7 +59,8 @@ interface AppContextType {
     paymentMethod?: 'bKash' | 'Nagad' | 'COD',
     deliveryAddress?: string,
     contactPhone?: string,
-    buyerName?: string
+    buyerName?: string,
+    transactionId?: string
   ) => { success: boolean; newBatchNumber: number; message: string };
   buyWholeBundle: (
     productId: string,
@@ -58,7 +68,8 @@ interface AppContextType {
     paymentMethod: 'bKash' | 'Nagad' | 'COD',
     deliveryAddress: string,
     contactPhone: string,
-    buyerName: string
+    buyerName: string,
+    transactionId?: string
   ) => { success: boolean; order?: Order; message: string };
   updateBatchStatus: (bundleId: string, status: Bundle['status']) => void;
   addProduct: (product: Omit<Product, 'id'>) => void;
@@ -72,6 +83,7 @@ const LOCAL_STORAGE_KEY_BUNDLES = 'groupbuy_bundles_data';
 const LOCAL_STORAGE_KEY_ORDERS = 'groupbuy_user_orders';
 const LOCAL_STORAGE_KEY_PRODUCTS = 'groupbuy_products_data';
 const LOCAL_STORAGE_KEY_USERS_DB = 'groupbuy_registered_customers_db';
+const LOCAL_STORAGE_KEY_NOTIFICATIONS = 'groupbuy_notifications_data';
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
@@ -114,6 +126,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
+  const [notifications, setNotifications] = useState<AppNotification[]>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY_NOTIFICATIONS);
+      if (!saved) return INITIAL_NOTIFICATIONS;
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_NOTIFICATIONS;
+    } catch {
+      return INITIAL_NOTIFICATIONS;
+    }
+  });
+
+  const [notificationModalOpen, setNotificationModalOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [myBookingsOpen, setMyBookingsOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -156,6 +180,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.error(e);
     }
   }, [products]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY_NOTIFICATIONS, JSON.stringify(notifications));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [notifications]);
+
+  const unreadNotificationsCount = notifications.filter(n => !n.read).length;
+
+  const markNotificationAsRead = (id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
+  const markAllNotificationsAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const clearNotifications = () => {
+    setNotifications([]);
+  };
+
+  const addNotification = (notif: Omit<AppNotification, 'id' | 'createdAt' | 'read'>) => {
+    const newNotif: AppNotification = {
+      ...notif,
+      id: `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      createdAt: new Date().toISOString(),
+      read: false,
+    };
+    setNotifications(prev => [newNotif, ...prev]);
+  };
 
   // Sync user's orders from Supabase on launch
   useEffect(() => {
@@ -348,7 +404,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     paymentMethod: 'bKash' | 'Nagad' | 'COD',
     deliveryAddress: string,
     contactPhone: string,
-    buyerName: string
+    buyerName: string,
+    transactionId?: string
   ) => {
     const targetBundle = bundles.find(b => b.id === bundleId);
     if (!targetBundle) {
@@ -413,11 +470,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       deliveryAddress,
       contactPhone: currentPhone,
       paymentMethod,
+      transactionId: transactionId?.trim() || undefined,
       status: isNowCompleted ? 'ordered_wholesale' : 'confirmed',
       createdAt: new Date().toISOString(),
     };
 
     setOrders(prev => [newOrder, ...prev]);
+
+    // Add confirmation notification
+    addNotification({
+      title: '✅ স্লট বুকিং সফল হয়েছে!',
+      message: `${product.title} (সাইজ: ${targetSlot.size}) এর জন্য আপনার স্লট সংরক্ষিত হয়েছে। অগ্রিম ৳${effectiveAdvance} পরিশোধিত।`,
+      type: 'order',
+      linkAction: 'my_bookings',
+      bundleId: targetBundle.id,
+      productId: product.id,
+    });
+
+    if (isNowCompleted) {
+      addNotification({
+        title: '🎉 স্লট সম্পূর্ণ হয়েছে (Slot Completed)!',
+        message: `অভিনন্দন! ${product.title} (ব্যাচ #${targetBundle.batchNumber}) এর সবকটি স্লট পূর্ণ হয়েছে! হোলসেলার অর্ডার সফলভাবে প্লেস করা হয়েছে।`,
+        type: 'bundle_complete',
+        linkAction: 'bundle',
+        bundleId: targetBundle.id,
+        productId: product.id,
+      });
+    }
 
     // Save to Supabase
     dbSaveOrder(newOrder);
@@ -441,7 +520,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     paymentMethod: 'bKash' | 'Nagad' | 'COD' = 'bKash',
     deliveryAddress = '',
     contactPhone = '',
-    buyerName = ''
+    buyerName = '',
+    transactionId?: string
   ) => {
     const product = products.find(p => p.id === productId);
     if (!product) {
@@ -496,6 +576,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           customerName: currentCustomerName,
           customerPhone: currentPhone,
           bundleId: newBundleId,
+          slotId: matchingSlot.id,
           batchNumber: nextBatchNumber,
           productId: product.id,
           productTitle: product.title,
@@ -507,6 +588,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           deliveryAddress: deliveryAddress || user?.deliveryAddress || 'ঠিকানা পরে যোগ করা হবে',
           contactPhone: currentPhone,
           paymentMethod,
+          transactionId: transactionId?.trim() || undefined,
           status: 'confirmed',
           createdAt: new Date().toISOString(),
         };
@@ -549,7 +631,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     paymentMethod: 'bKash' | 'Nagad' | 'COD',
     deliveryAddress: string,
     contactPhone: string,
-    buyerName: string
+    buyerName: string,
+    transactionId?: string
   ) => {
     const product = products.find(p => p.id === productId);
     if (!product) {
@@ -617,6 +700,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       deliveryAddress,
       contactPhone: currentPhone,
       paymentMethod,
+      transactionId: transactionId?.trim() || undefined,
       status: 'ordered_wholesale',
       createdAt: new Date().toISOString(),
     };
@@ -719,6 +803,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         products,
         bundles,
         orders,
+        notifications,
+        unreadNotificationsCount,
+        notificationModalOpen,
+        setNotificationModalOpen,
+        markNotificationAsRead,
+        markAllNotificationsAsRead,
+        clearNotifications,
+        addNotification,
         authModalOpen,
         setAuthModalOpen,
         selectedCategory,

@@ -61,7 +61,8 @@ export const BuyWholeBundleModal: React.FC<BuyWholeBundleModalProps> = ({
         paymentMethod,
         fullDeliveryAddress,
         phone.trim(),
-        fullName.trim()
+        fullName.trim(),
+        transactionId.trim()
       );
 
       setLoading(false);

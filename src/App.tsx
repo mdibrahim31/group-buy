@@ -10,12 +10,23 @@ import { AuthScreen } from './components/AuthScreen';
 import { MyBookingsModal } from './components/MyBookingsModal';
 import { ProfileModal } from './components/ProfileModal';
 import { AdminPanelModal } from './components/AdminPanelModal';
+import { NotificationModal } from './components/NotificationModal';
 import { Product, Bundle, BundleSlot } from './types';
-import { Sparkles, CheckCircle2 } from 'lucide-react';
+import { Sparkles, CheckCircle2, Bell, ChevronRight } from 'lucide-react';
 import { WhatsAppSupport, WhatsAppIcon } from './components/WhatsAppSupport';
 
 const MainContent: React.FC = () => {
-  const { user, products, selectedCategory, searchQuery, setMyBookingsOpen } = useApp();
+  const {
+    user,
+    products,
+    selectedCategory,
+    searchQuery,
+    setMyBookingsOpen,
+    notificationModalOpen,
+    setNotificationModalOpen,
+    notifications,
+    unreadNotificationsCount,
+  } = useApp();
 
   // Booking Modal State
   const [selectedBooking, setSelectedBooking] = useState<{
@@ -82,6 +93,40 @@ const MainContent: React.FC = () => {
       )}
 
       <main className="max-w-7xl mx-auto px-4 py-4 sm:py-6 flex-1 w-full">
+        {/* Customer Live Notification Bar */}
+        {notifications.length > 0 && (
+          <div className="mb-5 bg-gradient-to-r from-emerald-900 to-stone-900 text-white p-3 sm:p-3.5 rounded-2xl shadow-sm border border-emerald-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-emerald-600/90 text-white flex items-center justify-center shrink-0">
+                <Bell className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/30 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                    গ্রাহক লাইভ আপডেট
+                  </span>
+                  <span className="text-xs font-bold text-white truncate">
+                    {notifications[0].title}
+                  </span>
+                </div>
+                <p className="text-xs text-stone-300 truncate max-w-xl mt-0.5">
+                  {notifications[0].message}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+              <button
+                onClick={() => setNotificationModalOpen(true)}
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
+              >
+                <span>সব নোটিফিকেশন ({notifications.length})</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div>
@@ -195,6 +240,10 @@ const MainContent: React.FC = () => {
       <AuthModal />
       <MyBookingsModal />
       <ProfileModal />
+      <NotificationModal
+        isOpen={notificationModalOpen}
+        onClose={() => setNotificationModalOpen(false)}
+      />
       <AdminPanelModal isOpen={adminModalOpen} onClose={() => setAdminModalOpen(false)} />
     </div>
   );

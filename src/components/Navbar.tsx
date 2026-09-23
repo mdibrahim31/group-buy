@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { ShoppingBag, User as UserIcon, Search, Users } from 'lucide-react';
+import { ShoppingBag, User as UserIcon, Search, Users, Bell } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const {
@@ -13,6 +13,8 @@ export const Navbar: React.FC = () => {
     setSelectedCategory,
     searchQuery,
     setSearchQuery,
+    unreadNotificationsCount,
+    setNotificationModalOpen,
   } = useApp();
 
   const categories = ['সব', 'জুতা', 'কাপড়'];
@@ -50,6 +52,20 @@ export const Navbar: React.FC = () => {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
+          {/* Notification Button */}
+          <button
+            onClick={() => setNotificationModalOpen(true)}
+            className="relative p-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-lg transition-colors cursor-pointer"
+            title="নোটিফিকেশন দেখুন"
+          >
+            <Bell className="w-5 h-5 text-stone-700" />
+            {unreadNotificationsCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-white animate-pulse">
+                {unreadNotificationsCount}
+              </span>
+            )}
+          </button>
+
           {/* My Bookings Button */}
           <button
             onClick={() => setMyBookingsOpen(true)}

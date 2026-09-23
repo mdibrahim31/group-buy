@@ -142,6 +142,7 @@ export async function dbSaveOrder(order: Order): Promise<{ success: boolean; err
       due_amount: order.dueAmount,
       delivery_address: order.deliveryAddress,
       payment_method: order.paymentMethod,
+      transaction_id: order.transactionId || null,
       status: order.status,
       created_at: order.createdAt || new Date().toISOString(),
     };
@@ -202,6 +203,7 @@ export async function dbGetOrdersByCustomerId(customerId: string, phone?: string
       deliveryAddress: d.delivery_address,
       contactPhone: d.customer_phone,
       paymentMethod: d.payment_method,
+      transactionId: d.transaction_id || d.transactionId || '',
       status: d.status,
       createdAt: d.created_at,
     }));
@@ -241,6 +243,7 @@ export async function dbFindOrderById(orderId: string): Promise<Order | null> {
       deliveryAddress: data.delivery_address,
       contactPhone: data.customer_phone,
       paymentMethod: data.payment_method,
+      transactionId: data.transaction_id || data.transactionId || '',
       status: data.status,
       createdAt: data.created_at,
     };
@@ -287,6 +290,7 @@ export async function dbGetAllOrders(): Promise<Order[]> {
       customerName: d.customer_name,
       customerPhone: d.customer_phone,
       bundleId: d.bundle_id,
+      slotId: d.slot_id,
       batchNumber: d.batch_number,
       productId: d.product_id,
       productTitle: d.product_title,
@@ -300,6 +304,7 @@ export async function dbGetAllOrders(): Promise<Order[]> {
       deliveryAddress: d.delivery_address,
       contactPhone: d.customer_phone,
       paymentMethod: d.payment_method,
+      transactionId: d.transaction_id || d.transactionId || '',
       status: d.status,
       createdAt: d.created_at,
     }));

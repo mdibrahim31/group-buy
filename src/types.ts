@@ -67,6 +67,20 @@ export interface Order {
   deliveryAddress: string;
   contactPhone: string;
   paymentMethod: 'bKash' | 'Nagad' | 'COD';
+  transactionId?: string;
   status: 'confirmed' | 'ordered_wholesale' | 'in_transit' | 'delivered';
   createdAt: string;
 }
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'order' | 'bundle_complete' | 'slot_booked' | 'promo' | 'system';
+  createdAt: string;
+  read: boolean;
+  linkAction?: 'my_bookings' | 'bundle' | 'product';
+  bundleId?: string;
+  productId?: string;
+}
+

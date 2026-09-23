@@ -17,6 +17,15 @@ import {
   AlertCircle,
   Truck,
   Check,
+  ChevronLeft,
+  Phone,
+  MapPin,
+  CreditCard,
+  Clock,
+  Copy,
+  Sparkles,
+  Users,
+  Eye,
 } from 'lucide-react';
 import { Order, Product, Bundle } from '../types';
 import { dbGetAllOrders, isSupabaseConfigured } from '../lib/supabase';
@@ -33,10 +42,15 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
   const [pinError, setPinError] = useState('');
 
   // Tabs: 'orders' | 'new-bundle' | 'bundles'
-  const [activeTab, setActiveTab] = useState<'orders' | 'new-bundle' | 'bundles'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'new-bundle' | 'bundles'>('bundles');
   const [searchQuery, setSearchQuery] = useState('');
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Selected Bundle for drill-down details view
+  const [selectedBundleId, setSelectedBundleId] = useState<string | null>(null);
+  const [copiedNotification, setCopiedNotification] = useState<string | null>(null);
+  const [bundleFilter, setBundleFilter] = useState<'all' | 'completed' | 'ongoing'>('all');
 
   // New Bundle Form State
   const [newTitle, setNewTitle] = useState('');
@@ -695,61 +709,521 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
               {/* TAB 3: BUNDLES / BATCHES MANAGEMENT */}
               {activeTab === 'bundles' && (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold text-stone-700">বর্তমান লাইভ পণ্য ও ব্যাচসমূহ:</h3>
-                    <button
-                      onClick={() => setActiveTab('new-bundle')}
-                      className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <PlusCircle className="w-3.5 h-3.5" />
-                      <span>নতুন পোস্ট করুন</span>
-                    </button>
-                  </div>
+                  {/* Toast Notification */}
+                  {copiedNotification && (
+                    <div className="fixed bottom-6 right-6 z-50 bg-stone-900 text-white px-4 py-2.5 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-2 border border-stone-700 animate-in fade-in slide-in-from-bottom-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>{copiedNotification}</span>
+                    </div>
+                  )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {products.map((prod) => {
-                      const prodBundles = bundles.filter(b => b.productId === prod.id);
+                  {/* SUB-VIEW 1: SELECTED BUNDLE DETAILS & CUSTOMER LIST */}
+                  {selectedBundleId ? (
+                    (() => {
+                      const selectedBundle = bundles.find((b) => b.id === selectedBundleId);
+                      const product = selectedBundle ? products.find((p) => p.id === selectedBundle.productId) : null;
+                      
+                      if (!selectedBundle || !product) {
+                        return (
+                          <div className="text-center py-10">
+                            <p className="text-xs text-stone-500">বান্ডিলটি পাওয়া যায়নি।</p>
+                            <button
+                              onClick={() => setSelectedBundleId(null)}
+                              className="mt-2 text-xs font-bold text-emerald-600 hover:underline"
+                            >
+                              ← ফিরে যান
+                            </button>
+                          </div>
+                        );
+                      }
+
+                      const isFull = selectedBundle.filledSlots >= selectedBundle.totalSlots || selectedBundle.status === 'completed' || selectedBundle.status === 'ordered';
+                      const bundleOrders = allOrders.filter((o) => o.bundleId === selectedBundle.id);
+                      
+                      const totalAdvanceCollected = bundleOrders.reduce((sum, o) => sum + (o.advanceAmount || 0), 0);
+                      const totalDueRemaining = bundleOrders.reduce((sum, o) => sum + (o.dueAmount || 0), 0);
+                      const totalBatchValue = selectedBundle.filledSlots * product.groupPrice;
+
+                      // Format all addresses for courier dispatch
+                      const handleCopyAllAddresses = () => {
+                        if (bundleOrders.length === 0) {
+                          alert('এই বান্ডিলে এখনও কোনো কাস্টমার অর্ডার নেই।');
+                          return;
+                        }
+                        const text = bundleOrders
+                          .map(
+                            (o, i) =>
+                              `${i + 1}. নাম: ${o.customerName || 'কাস্টমার'}\nমোবাইল: ${o.customerPhone || o.contactPhone}\nঠিকানা: ${o.deliveryAddress}\nসাইজ: ${o.size} | বাকি টাকা (COD): ৳${o.dueAmount}\n`
+                          )
+                          .join('\n------------------------\n');
+                        navigator.clipboard.writeText(text);
+                        setCopiedNotification('কুরিয়ার পার্সেলের জন্য সকল ঠিকানা কপি হয়েছে!');
+                        setTimeout(() => setCopiedNotification(null), 3000);
+                      };
+
                       return (
-                        <div key={prod.id} className="p-3.5 bg-stone-50 border border-stone-200 rounded-xl flex gap-3">
-                          <img
-                            src={prod.imageUrl}
-                            alt={prod.title}
-                            className="w-16 h-16 object-cover rounded-lg border border-stone-200 shrink-0"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-1">
-                              <h4 className="text-xs font-bold text-stone-900 truncate">{prod.title}</h4>
-                              <span className="text-[10px] bg-stone-200 text-stone-700 px-1.5 py-0.5 rounded font-medium shrink-0">
-                                {prod.category}
+                        <div className="space-y-4 animate-in fade-in duration-200">
+                          {/* Back Button & Header */}
+                          <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-stone-200">
+                            <button
+                              onClick={() => setSelectedBundleId(null)}
+                              className="flex items-center gap-1.5 text-xs font-bold text-stone-700 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <ChevronLeft className="w-4 h-4" />
+                              <span>বান্ডিল তালিকায় ফিরে যান</span>
+                            </button>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-stone-500 font-mono">আইডি: #{selectedBundle.id}</span>
+                              <button
+                                onClick={handleCopyAllAddresses}
+                                className="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                              >
+                                <Copy className="w-3.5 h-3.5 text-emerald-400" />
+                                <span>সকল ঠিকানা কপি করুন (কুরিয়ার)</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Bundle Banner Card */}
+                          <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                            <img
+                              src={product.imageUrl}
+                              alt={product.title}
+                              className="w-20 h-20 object-cover rounded-xl border border-stone-200 shrink-0 shadow-xs"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2 mb-1">
+                                <span className="text-xs font-black bg-stone-900 text-white px-2.5 py-0.5 rounded-md">
+                                  ব্যাচ #{selectedBundle.batchNumber}
+                                </span>
+                                <span className="text-[11px] bg-stone-200 text-stone-700 px-2 py-0.5 rounded font-medium">
+                                  {product.category}
+                                </span>
+                                {isFull ? (
+                                  <span className="text-[11px] bg-emerald-600 text-white font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs animate-pulse">
+                                    <Check className="w-3.5 h-3.5" />
+                                    <span>স্লট পূরণ হয়েছে (Slot Completed)</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-[11px] bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2.5 py-0.5 rounded-full">
+                                    চলমান বুকিং ({selectedBundle.totalSlots - selectedBundle.filledSlots}টি স্লট বাকি)
+                                  </span>
+                                )}
+                              </div>
+                              <h3 className="text-sm font-bold text-stone-900">{product.title}</h3>
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-600 mt-1">
+                                <span>গ্রুপ রেট: <strong className="text-emerald-700 font-bold">৳{product.groupPrice}</strong></span>
+                                <span>হোলসেল রেট: <strong className="text-stone-800">৳{product.wholesalePrice}</strong></span>
+                                <span>খুচরা বাজার মূল্য: <span className="line-through text-stone-400">৳{product.retailPrice}</span></span>
+                                <span>বান্ডিল সাইজ: <strong>{product.bundleSize} পিস</strong></span>
+                              </div>
+                            </div>
+
+                            {/* Batch Status Dropdown */}
+                            <div className="sm:border-l sm:border-stone-200 sm:pl-4 w-full sm:w-auto shrink-0">
+                              <label className="block text-[10px] font-bold text-stone-500 mb-1 uppercase tracking-wider">
+                                ব্যাচ স্ট্যাটাস পরিবর্তন
+                              </label>
+                              <select
+                                value={selectedBundle.status}
+                                onChange={(e) => updateBatchStatus(selectedBundle.id, e.target.value as any)}
+                                className="w-full sm:w-auto text-xs px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg font-bold text-stone-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
+                              >
+                                <option value="open">বুকিং চলমান (Open)</option>
+                                <option value="completed">স্লট পূরণ হয়েছে (Completed)</option>
+                                <option value="ordered">হোলসেলারকে অর্ডার প্লেসড (Ordered)</option>
+                                <option value="shipped">কুরিয়ারে ডেলিভারি সম্পন্ন (Shipped)</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Financial & Progress Statistics Bar */}
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                            <div className="bg-stone-50 border border-stone-200 rounded-xl p-3">
+                              <div className="text-[11px] text-stone-500 font-medium">স্লট পূরণ প্রগ্রেস</div>
+                              <div className="text-sm font-black text-stone-900 mt-0.5 flex items-center gap-1.5">
+                                <span>{selectedBundle.filledSlots} / {selectedBundle.totalSlots} স্লট</span>
+                                <span className="text-xs font-normal text-emerald-700">
+                                  ({Math.round((selectedBundle.filledSlots / selectedBundle.totalSlots) * 100)}%)
+                                </span>
+                              </div>
+                              <div className="w-full bg-stone-200 h-1.5 rounded-full overflow-hidden mt-1.5">
+                                <div
+                                  className="bg-emerald-600 h-full rounded-full transition-all"
+                                  style={{
+                                    width: `${(selectedBundle.filledSlots / selectedBundle.totalSlots) * 100}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                              <div className="text-[11px] text-emerald-800 font-medium">মোট সংগৃহীত অগ্রিম</div>
+                              <div className="text-sm font-black text-emerald-800 mt-0.5">৳{totalAdvanceCollected}</div>
+                              <div className="text-[10px] text-emerald-600 mt-1">{bundleOrders.length}টি টোকেন পেমেন্ট</div>
+                            </div>
+
+                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                              <div className="text-[11px] text-amber-800 font-medium">কুরিয়ারে আদায়যোগ্য বাকি (COD)</div>
+                              <div className="text-sm font-black text-amber-900 mt-0.5">৳{totalDueRemaining}</div>
+                              <div className="text-[10px] text-amber-700 mt-1">ডেলিভারির সময় কাস্টমার দেবে</div>
+                            </div>
+
+                            <div className="bg-stone-900 text-white rounded-xl p-3">
+                              <div className="text-[11px] text-stone-400 font-medium">মোট ব্যাচ সেলস মূল্য</div>
+                              <div className="text-sm font-black text-emerald-400 mt-0.5">৳{totalBatchValue}</div>
+                              <div className="text-[10px] text-stone-400 mt-1">হোলসেল রেট: ৳{product.wholesalePrice * selectedBundle.filledSlots}</div>
+                            </div>
+                          </div>
+
+                          {/* Customer List & Details Table */}
+                          <div className="bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-xs">
+                            <div className="p-3.5 bg-stone-100 border-b border-stone-200 flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <Users className="w-4 h-4 text-emerald-700" />
+                                <h4 className="text-xs font-bold text-stone-900">
+                                  বুক করা গ্রাহকদের বিস্তারিত তালিকা ({bundleOrders.length} জন):
+                                </h4>
+                              </div>
+                              <span className="text-[11px] text-stone-500">
+                                ট্রানজেকশন আইডি ও ডেলিভারি তথ্য
                               </span>
                             </div>
-                            <div className="text-[11px] text-stone-500 mt-0.5">
-                              গ্রুপ রেট: <span className="font-bold text-emerald-700">৳{prod.groupPrice}</span> (খুচরা: ৳{prod.retailPrice})
-                            </div>
-                            <div className="text-[11px] text-stone-500">
-                              বান্ডিল সাইজ: {prod.bundleSize} পিস | সাইজ: {prod.availableSizes.join(', ')}
-                            </div>
 
-                            {/* Batches count */}
-                            <div className="mt-2 flex flex-wrap gap-1">
-                              {prodBundles.map(b => (
-                                <span
-                                  key={b.id}
-                                  className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
-                                    b.filledSlots === b.totalSlots
-                                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                                      : 'bg-white text-stone-700 border-stone-200'
-                                  }`}
-                                >
-                                  ব্যাচ #{b.batchNumber}: {b.filledSlots}/{b.totalSlots} স্লট
-                                </span>
-                              ))}
+                            {bundleOrders.length === 0 ? (
+                              <div className="p-8 text-center text-stone-500 text-xs">
+                                <AlertCircle className="w-6 h-6 text-stone-400 mx-auto mb-1.5" />
+                                <p>এই ব্যাচে এখনও কোনো কাস্টমার স্লট বুক করেনি।</p>
+                              </div>
+                            ) : (
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-left text-xs">
+                                  <thead className="bg-stone-50 text-stone-700 font-semibold border-b border-stone-200">
+                                    <tr>
+                                      <th className="p-3">#</th>
+                                      <th className="p-3">গ্রাহকের নাম ও ফোন</th>
+                                      <th className="p-3">সাইজ ও স্লট আইডি</th>
+                                      <th className="p-3">পেমেন্ট মাধ্যম ও TrxID</th>
+                                      <th className="p-3">অগ্রিম ও বাকি টাকা</th>
+                                      <th className="p-3">ডেলিভারি ঠিকানা ও জেলা</th>
+                                      <th className="p-3">বুকিং সময়</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-stone-200">
+                                    {bundleOrders.map((ord, idx) => (
+                                      <tr key={ord.id} className="hover:bg-stone-50/90 transition-colors">
+                                        <td className="p-3 font-bold text-stone-400">{idx + 1}</td>
+                                        <td className="p-3">
+                                          <div className="font-bold text-stone-900">{ord.customerName || 'কাস্টমার'}</div>
+                                          <div className="flex items-center gap-1.5 mt-0.5">
+                                            <a
+                                              href={`tel:${ord.customerPhone || ord.contactPhone}`}
+                                              className="text-emerald-700 hover:text-emerald-800 font-mono font-bold text-[11px] flex items-center gap-1 hover:underline"
+                                            >
+                                              <Phone className="w-3 h-3" />
+                                              <span>{ord.customerPhone || ord.contactPhone}</span>
+                                            </a>
+                                            <button
+                                              onClick={() => {
+                                                navigator.clipboard.writeText(ord.customerPhone || ord.contactPhone || '');
+                                                setCopiedNotification(`নম্বর কপি হয়েছে: ${ord.customerPhone || ord.contactPhone}`);
+                                                setTimeout(() => setCopiedNotification(null), 2500);
+                                              }}
+                                              className="text-stone-400 hover:text-stone-600 p-0.5"
+                                              title="নম্বর কপি করুন"
+                                            >
+                                              <Copy className="w-3 h-3" />
+                                            </button>
+                                          </div>
+                                        </td>
+                                        <td className="p-3">
+                                          <span className="bg-stone-900 text-white font-bold px-2 py-0.5 rounded text-[11px]">
+                                            সাইজ: {ord.size}
+                                          </span>
+                                          <div className="text-[10px] text-stone-500 font-mono mt-1">
+                                            আইডি: {ord.slotId || ord.id}
+                                          </div>
+                                        </td>
+                                        <td className="p-3">
+                                          <div className="flex items-center gap-1 font-bold text-stone-800">
+                                            <CreditCard className="w-3 h-3 text-emerald-600" />
+                                            <span>{ord.paymentMethod || 'bKash'}</span>
+                                          </div>
+                                          {ord.transactionId ? (
+                                            <div className="mt-1 inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold">
+                                              <span>TrxID: {ord.transactionId}</span>
+                                              <button
+                                                onClick={() => {
+                                                  navigator.clipboard.writeText(ord.transactionId || '');
+                                                  setCopiedNotification(`TrxID কপি হয়েছে: ${ord.transactionId}`);
+                                                  setTimeout(() => setCopiedNotification(null), 2500);
+                                                }}
+                                                className="text-emerald-600 hover:text-emerald-900"
+                                                title="TrxID কপি করুন"
+                                              >
+                                                <Copy className="w-2.5 h-2.5" />
+                                              </button>
+                                            </div>
+                                          ) : (
+                                            <div className="text-[10px] text-stone-400 mt-0.5">টোকেন সিওডি / ভেরিফাইড</div>
+                                          )}
+                                        </td>
+                                        <td className="p-3 whitespace-nowrap">
+                                          <div className="font-bold text-emerald-800">অগ্রিম: ৳{ord.advanceAmount}</div>
+                                          <div className="text-[11px] font-semibold text-rose-700 mt-0.5">বাকি (COD): ৳{ord.dueAmount}</div>
+                                        </td>
+                                        <td className="p-3 max-w-[200px]">
+                                          <div className="text-stone-800 font-medium line-clamp-2" title={ord.deliveryAddress}>
+                                            {ord.deliveryAddress || 'ঠিকানা দেওয়া হয়নি'}
+                                          </div>
+                                          <button
+                                            onClick={() => {
+                                              navigator.clipboard.writeText(
+                                                `${ord.customerName} - ${ord.customerPhone} - ${ord.deliveryAddress}`
+                                              );
+                                              setCopiedNotification('ঠিকানা কপি হয়েছে!');
+                                              setTimeout(() => setCopiedNotification(null), 2500);
+                                            }}
+                                            className="text-[10px] text-emerald-700 hover:underline flex items-center gap-1 mt-1 font-semibold"
+                                          >
+                                            <Copy className="w-2.5 h-2.5" />
+                                            <span>ঠিকানা কপি</span>
+                                          </button>
+                                        </td>
+                                        <td className="p-3 text-[11px] text-stone-500 whitespace-nowrap">
+                                          {ord.createdAt ? new Date(ord.createdAt).toLocaleDateString('bn-BD', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                          }) : 'সম্প্রতি'}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Slot Status Summary Matrix */}
+                          <div className="bg-stone-50 border border-stone-200 rounded-xl p-3.5">
+                            <h5 className="text-xs font-bold text-stone-800 mb-2">এই বান্ডিলের সকল সাইজ স্লট স্ট্যাটাস:</h5>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                              {selectedBundle.slots.map((slot) => {
+                                const isBooked = slot.status === 'booked';
+                                return (
+                                  <div
+                                    key={slot.id}
+                                    className={`p-2.5 rounded-xl border text-center ${
+                                      isBooked
+                                        ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-xs'
+                                        : 'bg-white border-dashed border-stone-300 text-stone-500'
+                                    }`}
+                                  >
+                                    <div className="text-xs font-black">সাইজ {slot.size}</div>
+                                    <div className="text-[10px] font-bold mt-1">
+                                      {isBooked ? (
+                                        <span className="text-emerald-800 flex items-center justify-center gap-0.5">
+                                          <Check className="w-3 h-3" />
+                                          <span>{slot.userName || 'বুকড'}</span>
+                                        </span>
+                                      ) : (
+                                        <span className="text-stone-400">খালি স্লট</span>
+                                      )}
+                                    </div>
+                                    {isBooked && slot.userPhoneMasked && (
+                                      <div className="text-[9px] text-emerald-700 font-mono mt-0.5">
+                                        {slot.userPhoneMasked}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         </div>
                       );
-                    })}
-                  </div>
+                    })()
+                  ) : (
+                    /* SUB-VIEW 2: ALL BUNDLES LIST (FULL / COMPLETED BUNDLES ON TOP IN SERIAL) */
+                    <div className="space-y-4">
+                      {/* Bundles Header & Filters */}
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-stone-50 p-3 rounded-xl border border-stone-200">
+                        <div>
+                          <h3 className="text-xs font-bold text-stone-900 flex items-center gap-1.5">
+                            <Layers className="w-4 h-4 text-emerald-700" />
+                            <span>বর্তমান সকল বান্ডিল ও ব্যাচসমূহ ({bundles.length}টি ব্যাচ):</span>
+                          </h3>
+                          <p className="text-[11px] text-stone-500 mt-0.5">
+                            বান্ডিলে ক্লিক করে ভেতরের কাস্টমার লিস্ট, TrxID ও সম্পূর্ণ তথ্য দেখুন।
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+                          <button
+                            onClick={() => setBundleFilter('all')}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                              bundleFilter === 'all'
+                                ? 'bg-stone-900 text-white'
+                                : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
+                            }`}
+                          >
+                            সকল ({bundles.length})
+                          </button>
+                          <button
+                            onClick={() => setBundleFilter('completed')}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                              bundleFilter === 'completed'
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+                            }`}
+                          >
+                            <Check className="w-3 h-3" />
+                            <span>স্লট পূরণ হয়েছে ({bundles.filter(b => b.filledSlots >= b.totalSlots || b.status === 'completed' || b.status === 'ordered').length})</span>
+                          </button>
+                          <button
+                            onClick={() => setBundleFilter('ongoing')}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                              bundleFilter === 'ongoing'
+                                ? 'bg-amber-600 text-white'
+                                : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
+                            }`}
+                          >
+                            চলমান বুকিং ({bundles.filter(b => b.filledSlots < b.totalSlots && b.status === 'open').length})
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Batches Grid (Sorted with Completed Batches at Top) */}
+                      {(() => {
+                        // Prepare list with product and completion flags
+                        const batchList = bundles.map((b) => {
+                          const prod = products.find((p) => p.id === b.productId);
+                          const isFull = b.filledSlots >= b.totalSlots || b.status === 'completed' || b.status === 'ordered';
+                          return {
+                            bundle: b,
+                            product: prod,
+                            isFull,
+                          };
+                        });
+
+                        // Filter by tab
+                        const filtered = batchList.filter((item) => {
+                          if (bundleFilter === 'completed') return item.isFull;
+                          if (bundleFilter === 'ongoing') return !item.isFull;
+                          return true;
+                        });
+
+                        // Strict Sorting: COMPLETED / FULL BATCHES GO TO THE TOP (Serial a upore)
+                        const sorted = [...filtered].sort((a, b) => {
+                          if (a.isFull && !b.isFull) return -1;
+                          if (!a.isFull && b.isFull) return 1;
+                          return b.bundle.batchNumber - a.bundle.batchNumber;
+                        });
+
+                        if (sorted.length === 0) {
+                          return (
+                            <div className="text-center py-12 text-stone-500 text-xs bg-white rounded-2xl border border-stone-200">
+                              <Layers className="w-8 h-8 text-stone-300 mx-auto mb-2" />
+                              <p>কোনো বান্ডিল ব্যাচ পাওয়া যায়নি।</p>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                            {sorted.map(({ bundle: b, product: prod, isFull }) => {
+                              if (!prod) return null;
+                              const progressPercent = Math.min(100, Math.round((b.filledSlots / b.totalSlots) * 100));
+
+                              return (
+                                <div
+                                  key={b.id}
+                                  onClick={() => setSelectedBundleId(b.id)}
+                                  className={`p-4 rounded-2xl border transition-all cursor-pointer flex gap-3.5 hover:shadow-md hover:border-emerald-500 relative group ${
+                                    isFull
+                                      ? 'bg-emerald-50/40 border-emerald-300 ring-1 ring-emerald-400/30'
+                                      : 'bg-white border-stone-200 hover:bg-stone-50/50'
+                                  }`}
+                                >
+                                  {/* Product Thumbnail */}
+                                  <div className="relative shrink-0">
+                                    <img
+                                      src={prod.imageUrl}
+                                      alt={prod.title}
+                                      className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-xl border border-stone-200 shadow-xs"
+                                    />
+                                    <span className="absolute bottom-1 right-1 bg-stone-900/80 backdrop-blur-xs text-white text-[9px] font-bold px-1.5 py-0.2 rounded">
+                                      {prod.category}
+                                    </span>
+                                  </div>
+
+                                  {/* Bundle Content */}
+                                  <div className="flex-1 min-w-0 flex flex-col justify-between">
+                                    <div>
+                                      {/* Top Badge Row */}
+                                      <div className="flex items-center justify-between gap-1 mb-1">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-[11px] font-black bg-stone-900 text-white px-2 py-0.5 rounded">
+                                            ব্যাচ #{b.batchNumber}
+                                          </span>
+                                        </div>
+
+                                        {/* Prominent Slot Completed Status Badge */}
+                                        {isFull ? (
+                                          <span className="text-[10px] font-bold bg-emerald-600 text-white px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs animate-pulse shrink-0">
+                                            <Check className="w-3 h-3" />
+                                            <span>স্লট পূরণ হয়েছে (Slot Completed)</span>
+                                          </span>
+                                        ) : (
+                                          <span className="text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-full shrink-0">
+                                            {b.totalSlots - b.filledSlots}টি স্লট বাকি
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      {/* Title */}
+                                      <h4 className="text-xs font-bold text-stone-900 truncate group-hover:text-emerald-700 transition-colors">
+                                        {prod.title}
+                                      </h4>
+
+                                      {/* Pricing */}
+                                      <div className="text-[11px] text-stone-600 mt-0.5 flex flex-wrap gap-x-2">
+                                        <span>গ্রুপ রেট: <strong className="text-emerald-700 font-bold">৳{prod.groupPrice}</strong></span>
+                                        <span>হোলসেল: ৳{prod.wholesalePrice}</span>
+                                      </div>
+                                    </div>
+
+                                    {/* Progress Meter & View CTA */}
+                                    <div className="mt-2 pt-2 border-t border-stone-100">
+                                      <div className="flex items-center justify-between text-[11px] mb-1">
+                                        <span className="font-semibold text-stone-700">
+                                          {b.filledSlots}/{b.totalSlots} স্লট পূর্ণ
+                                        </span>
+                                        <span className="text-[10px] text-emerald-700 font-bold group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+                                          <span>বিস্তারিত দেখুন</span>
+                                          <Eye className="w-3 h-3" />
+                                        </span>
+                                      </div>
+                                      <div className="w-full bg-stone-200 h-1.5 rounded-full overflow-hidden">
+                                        <div
+                                          className={`h-full rounded-full ${
+                                            isFull ? 'bg-emerald-600' : 'bg-emerald-500'
+                                          }`}
+                                          style={{ width: `${progressPercent}%` }}
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
