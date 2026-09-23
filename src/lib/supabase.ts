@@ -44,36 +44,66 @@ export async function dbGetCustomerByPhone(phone: string): Promise<Customer | nu
   }
 }
 
-export async function dbSaveCustomer(customer: Customer): Promise<boolean> {
-  if (!supabase) return false;
+export async function dbSaveCustomer(customer: Customer): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) {
+    return {
+      success: false,
+      error: 'ডাটাবেজ কানেক্টেড নেই (VITE_SUPABASE_URL অথবা VITE_SUPABASE_ANON_KEY পাওয়া যায়নি)।',
+    };
+  }
   try {
-    const { error } = await supabase.from('customers').upsert({
+    const payload = {
       id: customer.id,
       phone: customer.phone.trim(),
       password: customer.password,
       full_name: customer.fullName.trim(),
-      delivery_address: customer.deliveryAddress,
-      district: customer.district,
+      delivery_address: customer.deliveryAddress || '',
+      district: customer.district || '',
       created_at: customer.createdAt || new Date().toISOString(),
-    }, { onConflict: 'phone' });
+    };
 
-    if (error) {
-      console.warn('Supabase saveCustomer error:', error.message);
-      return false;
+    // 1. Try direct insert
+    const { error: insertError } = await supabase.from('customers').insert(payload);
+    if (!insertError) {
+      return { success: true };
     }
-    return true;
-  } catch (err) {
-    console.warn('Supabase save error:', err);
-    return false;
+
+    console.warn('Direct insert notice, trying upsert:', insertError.message);
+
+    // 2. If phone conflict, try upsert with onConflict phone
+    const { error: upsertError } = await supabase
+      .from('customers')
+      .upsert(payload, { onConflict: 'phone' });
+
+    if (!upsertError) {
+      return { success: true };
+    }
+
+    // 3. Fallback: upsert on primary key (id)
+    const { error: fallbackError } = await supabase
+      .from('customers')
+      .upsert(payload);
+
+    if (fallbackError) {
+      console.error('Supabase customer save error:', fallbackError.message);
+      return { success: false, error: fallbackError.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('Supabase save error:', err);
+    return { success: false, error: err?.message || 'ডাটাবেজে সেভ হতে সমস্যা হয়েছে।' };
   }
 }
 
 // ======================= ORDERS DB =======================
 
-export async function dbSaveOrder(order: Order): Promise<boolean> {
-  if (!supabase) return false;
+export async function dbSaveOrder(order: Order): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) {
+    return { success: false, error: 'ডাটাবেজ কানেক্টেড নেই।' };
+  }
   try {
-    const { error } = await supabase.from('orders').upsert({
+    const payload = {
       id: order.id,
       customer_id: order.customerId || null,
       customer_name: order.customerName || '',
@@ -93,16 +123,20 @@ export async function dbSaveOrder(order: Order): Promise<boolean> {
       payment_method: order.paymentMethod,
       status: order.status,
       created_at: order.createdAt || new Date().toISOString(),
-    });
+    };
 
-    if (error) {
-      console.warn('Supabase saveOrder error:', error.message);
-      return false;
+    const { error: insertError } = await supabase.from('orders').insert(payload);
+    if (!insertError) return { success: true };
+
+    const { error: upsertError } = await supabase.from('orders').upsert(payload);
+    if (upsertError) {
+      console.warn('Supabase saveOrder error:', upsertError.message);
+      return { success: false, error: upsertError.message };
     }
-    return true;
-  } catch (err) {
+    return { success: true };
+  } catch (err: any) {
     console.warn('Supabase order insert error:', err);
-    return false;
+    return { success: false, error: err?.message || 'অর্ডার ডাটাবেজে সংরক্ষণ করা যায়নি।' };
   }
 }
 

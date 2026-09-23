@@ -16,7 +16,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { Customer, Order } from '../types';
-import { dbGetAllCustomers, dbGetAllOrders } from '../lib/supabase';
+import { dbGetAllCustomers, dbGetAllOrders, isSupabaseConfigured, SUPABASE_URL } from '../lib/supabase';
 
 interface AdminPanelModalProps {
   isOpen: boolean;
@@ -126,13 +126,26 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-900/70 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] overflow-hidden shadow-2xl border border-stone-200 flex flex-col">
         {/* Admin Header */}
-        <div className="p-4 bg-stone-900 text-white flex items-center justify-between">
+        <div className="p-4 bg-stone-900 text-white flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-sm font-bold tracking-wide">অ্যাডমিন ড্যাশবোর্ড (Admin Panel)</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-bold tracking-wide">অ্যাডমিন ড্যাশবোর্ড (Admin Panel)</h2>
+                {isSupabaseConfigured() ? (
+                  <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-700 px-2 py-0.5 rounded-full font-mono flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Supabase লাইভ
+                  </span>
+                ) : (
+                  <span className="text-[10px] bg-amber-950 text-amber-300 border border-amber-700 px-2 py-0.5 rounded-full font-mono flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                    লোকাল মোড (কী সেট নেই)
+                  </span>
+                )}
+              </div>
               <p className="text-[11px] text-stone-400">কাস্টমার ডাটাবেজ ও অর্ডার ট্র্যাকিং কন্ট্রোল</p>
             </div>
           </div>

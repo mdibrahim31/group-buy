@@ -31,11 +31,17 @@ jobs:
 
       - name: Build project
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://koymnalnhkuwfkptqdgt.supabase.co' }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtveW1uYWxuaGt1d2ZrcHRxZGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxMzQwMjMsImV4cCI6MjEwNDcxMDAyM30.HJWM5xy5kZs_PgqKm8HFRtdh6nW5O1dXGCBoGNTpEFE' }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
         run: |
-          echo "VITE_SUPABASE_URL=${VITE_SUPABASE_URL}" > .env
-          echo "VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}" >> .env
+          echo "Setting up environment variables for build..."
+          if [ -n "${VITE_SUPABASE_URL}" ]; then
+            echo "VITE_SUPABASE_URL=${VITE_SUPABASE_URL}" > .env
+            echo "VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}" >> .env
+            echo "Successfully injected Supabase environment variables into .env"
+          else
+            echo "NOTICE: VITE_SUPABASE_URL is not set in GitHub Actions variables/secrets."
+          fi
           npm run build
 
       - name: Upload artifact

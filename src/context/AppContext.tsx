@@ -265,17 +265,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         createdAt: new Date().toISOString(),
       };
 
-      // Save to Supabase customers table
-      await dbSaveCustomer(newCustomer);
+      // 3. Save to Supabase customers table if configured
+      if (isSupabaseConfigured()) {
+        const dbResult = await dbSaveCustomer(newCustomer);
+        if (!dbResult.success) {
+          console.error('Supabase customer registration failed:', dbResult.error);
+          return {
+            success: false,
+            message: `ডাটাবেজ ত্রুটি: ${dbResult.error || 'তথ্য সংরক্ষণ করা যায়নি।'} (Supabase RLS বা টেবিল পারমিশন চেক করুন)`,
+          };
+        }
+      } else {
+        console.warn('VITE_SUPABASE_URL অথবা VITE_SUPABASE_ANON_KEY অনুপস্থিত! তথ্য শুধু লোকাল ব্রাউজারে সংরক্ষিত হচ্ছে।');
+      }
 
-      // Save to localStorage
+      // Save to localStorage cache
       usersDb[cleanPhone] = { user: newCustomer, pass };
       localStorage.setItem(LOCAL_STORAGE_KEY_USERS_DB, JSON.stringify(usersDb));
 
       setUser(newCustomer);
       return { success: true, message: 'রেজিস্ট্রেশন সফলভাবে সম্পন্ন হয়েছে।' };
-    } catch (err) {
-      return { success: false, message: 'রেজিস্ট্রেশনে সমস্যা হয়েছে।' };
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'রেজিস্ট্রেশনে সমস্যা হয়েছে।' };
     }
   };
 
