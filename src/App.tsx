@@ -10,7 +10,8 @@ import { MyBookingsModal } from './components/MyBookingsModal';
 import { ProfileModal } from './components/ProfileModal';
 import { AdminPanelModal } from './components/AdminPanelModal';
 import { Product, Bundle, BundleSlot } from './types';
-import { Sparkles, HelpCircle, CheckCircle2, ShieldAlert, PhoneCall, RefreshCcw } from 'lucide-react';
+import { Sparkles, CheckCircle2 } from 'lucide-react';
+import { WhatsAppSupport, WhatsAppIcon } from './components/WhatsAppSupport';
 
 const MainContent: React.FC = () => {
   const { products, selectedCategory, searchQuery, setMyBookingsOpen } = useApp();
@@ -108,70 +109,22 @@ const MainContent: React.FC = () => {
             ))}
           </div>
         )}
-
-        {/* FAQ & Trust Guarantees */}
-        <section className="mt-16 bg-white rounded-2xl p-6 sm:p-8 border border-stone-200">
-          <div className="max-w-3xl mx-auto">
-            <div className="text-center mb-8">
-              <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                গ্রুপ বায়িং নির্দেশিকা ও সাধারণ জিজ্ঞাসা
-              </span>
-              <h3 className="text-xl sm:text-2xl font-bold text-stone-900 mt-2">
-                কাস্টমারদের সচরাচর প্রশ্ন ও সমাধান
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm">
-              <div className="p-4 rounded-xl bg-stone-50 border border-stone-200">
-                <h4 className="font-bold text-stone-900 mb-1 flex items-center gap-1.5">
-                  <HelpCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>টাকা কি ফেরত পাওয়া যাবে?</span>
-                </h4>
-                <p className="text-stone-600 text-xs leading-relaxed">
-                  হ্যাঁ, নির্ধারিত সময়ের (৪৮ ঘণ্টা) মধ্যে যদি কাঙ্ক্ষিত সাইজের দল পূর্ণ না হয় অথবা হোলসেলারের স্টক ফুরিয়ে যায়, আপনার দেওয়া ১৫০ টাকা টোকেন সম্পূর্ণ রিফান্ড করা হবে।
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl bg-stone-50 border border-stone-200">
-                <h4 className="font-bold text-stone-900 mb-1 flex items-center gap-1.5">
-                  <RefreshCcw className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>আমার সাইজ বুকড থাকলে কী করব?</span>
-                </h4>
-                <p className="text-stone-600 text-xs leading-relaxed">
-                  প্রতিটি পণ্যের নিচে <strong>"+ নতুন ব্যাচ শুরু করুন"</strong> বাটন রয়েছে। আপনি সেখানে ক্লিক করে আপনার সাইজ নিয়ে ব্যাচ #২ বা #৩ শুরু করতে পারবেন।
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl bg-stone-50 border border-stone-200">
-                <h4 className="font-bold text-stone-900 mb-1 flex items-center gap-1.5">
-                  <ShieldAlert className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>পণ্য কি সরাসরি পাইকারি রেটে দেওয়া হয়?</span>
-                </h4>
-                <p className="text-stone-600 text-xs leading-relaxed">
-                  হোলসেলার সাধারণ কাস্টমারকে ১ পিস দেয় না। আমরা সব সাইজের কাস্টমারদের নিয়ে সম্পূর্ণ বান্ডিল কিনি বলে খুচরা বিক্রেতার অতিরিক্ত মুনাফা বাদ দিয়ে পাইকারি মূল্যে দেওয়া সম্ভব হয়।
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl bg-stone-50 border border-stone-200">
-                <h4 className="font-bold text-stone-900 mb-1 flex items-center gap-1.5">
-                  <PhoneCall className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>ডেলিভারি কীভাবে সম্পন্ন হবে?</span>
-                </h4>
-                <p className="text-stone-600 text-xs leading-relaxed">
-                  সব স্লট পূর্ণ হওয়ার ২৪ ঘণ্টার মধ্যে হোলসেলার থেকে বান্ডিল সংগ্রহ করে পাঠাও বা স্টেডফাস্ট কুরিয়ারে ক্যাশ-অন-ডেলিভারিতে আপনার ঠিকানায় পৌঁছে দেওয়া হবে।
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
       </main>
 
       {/* Footer */}
       <footer className="bg-stone-900 text-stone-400 py-6 border-t border-stone-800 text-xs mt-12">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <p>© 2026 GroupBuy Wholesale. সরাসরি কারখানা ও পাইকারি বাজার থেকে গ্রাহকের কাছে।</p>
-          <div className="flex items-center gap-4 text-stone-400">
-            <span>হোলসেল ডাইরেক্ট</span>
+          <div className="flex flex-wrap items-center justify-center gap-4 text-stone-400">
+            <a
+              href="https://wa.me/8801882208531"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 font-semibold"
+            >
+              <WhatsAppIcon className="w-4 h-4 fill-emerald-400" />
+              <span>হোয়াটসঅ্যাপ সাপোর্ট: 01882208531</span>
+            </a>
             <span>•</span>
             <span>ক্যাশ অন ডেলিভারি</span>
             <span>•</span>
@@ -184,6 +137,9 @@ const MainContent: React.FC = () => {
           </div>
         </div>
       </footer>
+
+      {/* Floating WhatsApp Support Button */}
+      <WhatsAppSupport phoneNumber="01882208531" />
 
       {/* Modals */}
       {selectedBooking && (
