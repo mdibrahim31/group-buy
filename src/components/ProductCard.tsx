@@ -195,7 +195,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {activeBundle?.slots.map((slot) => {
+              {(activeBundle?.slots || []).map((slot) => {
                 const isAvailable = slot.status === 'available';
 
                 return (

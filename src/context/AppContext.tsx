@@ -80,7 +80,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_PRODUCTS);
-      return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+      if (!saved) return INITIAL_PRODUCTS;
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_PRODUCTS;
     } catch {
       return INITIAL_PRODUCTS;
     }
@@ -89,7 +91,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [bundles, setBundles] = useState<Bundle[]>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_BUNDLES);
-      return saved ? JSON.parse(saved) : INITIAL_BUNDLES;
+      if (!saved) return INITIAL_BUNDLES;
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_BUNDLES;
     } catch {
       return INITIAL_BUNDLES;
     }

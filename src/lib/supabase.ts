@@ -1,16 +1,36 @@
 import { createClient } from '@supabase/supabase-js';
 import { Customer, Order } from '../types';
 
-export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
-export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const rawUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim();
+const rawKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
+
+// Clean quotes or extra spaces that might be passed from .env or CI
+export const SUPABASE_URL = rawUrl.replace(/^["']|["']$/g, '');
+export const SUPABASE_ANON_KEY = rawKey.replace(/^["']|["']$/g, '');
 
 export const isSupabaseConfigured = () => {
-  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && SUPABASE_URL.startsWith('https://'));
+  return Boolean(
+    SUPABASE_URL &&
+    SUPABASE_ANON_KEY &&
+    SUPABASE_URL.startsWith('https://') &&
+    SUPABASE_ANON_KEY.length > 20
+  );
 };
 
-export const supabase = isSupabaseConfigured()
-  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : null;
+export const supabase = (() => {
+  try {
+    if (!isSupabaseConfigured()) return null;
+    return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    });
+  } catch (err) {
+    console.warn('Supabase safe init notice (client disabled):', err);
+    return null;
+  }
+})();
 
 // ======================= CUSTOMERS DB =======================
 
