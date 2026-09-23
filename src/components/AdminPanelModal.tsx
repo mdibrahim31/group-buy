@@ -305,7 +305,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-stone-900/95 backdrop-blur-md flex flex-col w-screen h-screen overflow-hidden animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 bg-stone-900/95 backdrop-blur-md flex flex-col w-screen h-[100dvh] overflow-hidden animate-in fade-in duration-200">
       <div className="bg-stone-100 w-full h-full flex flex-col overflow-hidden">
         {/* Fullscreen Clean Admin Header with Back Button */}
         <div className="bg-stone-900 text-white border-b border-stone-800 shrink-0">
@@ -487,12 +487,12 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
               </div>
             </div>
 
-            {/* Tab Contents - Fullscreen Container */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-stone-100/70">
+            {/* Tab Contents - Fullscreen Container with mobile safe area bottom padding */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-36 sm:pb-24 bg-stone-100/70">
               <div className="max-w-7xl mx-auto w-full space-y-6">
               {/* TAB 1: POST NEW BUNDLE */}
               {activeTab === 'new-bundle' && (
-                <div className="max-w-2xl mx-auto bg-stone-50 border border-stone-200 rounded-2xl p-5 sm:p-6">
+                <div className="max-w-2xl mx-auto bg-stone-50 border border-stone-200 rounded-2xl p-5 sm:p-6 mb-12 shadow-sm">
                   <div className="flex items-center gap-2 mb-4 pb-3 border-b border-stone-200">
                     <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
                       <PlusCircle className="w-5 h-5" />
@@ -867,13 +867,13 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                       />
                     </div>
 
-                    {/* Submit Button */}
-                    <div className="pt-2">
+                    {/* Submit Button - Elevated for mobile visibility */}
+                    <div className="pt-4 pb-2 sticky bottom-2 z-10">
                       <button
                         type="submit"
-                        className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+                        className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-extrabold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all cursor-pointer ring-2 ring-emerald-500/20"
                       >
-                        <PlusCircle className="w-4 h-4" />
+                        <PlusCircle className="w-5 h-5 shrink-0" />
                         <span>নতুন বান্ডিল পোস্ট করুন (শপে লাইভ যুক্ত হবে)</span>
                       </button>
                     </div>
