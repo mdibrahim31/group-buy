@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Customer, Order } from '../types';
+import { Customer, Order, Product, Bundle, BundleSlot } from '../types';
 
 const rawUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim();
 const rawKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
@@ -304,3 +304,201 @@ export async function dbGetAllOrders(): Promise<Order[]> {
     return [];
   }
 }
+
+// ======================= PRODUCTS & BUNDLES DB =======================
+
+export async function dbGetAllProducts(): Promise<Product[]> {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+    return data.map((p: any) => ({
+      id: p.id,
+      title: p.title,
+      category: p.category || 'জুতা',
+      description: p.description || '',
+      imageUrl: p.image_url,
+      retailPrice: Number(p.retail_price),
+      groupPrice: Number(p.group_price),
+      wholesalePrice: Number(p.wholesale_price),
+      fullBundlePricePerPiece: Number(p.full_bundle_price_per_piece || p.group_price),
+      bundleSize: Number(p.bundle_size || 6),
+      availableSizes: Array.isArray(p.available_sizes) ? p.available_sizes : [],
+    }));
+  } catch (err) {
+    console.warn('Supabase dbGetAllProducts error:', err);
+    return [];
+  }
+}
+
+export async function dbSaveProduct(product: Product): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase
+      .from('products')
+      .upsert({
+        id: product.id,
+        title: product.title,
+        category: product.category,
+        description: product.description,
+        image_url: product.imageUrl,
+        retail_price: product.retailPrice,
+        group_price: product.groupPrice,
+        wholesale_price: product.wholesalePrice,
+        full_bundle_price_per_piece: product.fullBundlePricePerPiece,
+        bundle_size: product.bundleSize,
+        available_sizes: product.availableSizes,
+        status: 'active',
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
+
+    if (error) {
+      console.warn('Supabase dbSaveProduct error:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('Supabase dbSaveProduct exception:', err);
+    return false;
+  }
+}
+
+export async function dbGetAllBundles(): Promise<Bundle[]> {
+  if (!supabase) return [];
+  try {
+    const { data: bundlesData, error: bundlesError } = await supabase
+      .from('bundles')
+      .select('*')
+      .order('batch_number', { ascending: true });
+
+    if (bundlesError || !bundlesData) return [];
+
+    const { data: slotsData } = await supabase
+      .from('bundle_slots')
+      .select('*');
+
+    const slotsByBundleId: Record<string, BundleSlot[]> = {};
+    if (slotsData) {
+      slotsData.forEach((s: any) => {
+        if (!slotsByBundleId[s.bundle_id]) slotsByBundleId[s.bundle_id] = [];
+        slotsByBundleId[s.bundle_id].push({
+          id: s.id,
+          bundleId: s.bundle_id,
+          size: s.size,
+          status: s.status,
+          userId: s.user_id,
+          userName: s.user_name,
+          userPhoneMasked: s.user_phone_masked,
+          bookedAt: s.booked_at,
+        });
+      });
+    }
+
+    return bundlesData.map((b: any) => ({
+      id: b.id,
+      productId: b.product_id,
+      batchNumber: Number(b.batch_number),
+      totalSlots: Number(b.total_slots),
+      filledSlots: Number(b.filled_slots),
+      status: b.status,
+      createdAt: b.created_at,
+      expiresAt: b.expires_at || new Date(Date.now() + 3600000 * 48).toISOString(),
+      slots: slotsByBundleId[b.id] || [],
+    }));
+  } catch (err) {
+    console.warn('Supabase dbGetAllBundles error:', err);
+    return [];
+  }
+}
+
+export async function dbSaveBundle(bundle: Bundle): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    const { error: bundleErr } = await supabase
+      .from('bundles')
+      .upsert({
+        id: bundle.id,
+        product_id: bundle.productId,
+        batch_number: bundle.batchNumber,
+        total_slots: bundle.totalSlots,
+        filled_slots: bundle.filledSlots,
+        status: bundle.status,
+        expires_at: bundle.expiresAt,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
+
+    if (bundleErr) {
+      console.warn('Supabase dbSaveBundle error:', bundleErr.message);
+      return false;
+    }
+
+    if (bundle.slots && bundle.slots.length > 0) {
+      const slotRecords = bundle.slots.map((s, index) => ({
+        id: s.id,
+        bundle_id: bundle.id,
+        product_id: bundle.productId,
+        slot_number: index + 1,
+        size: s.size,
+        status: s.status,
+        user_id: s.userId || null,
+        user_name: s.userName || null,
+        user_phone_masked: s.userPhoneMasked || null,
+        booked_at: s.bookedAt || null,
+      }));
+
+      await supabase.from('bundle_slots').upsert(slotRecords, { onConflict: 'id' });
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('Supabase dbSaveBundle exception:', err);
+    return false;
+  }
+}
+
+export async function dbUpdateBundleSlot(slot: BundleSlot): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase
+      .from('bundle_slots')
+      .update({
+        status: slot.status,
+        user_id: slot.userId || null,
+        user_name: slot.userName || null,
+        user_phone_masked: slot.userPhoneMasked || null,
+        booked_at: slot.bookedAt || new Date().toISOString(),
+      })
+      .eq('id', slot.id);
+
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+export async function dbUpdateBundleStatus(bundleId: string, status: string, filledSlots?: number): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    const updateData: any = {
+      status,
+      updated_at: new Date().toISOString(),
+    };
+    if (typeof filledSlots === 'number') {
+      updateData.filled_slots = filledSlots;
+    }
+
+    const { error } = await supabase
+      .from('bundles')
+      .update(updateData)
+      .eq('id', bundleId);
+
+    return !error;
+  } catch {
+    return false;
+  }
+}
+

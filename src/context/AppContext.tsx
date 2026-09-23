@@ -7,6 +7,12 @@ import {
   dbSaveOrder,
   dbGetOrdersByCustomerId,
   dbFindOrderById,
+  dbGetAllProducts,
+  dbSaveProduct,
+  dbGetAllBundles,
+  dbSaveBundle,
+  dbUpdateBundleSlot,
+  dbUpdateBundleStatus,
   isSupabaseConfigured,
 } from '../lib/supabase';
 
@@ -173,6 +179,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     fetchRemoteUserOrders();
   }, [user?.id]);
+
+  // Load products and bundles from Supabase on launch
+  useEffect(() => {
+    const loadSupabaseCatalog = async () => {
+      if (!isSupabaseConfigured()) return;
+      try {
+        const [remoteProducts, remoteBundles] = await Promise.all([
+          dbGetAllProducts(),
+          dbGetAllBundles(),
+        ]);
+
+        if (remoteProducts.length > 0) {
+          setProducts(prev => {
+            const map = new Map<string, Product>();
+            prev.forEach(p => map.set(p.id, p));
+            remoteProducts.forEach(p => map.set(p.id, p));
+            return Array.from(map.values());
+          });
+        }
+
+        if (remoteBundles.length > 0) {
+          setBundles(prev => {
+            const map = new Map<string, Bundle>();
+            prev.forEach(b => map.set(b.id, b));
+            remoteBundles.forEach(b => map.set(b.id, b));
+            return Array.from(map.values());
+          });
+        }
+      } catch (err) {
+        console.warn('Catalog sync notice:', err);
+      }
+    };
+    loadSupabaseCatalog();
+  }, []);
 
   // Auth: Phone + Password with Supabase Customers table
   const login = async (phone: string, pass: string): Promise<{ success: boolean; message: string }> => {
@@ -379,8 +419,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setOrders(prev => [newOrder, ...prev]);
 
-    // Save to Supabase orders table
+    // Save to Supabase
     dbSaveOrder(newOrder);
+    dbUpdateBundleSlot(bookedSlot);
+    dbUpdateBundleStatus(updatedBundle.id, updatedBundle.status, updatedBundle.filledSlots);
 
     return {
       success: true,
@@ -487,6 +529,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setBundles(prev => [newBundle, ...prev]);
 
+    // Save new batch to Supabase
+    dbSaveBundle(newBundle);
+
     if (initialOrder) {
       setOrders(prev => [initialOrder!, ...prev]);
     }
@@ -579,8 +624,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setBundles(prev => [newBundle, ...prev]);
     setOrders(prev => [newOrder, ...prev]);
 
-    // Save to Supabase orders table
+    // Save to Supabase orders & bundles table
     dbSaveOrder(newOrder);
+    dbSaveBundle(newBundle);
 
     return {
       success: true,
@@ -595,6 +641,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...o,
       status: status === 'shipped' ? 'in_transit' : status === 'ordered' ? 'ordered_wholesale' : o.status
     } : o));
+    dbUpdateBundleStatus(bundleId, status);
   };
 
   const addProduct = (newProdData: Omit<Product, 'id'>) => {
@@ -631,6 +678,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setBundles(prev => [firstBundle, ...prev]);
+
+    // Save directly to Supabase products and bundles tables
+    dbSaveProduct(product);
+    dbSaveBundle(firstBundle);
   };
 
   // Find order by Order ID or Customer ID
