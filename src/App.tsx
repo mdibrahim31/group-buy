@@ -57,9 +57,6 @@ const MainContent: React.FC = () => {
     desiredSize?: string;
   } | null>(null);
 
-  // Admin Modal State
-  const [adminModalOpen, setAdminModalOpen] = useState(false);
-
   // Toast notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -420,7 +417,6 @@ const MainContent: React.FC = () => {
         isOpen={notificationModalOpen}
         onClose={() => setNotificationModalOpen(false)}
       />
-      <AdminPanelModal isOpen={adminModalOpen} onClose={() => setAdminModalOpen(false)} />
     </div>
   );
 };
