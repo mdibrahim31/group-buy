@@ -27,6 +27,8 @@ import {
   Users,
   Eye,
   Trash2,
+  FolderPlus,
+  Folder,
 } from 'lucide-react';
 import { Order, Product, Bundle } from '../types';
 import { dbGetAllOrders, isSupabaseConfigured } from '../lib/supabase';
@@ -37,16 +39,32 @@ interface AdminPanelModalProps {
 }
 
 export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClose }) => {
-  const { orders: localOrders, products, bundles, addProduct, updateBatchStatus, removeCustomerSlot } = useApp();
+  const {
+    orders: localOrders,
+    products,
+    bundles,
+    addProduct,
+    updateBatchStatus,
+    removeCustomerSlot,
+    categories,
+    addCategory,
+    deleteCategory,
+  } = useApp();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [adminPin, setAdminPin] = useState('');
   const [pinError, setPinError] = useState('');
 
-  // Tabs: 'orders' | 'new-bundle' | 'bundles'
-  const [activeTab, setActiveTab] = useState<'orders' | 'new-bundle' | 'bundles'>('bundles');
+  // Tabs: 'orders' | 'new-bundle' | 'bundles' | 'categories'
+  const [activeTab, setActiveTab] = useState<'orders' | 'new-bundle' | 'bundles' | 'categories'>('bundles');
   const [searchQuery, setSearchQuery] = useState('');
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Category management state
+  const [categoryInput, setCategoryInput] = useState('');
+  const [categoryMsg, setCategoryMsg] = useState<{ text: string; isError: boolean } | null>(null);
+  const [inlineCategoryInput, setInlineCategoryInput] = useState('');
+  const [showInlineCatAdd, setShowInlineCatAdd] = useState(false);
 
   // Selected Bundle for drill-down details view
   const [selectedBundleId, setSelectedBundleId] = useState<string | null>(null);
@@ -55,7 +73,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
 
   // New Bundle Form State
   const [newTitle, setNewTitle] = useState('');
-  const [newCategory, setNewCategory] = useState<'জুতা' | 'কাপড়'>('জুতা');
+  const [newCategory, setNewCategory] = useState<string>(categories[0] || 'জুতা');
   const [newImageUrl, setNewImageUrl] = useState('');
   const [newRetailPrice, setNewRetailPrice] = useState<number | ''>('');
   const [newGroupPrice, setNewGroupPrice] = useState<number | ''>('');
@@ -349,6 +367,18 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                   </button>
 
                   <button
+                    onClick={() => setActiveTab('categories')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                      activeTab === 'categories'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'bg-stone-100 text-stone-700 border border-stone-200 hover:bg-stone-200'
+                    }`}
+                  >
+                    <FolderPlus className="w-4 h-4" />
+                    <span>ক্যাটাগরি ম্যানেজমেন্ট ({categories.length})</span>
+                  </button>
+
+                  <button
                     onClick={() => setActiveTab('orders')}
                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
                       activeTab === 'orders'
@@ -444,26 +474,68 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                     {/* Category & Bundle Size */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-bold text-stone-700 mb-1">
-                          ক্যাটাগরি *
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs font-bold text-stone-700">
+                            ক্যাটাগরি *
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setShowInlineCatAdd(!showInlineCatAdd)}
+                            className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer flex items-center gap-1"
+                          >
+                            <PlusCircle className="w-3 h-3" />
+                            <span>{showInlineCatAdd ? 'বাতিল' : '+ নতুন ক্যাটাগরি'}</span>
+                          </button>
+                        </div>
+
+                        {showInlineCatAdd && (
+                          <div className="mb-2 p-2 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2 animate-in fade-in">
+                            <input
+                              type="text"
+                              placeholder="ক্যাটাগরির নাম (যেমন: ঘড়ি, ব্যাগ)..."
+                              value={inlineCategoryInput}
+                              onChange={(e) => setInlineCategoryInput(e.target.value)}
+                              className="flex-1 px-2.5 py-1 bg-white border border-stone-200 rounded-lg text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const res = addCategory(inlineCategoryInput);
+                                if (res.success) {
+                                  setNewCategory(inlineCategoryInput.trim());
+                                  setInlineCategoryInput('');
+                                  setShowInlineCatAdd(false);
+                                } else {
+                                  alert(res.message);
+                                }
+                              }}
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0"
+                            >
+                              যোগ করুন
+                            </button>
+                          </div>
+                        )}
+
                         <select
                           value={newCategory}
                           onChange={(e) => {
-                            const cat = e.target.value as 'জুতা' | 'কাপড়';
+                            const cat = e.target.value;
                             setNewCategory(cat);
                             if (cat === 'কাপড়') {
                               setNewSizes('M, L, XL, XXL');
                               setNewBundleSize(4);
-                            } else {
+                            } else if (cat === 'জুতা') {
                               setNewSizes('39, 40, 41, 42, 43, 44');
                               setNewBundleSize(6);
                             }
                           }}
-                          className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                          className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-medium text-stone-900"
                         >
-                          <option value="জুতা">জুতা (Shoes)</option>
-                          <option value="কাপড়">কাপড় (Clothing / Apparel)</option>
+                          {categories.map((cat) => (
+                            <option key={cat} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
                         </select>
                       </div>
 
@@ -653,6 +725,115 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                       </button>
                     </div>
                   </form>
+                </div>
+              )}
+
+              {/* TAB: CATEGORY MANAGEMENT */}
+              {activeTab === 'categories' && (
+                <div className="max-w-3xl mx-auto space-y-6">
+                  {/* Add New Category Card */}
+                  <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-xs">
+                    <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-stone-200">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                        <FolderPlus className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-stone-900">ম্যানুয়ালি নতুন ক্যাটাগরি তৈরি করুন</h3>
+                        <p className="text-xs text-stone-500">
+                          শপের পণ্য ও বান্ডিল সাজাতে যেকোনো নতুন ক্যাটাগরি যুক্ত করুন (যেমন: ঘড়ি, ব্যাগ, কসমেটিকস, পাঞ্জাবি ইত্যাদি)।
+                        </p>
+                      </div>
+                    </div>
+
+                    {categoryMsg && (
+                      <div className={`mb-4 p-3 rounded-xl text-xs font-bold flex items-center gap-2 animate-in fade-in ${
+                        categoryMsg.isError ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                      }`}>
+                        {categoryMsg.isError ? <AlertCircle className="w-4 h-4 shrink-0" /> : <Check className="w-4 h-4 text-emerald-600 shrink-0" />}
+                        <span>{categoryMsg.text}</span>
+                      </div>
+                    )}
+
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (!categoryInput.trim()) return;
+                        const res = addCategory(categoryInput);
+                        setCategoryMsg({ text: res.message, isError: !res.success });
+                        if (res.success) {
+                          setCategoryInput('');
+                          setTimeout(() => setCategoryMsg(null), 3500);
+                        }
+                      }}
+                      className="flex flex-col sm:flex-row gap-2.5"
+                    >
+                      <div className="relative flex-1">
+                        <Tag className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="নতুন ক্যাটাগরির নাম লিখুন (যেমন: ঘড়ি, ব্যাগ, ইলেকট্রনিক্স, কসমেটিকস)..."
+                          value={categoryInput}
+                          onChange={(e) => setCategoryInput(e.target.value)}
+                          className="w-full pl-9 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none font-semibold text-stone-900"
+                          required
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm shrink-0"
+                      >
+                        <PlusCircle className="w-4 h-4" />
+                        <span>ক্যাটাগরি যুক্ত করুন</span>
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Existing Categories List */}
+                  <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-xs">
+                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-stone-200">
+                      <div>
+                        <h3 className="text-sm font-bold text-stone-900">বর্তমান সক্রিয় ক্যাটাগরিসমূহ ({categories.length})</h3>
+                        <p className="text-xs text-stone-500">গ্রাহকরা হোমপেজে এই ক্যাটাগরিগুলো দিয়ে ফিল্টার করতে পারবেন।</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {categories.map((cat) => {
+                        const productCount = products.filter(p => p.category === cat).length;
+                        return (
+                          <div
+                            key={cat}
+                            className="p-3.5 bg-stone-50 hover:bg-stone-100/80 border border-stone-200 rounded-xl flex items-center justify-between transition-colors"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-8 h-8 rounded-lg bg-emerald-100/70 text-emerald-800 flex items-center justify-center shrink-0">
+                                <Folder className="w-4 h-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-stone-900 truncate">{cat}</p>
+                                <p className="text-[11px] text-stone-500 font-medium">
+                                  {productCount} টি পণ্য
+                                </p>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const res = deleteCategory(cat);
+                                setCategoryMsg({ text: res.message, isError: !res.success });
+                                setTimeout(() => setCategoryMsg(null), 3500);
+                              }}
+                              className="p-2 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              title="ক্যাটাগরি মুছে ফেলুন"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               )}
 

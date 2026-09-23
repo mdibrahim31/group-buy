@@ -15,9 +15,10 @@ export const Navbar: React.FC = () => {
     setSearchQuery,
     unreadNotificationsCount,
     setNotificationModalOpen,
+    categories: appCategories,
   } = useApp();
 
-  const categories = ['সব', 'জুতা', 'কাপড়'];
+  const allCategories = ['সব', ...appCategories];
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200">
@@ -113,7 +114,7 @@ export const Navbar: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-stone-100">
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
           <span className="text-xs text-stone-500 font-medium mr-2">ক্যাটাগরি:</span>
-          {categories.map((cat) => (
+          {allCategories.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}

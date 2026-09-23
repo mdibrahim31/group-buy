@@ -31,6 +31,9 @@ interface AppContextType {
   addNotification: (notification: Omit<AppNotification, 'id' | 'createdAt' | 'read'>) => void;
   authModalOpen: boolean;
   setAuthModalOpen: (open: boolean) => void;
+  categories: string[];
+  addCategory: (name: string) => { success: boolean; message: string };
+  deleteCategory: (name: string) => { success: boolean; message: string };
   selectedCategory: string;
   setSelectedCategory: (cat: string) => void;
   searchQuery: string;
@@ -80,11 +83,14 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const LOCAL_STORAGE_KEY_USER = 'groupbuy_user_session';
-const LOCAL_STORAGE_KEY_BUNDLES = 'groupbuy_bundles_data';
-const LOCAL_STORAGE_KEY_ORDERS = 'groupbuy_user_orders';
-const LOCAL_STORAGE_KEY_PRODUCTS = 'groupbuy_products_data';
+const LOCAL_STORAGE_KEY_BUNDLES = 'groupbuy_bundles_data_v2';
+const LOCAL_STORAGE_KEY_ORDERS = 'groupbuy_user_orders_v2';
+const LOCAL_STORAGE_KEY_PRODUCTS = 'groupbuy_products_data_v2';
 const LOCAL_STORAGE_KEY_USERS_DB = 'groupbuy_registered_customers_db';
-const LOCAL_STORAGE_KEY_NOTIFICATIONS = 'groupbuy_notifications_data';
+const LOCAL_STORAGE_KEY_NOTIFICATIONS = 'groupbuy_notifications_data_v2';
+const LOCAL_STORAGE_KEY_CATEGORIES = 'groupbuy_categories_v2';
+
+const DEFAULT_CATEGORIES = ['জুতা', 'কাপড়'];
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
@@ -96,25 +102,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
+  const [categories, setCategories] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY_CATEGORIES);
+      if (!saved) return DEFAULT_CATEGORIES;
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_CATEGORIES;
+    } catch {
+      return DEFAULT_CATEGORIES;
+    }
+  });
+
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_PRODUCTS);
-      if (!saved) return INITIAL_PRODUCTS;
+      if (!saved) return [];
       const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_PRODUCTS;
+      if (Array.isArray(parsed)) {
+        return parsed.filter(p => !['prod-1', 'prod-2', 'prod-3', 'prod-4', 'prod-5'].includes(p.id));
+      }
+      return [];
     } catch {
-      return INITIAL_PRODUCTS;
+      return [];
     }
   });
 
   const [bundles, setBundles] = useState<Bundle[]>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_BUNDLES);
-      if (!saved) return INITIAL_BUNDLES;
+      if (!saved) return [];
       const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_BUNDLES;
+      if (Array.isArray(parsed)) {
+        return parsed.filter(b => !b.id.startsWith('bundle-prod-1') && !b.id.startsWith('bundle-prod-2') && !b.id.startsWith('bundle-prod-3'));
+      }
+      return [];
     } catch {
-      return INITIAL_BUNDLES;
+      return [];
     }
   });
 
@@ -130,11 +153,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [notifications, setNotifications] = useState<AppNotification[]>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_NOTIFICATIONS);
-      if (!saved) return INITIAL_NOTIFICATIONS;
+      if (!saved) return [];
       const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_NOTIFICATIONS;
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
-      return INITIAL_NOTIFICATIONS;
+      return [];
     }
   });
 
@@ -864,6 +887,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   };
 
+  // Add new category
+  const addCategory = (name: string): { success: boolean; message: string } => {
+    const clean = name.trim();
+    if (!clean) return { success: false, message: 'ক্যাটাগরির নাম লিখুন' };
+    if (categories.includes(clean)) {
+      return { success: false, message: 'এই ক্যাটাগরি ইতিমধ্যে বিদ্যমান আছে' };
+    }
+    const updated = [...categories, clean];
+    setCategories(updated);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY_CATEGORIES, JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+    return { success: true, message: `"${clean}" ক্যাটাগরি সফলভাবে যুক্ত হয়েছে` };
+  };
+
+  // Delete category
+  const deleteCategory = (name: string): { success: boolean; message: string } => {
+    const clean = name.trim();
+    if (!clean) return { success: false, message: 'ক্যাটাগরির নাম পাওয়া যায়নি' };
+    const updated = categories.filter(c => c !== clean);
+    setCategories(updated);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY_CATEGORIES, JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+    if (selectedCategory === clean) {
+      setSelectedCategory('সব');
+    }
+    return { success: true, message: `"${clean}" ক্যাটাগরি মুছে ফেলা হয়েছে` };
+  };
+
   // Find order by Order ID or Customer ID
   const findOrderByIdOrCustomer = async (query: string): Promise<Order[]> => {
     const clean = query.trim();
@@ -909,6 +966,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addNotification,
         authModalOpen,
         setAuthModalOpen,
+        categories,
+        addCategory,
+        deleteCategory,
         selectedCategory,
         setSelectedCategory,
         searchQuery,
