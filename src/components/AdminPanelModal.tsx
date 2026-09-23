@@ -38,6 +38,12 @@ interface AdminPanelModalProps {
   onClose: () => void;
 }
 
+interface SizeConfigItem {
+  id: string;
+  size: string;
+  qty: number | '';
+}
+
 export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClose }) => {
   const {
     orders: localOrders,
@@ -77,13 +83,24 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
   const [newImageUrl, setNewImageUrl] = useState('');
   const [newRetailPrice, setNewRetailPrice] = useState<number | ''>('');
   const [newGroupPrice, setNewGroupPrice] = useState<number | ''>('');
-  const [newWholesalePrice, setNewWholesalePrice] = useState<number | ''>('');
   const [newFullBundlePrice, setNewFullBundlePrice] = useState<number | ''>('');
-  const [newBundleSize, setNewBundleSize] = useState<number>(6);
-  const [newSizes, setNewSizes] = useState('39, 40, 41, 42, 43, 44');
+
+  // Size breakdown list with quantity per size
+  const [sizeConfigs, setSizeConfigs] = useState<SizeConfigItem[]>([
+    { id: '1', size: '39', qty: 1 },
+    { id: '2', size: '40', qty: 1 },
+    { id: '3', size: '41', qty: 1 },
+    { id: '4', size: '42', qty: 1 },
+    { id: '5', size: '43', qty: 1 },
+    { id: '6', size: '44', qty: 1 },
+  ]);
+
   const [newDescription, setNewDescription] = useState('');
   const [postSuccess, setPostSuccess] = useState(false);
   const [postError, setPostError] = useState('');
+
+  // Calculate total bundle size from size configs
+  const calculatedTotalPcs = sizeConfigs.reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
 
   // Preset image suggestions for quick posting
   const imagePresets = [
@@ -91,31 +108,60 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
       label: 'অফিসিয়াল লেদার জুতা',
       category: 'জুতা' as const,
       url: 'https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?auto=format&fit=crop&w=800&q=80',
-      sizes: '39, 40, 41, 42, 43, 44',
+      sizes: [
+        { id: '1', size: '39', qty: 1 },
+        { id: '2', size: '40', qty: 1 },
+        { id: '3', size: '41', qty: 1 },
+        { id: '4', size: '42', qty: 1 },
+        { id: '5', size: '43', qty: 1 },
+        { id: '6', size: '44', qty: 1 },
+      ],
     },
     {
       label: 'ক্যাজুয়াল লোফার',
       category: 'জুতা' as const,
       url: 'https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&w=800&q=80',
-      sizes: '39, 40, 41, 42, 43, 44',
+      sizes: [
+        { id: '1', size: '39', qty: 1 },
+        { id: '2', size: '40', qty: 1 },
+        { id: '3', size: '41', qty: 1 },
+        { id: '4', size: '42', qty: 1 },
+        { id: '5', size: '43', qty: 1 },
+        { id: '6', size: '44', qty: 1 },
+      ],
     },
     {
       label: 'হোয়াইট স্নিকার্স',
       category: 'জুতা' as const,
       url: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=800&q=80',
-      sizes: '40, 41, 42, 43, 44',
+      sizes: [
+        { id: '1', size: '40', qty: 1 },
+        { id: '2', size: '41', qty: 2 },
+        { id: '3', size: '42', qty: 2 },
+        { id: '4', size: '43', qty: 1 },
+      ],
     },
     {
       label: 'প্রিমিয়াম পোলো শার্ট',
       category: 'কাপড়' as const,
       url: 'https://images.unsplash.com/photo-1581655353564-df123a1eb820?auto=format&fit=crop&w=800&q=80',
-      sizes: 'M, L, XL, XXL',
+      sizes: [
+        { id: '1', size: 'M', qty: 1 },
+        { id: '2', size: 'L', qty: 2 },
+        { id: '3', size: 'XL', qty: 2 },
+        { id: '4', size: 'XXL', qty: 1 },
+      ],
     },
     {
       label: 'সেমি-লং পাঞ্জাবি',
       category: 'কাপড়' as const,
       url: 'https://images.unsplash.com/photo-1597983073493-88cd35cf93b0?auto=format&fit=crop&w=800&q=80',
-      sizes: '40, 42, 44, 46',
+      sizes: [
+        { id: '1', size: '40', qty: 1 },
+        { id: '2', size: '42', qty: 2 },
+        { id: '3', size: '44', qty: 2 },
+        { id: '4', size: '46', qty: 1 },
+      ],
     },
   ];
 
@@ -202,24 +248,33 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
       setPostError('পণ্যের ছবির লিংক (Image URL) দিন');
       return;
     }
-    if (!newRetailPrice || !newGroupPrice || !newWholesalePrice) {
-      setPostError('সকল মূল্যের ঘর সঠিকভাবে পূরণ করুন');
+    if (!newRetailPrice || !newGroupPrice) {
+      setPostError('খুচরা মূল্য ও গ্রুপ বাই মূল্যের ঘর সঠিকভাবে পূরণ করুন');
       return;
     }
 
-    const parsedSizes = newSizes
-      .split(',')
-      .map(s => s.trim())
-      .filter(Boolean);
+    // Build available sizes list accounting for quantity of each size
+    const finalSizes: string[] = [];
+    sizeConfigs.forEach((sc) => {
+      const cleanSize = sc.size.trim();
+      const count = Number(sc.qty) || 1;
+      if (cleanSize) {
+        for (let i = 0; i < count; i++) {
+          finalSizes.push(cleanSize);
+        }
+      }
+    });
 
-    if (parsedSizes.length === 0) {
-      setPostError('কমপক্ষে একটি সাইজ লিখুন (যেমন: 39, 40, 41)');
+    if (finalSizes.length === 0) {
+      setPostError('কমপক্ষে একটি সাইজ ও পিস সংখ্যা সেট করুন');
       return;
     }
 
     const calculatedFullBundlePrice = newFullBundlePrice
       ? Number(newFullBundlePrice)
       : Math.round(Number(newGroupPrice) * 0.88);
+
+    const autoWholesalePrice = Math.round(Number(newGroupPrice) * 0.75);
 
     addProduct({
       title: newTitle.trim(),
@@ -228,10 +283,10 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
       imageUrl: newImageUrl.trim(),
       retailPrice: Number(newRetailPrice),
       groupPrice: Number(newGroupPrice),
-      wholesalePrice: Number(newWholesalePrice),
+      wholesalePrice: autoWholesalePrice,
       fullBundlePricePerPiece: calculatedFullBundlePrice,
-      bundleSize: Number(newBundleSize) || 6,
-      availableSizes: parsedSizes,
+      bundleSize: finalSizes.length,
+      availableSizes: finalSizes,
     });
 
     setPostSuccess(true);
@@ -240,7 +295,6 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
     setNewImageUrl('');
     setNewRetailPrice('');
     setNewGroupPrice('');
-    setNewWholesalePrice('');
     setNewFullBundlePrice('');
     setNewDescription('');
 
@@ -253,44 +307,54 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
   return (
     <div className="fixed inset-0 z-50 bg-stone-900/95 backdrop-blur-md flex flex-col w-screen h-screen overflow-hidden animate-in fade-in duration-200">
       <div className="bg-stone-100 w-full h-full flex flex-col overflow-hidden">
-        {/* Fullscreen Admin Header */}
+        {/* Fullscreen Clean Admin Header with Back Button */}
         <div className="bg-stone-900 text-white border-b border-stone-800 shrink-0">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shadow-xs">
-                <ShieldCheck className="w-6 h-6" />
-              </div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              {selectedBundleId ? (
+                <button
+                  type="button"
+                  onClick={() => setSelectedBundleId(null)}
+                  className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-emerald-400 hover:text-white border border-stone-700 hover:border-emerald-500 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 font-bold text-xs shadow-xs"
+                  title="বান্ডিল তালিকায় ফিরে যান"
+                >
+                  <ChevronLeft className="w-4 h-4 text-emerald-400" />
+                  <span>← ফিরে যান</span>
+                </button>
+              ) : (
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shrink-0">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+              )}
+
               <div>
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h2 className="text-base sm:text-lg font-black tracking-tight text-white">
-                    অ্যাডমিন কন্ট্রোল সেন্টার (Admin Panel)
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm sm:text-base font-black tracking-tight text-white">
+                    {selectedBundleId ? 'বান্ডিল বিস্তারিত' : 'অ্যাডমিন প্যানেল'}
                   </h2>
                   {isSupabaseConfigured() ? (
-                    <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-700 px-2.5 py-0.5 rounded-full font-mono font-bold flex items-center gap-1.5 shadow-xs">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                      Supabase লাইভ
+                    <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-700 px-2 py-0.5 rounded-full font-mono font-bold flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                      লাইভ
                     </span>
                   ) : (
-                    <span className="text-[10px] bg-amber-950 text-amber-300 border border-amber-700 px-2.5 py-0.5 rounded-full font-mono font-bold flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                      লোকাল মোড
+                    <span className="text-[10px] bg-amber-950 text-amber-300 border border-amber-700 px-2 py-0.5 rounded-full font-mono font-bold flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                      লোকাল
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-stone-400 mt-0.5">
-                  হোলসেল বান্ডিল পোস্ট, সাইজ স্লট ম্যানেজমেন্ট ও ফুলফিলমেন্ট কন্ট্রোল
-                </p>
               </div>
             </div>
 
             {/* Corner Close Button */}
             <button
               onClick={onClose}
-              className="px-3.5 py-2 bg-stone-800 hover:bg-rose-700 text-stone-200 hover:text-white rounded-xl transition-all cursor-pointer flex items-center gap-2 font-bold text-xs shadow-md border border-stone-700 hover:border-rose-600"
+              className="p-2 sm:px-3 sm:py-1.5 bg-stone-800 hover:bg-rose-700 text-stone-300 hover:text-white rounded-xl transition-all cursor-pointer flex items-center gap-1.5 font-bold text-xs border border-stone-700 hover:border-rose-600"
               title="অ্যাডমিন প্যানেল বন্ধ করুন"
             >
-              <span className="hidden sm:inline">প্যানেল বন্ধ করুন</span>
-              <X className="w-4 h-4 text-stone-300 group-hover:text-white" />
+              <span className="hidden sm:inline">বন্ধ করুন</span>
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -471,7 +535,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                       />
                     </div>
 
-                    {/* Category & Bundle Size */}
+                    {/* Category & Total Bundle Info */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <div className="flex items-center justify-between mb-1">
@@ -522,11 +586,21 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                             const cat = e.target.value;
                             setNewCategory(cat);
                             if (cat === 'কাপড়') {
-                              setNewSizes('M, L, XL, XXL');
-                              setNewBundleSize(4);
+                              setSizeConfigs([
+                                { id: '1', size: 'M', qty: 1 },
+                                { id: '2', size: 'L', qty: 1 },
+                                { id: '3', size: 'XL', qty: 1 },
+                                { id: '4', size: 'XXL', qty: 1 },
+                              ]);
                             } else if (cat === 'জুতা') {
-                              setNewSizes('39, 40, 41, 42, 43, 44');
-                              setNewBundleSize(6);
+                              setSizeConfigs([
+                                { id: '1', size: '39', qty: 1 },
+                                { id: '2', size: '40', qty: 1 },
+                                { id: '3', size: '41', qty: 1 },
+                                { id: '4', size: '42', qty: 1 },
+                                { id: '5', size: '43', qty: 1 },
+                                { id: '6', size: '44', qty: 1 },
+                              ]);
                             }
                           }}
                           className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-medium text-stone-900"
@@ -541,17 +615,12 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
 
                       <div>
                         <label className="block text-xs font-bold text-stone-700 mb-1">
-                          বান্ডিল সাইজ (মোট পিস সংখ্যা) *
+                          মোট বান্ডিল সাইজ (স্বয়ংক্রিয় গণনা)
                         </label>
-                        <input
-                          type="number"
-                          min="2"
-                          max="24"
-                          value={newBundleSize}
-                          onChange={(e) => setNewBundleSize(Number(e.target.value))}
-                          className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                          required
-                        />
+                        <div className="w-full px-3 py-2 bg-stone-100 border border-stone-200 rounded-xl text-xs font-bold text-stone-900 flex items-center justify-between">
+                          <span className="text-emerald-700 font-extrabold text-sm">{calculatedTotalPcs} পিস</span>
+                          <span className="text-[11px] text-stone-500 font-normal">নিচের সাইজ ও পিস থেকে মোট স্লট তৈরি হবে</span>
+                        </div>
                       </div>
                     </div>
 
@@ -583,9 +652,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                               setNewImageUrl(preset.url);
                               setNewTitle(preset.label);
                               setNewCategory(preset.category);
-                              setNewSizes(preset.sizes);
-                              if (preset.category === 'কাপড়') setNewBundleSize(4);
-                              else setNewBundleSize(6);
+                              setSizeConfigs(preset.sizes);
                             }}
                             className="px-2 py-0.5 bg-white border border-stone-200 hover:border-emerald-400 rounded text-[10px] text-stone-600 transition-colors cursor-pointer"
                           >
@@ -610,8 +677,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                       )}
                     </div>
 
-                    {/* Pricing Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    {/* Pricing Grid - Clean (Wholesale cost removed as requested) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                       <div>
                         <label className="block text-[11px] font-bold text-stone-700 mb-1">
                           খুচরা বাজার মূল্য *
@@ -648,23 +715,6 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
 
                       <div>
                         <label className="block text-[11px] font-bold text-stone-600 mb-1">
-                          হোলসেলার কস্ট *
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400 text-xs">৳</span>
-                          <input
-                            type="number"
-                            placeholder="650"
-                            value={newWholesalePrice}
-                            onChange={(e) => setNewWholesalePrice(e.target.value === '' ? '' : Number(e.target.value))}
-                            className="w-full pl-6 pr-2 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-medium"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-bold text-stone-600 mb-1">
                           পুরো বান্ডিল কিনলে রেট
                         </label>
                         <div className="relative">
@@ -680,24 +730,127 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                       </div>
                     </div>
 
-                    {/* Sizes List */}
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-xs font-bold text-stone-700">
-                          উপলব্ধ সাইজসমূহ (কমা দিয়ে লিখুন) *
-                        </label>
-                        <span className="text-[11px] text-stone-400">
-                          {newCategory === 'জুতা' ? 'যেমন: 39, 40, 41, 42, 43, 44' : 'যেমন: M, L, XL, XXL'}
+                    {/* Size & Quantity Breakdown Builder (Supports multiple pcs of the same size) */}
+                    <div className="p-3.5 bg-stone-50 border border-stone-200 rounded-2xl space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-2 border-b border-stone-200">
+                        <div>
+                          <label className="text-xs font-bold text-stone-800 flex items-center gap-1.5">
+                            <Tag className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>সাইজ ও পিস সংখ্যা কনফিগারেশন *</span>
+                          </label>
+                          <p className="text-[11px] text-stone-500">
+                            একই সাইজের ১টির বেশি পিস থাকলে সরাসরি পিস সংখ্যা বাড়িয়ে দিন (যেমন: সাইজ ৪০ = ২ পিস)।
+                          </p>
+                        </div>
+                        <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg border border-emerald-200 self-start sm:self-auto shrink-0">
+                          মোট: {calculatedTotalPcs} পিস / স্লট
                         </span>
                       </div>
-                      <input
-                        type="text"
-                        placeholder="39, 40, 41, 42, 43, 44"
-                        value={newSizes}
-                        onChange={(e) => setNewSizes(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono"
-                        required
-                      />
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                        {sizeConfigs.map((sc, index) => (
+                          <div
+                            key={sc.id}
+                            className="p-2 bg-white border border-stone-200 rounded-xl flex items-center justify-between gap-2 shadow-2xs"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <label className="block text-[10px] text-stone-400 font-semibold mb-0.5">
+                                সাইজ
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="সাইজ..."
+                                value={sc.size}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setSizeConfigs((prev) =>
+                                    prev.map((item) => (item.id === sc.id ? { ...item, size: val } : item))
+                                  );
+                                }}
+                                className="w-full px-2 py-1 bg-stone-50 border border-stone-200 rounded-lg text-xs font-bold text-stone-900 focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                                required
+                              />
+                            </div>
+
+                            <div className="w-24 shrink-0">
+                              <label className="block text-[10px] text-stone-400 font-semibold mb-0.5 text-center">
+                                পিস (Qty)
+                              </label>
+                              <div className="flex items-center border border-stone-200 rounded-lg overflow-hidden bg-stone-50">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const curr = Number(sc.qty) || 1;
+                                    if (curr > 1) {
+                                      setSizeConfigs((prev) =>
+                                        prev.map((item) =>
+                                          item.id === sc.id ? { ...item, qty: curr - 1 } : item
+                                        )
+                                      );
+                                    }
+                                  }}
+                                  className="px-2 py-1 text-xs font-bold text-stone-600 hover:bg-stone-200 cursor-pointer"
+                                >
+                                  -
+                                </button>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="20"
+                                  value={sc.qty}
+                                  onChange={(e) => {
+                                    const val = e.target.value === '' ? '' : Math.max(1, Number(e.target.value));
+                                    setSizeConfigs((prev) =>
+                                      prev.map((item) => (item.id === sc.id ? { ...item, qty: val } : item))
+                                    );
+                                  }}
+                                  className="w-full text-center text-xs font-bold bg-transparent focus:outline-none py-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  required
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const curr = Number(sc.qty) || 0;
+                                    setSizeConfigs((prev) =>
+                                      prev.map((item) =>
+                                        item.id === sc.id ? { ...item, qty: curr + 1 } : item
+                                      )
+                                    );
+                                  }}
+                                  className="px-2 py-1 text-xs font-bold text-stone-600 hover:bg-stone-200 cursor-pointer"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+
+                            {sizeConfigs.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSizeConfigs((prev) => prev.filter((item) => item.id !== sc.id));
+                                }}
+                                className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer mt-3"
+                                title="সাইজ মুছে ফেলুন"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newId = String(Date.now());
+                          setSizeConfigs((prev) => [...prev, { id: newId, size: '', qty: 1 }]);
+                        }}
+                        className="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
+                      >
+                        <PlusCircle className="w-3.5 h-3.5" />
+                        <span>+ আরও সাইজ যোগ করুন</span>
+                      </button>
                     </div>
 
                     {/* Description */}
@@ -862,7 +1015,20 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                           {filteredOrders.map((ord) => (
                             <tr key={ord.id} className="hover:bg-stone-50/80 transition-colors">
                               <td className="p-2.5 font-mono font-bold text-stone-800 whitespace-nowrap">
-                                #{ord.id}
+                                <div>#{ord.id}</div>
+                                {ord.isSingleBuy || ord.orderType === 'single_buy' || ord.bundleId === 'single-buy' ? (
+                                  <span className="inline-block mt-0.5 px-1.5 py-0.2 text-[9px] bg-blue-100 text-blue-800 rounded font-bold border border-blue-200">
+                                    একক ক্রয় (Single)
+                                  </span>
+                                ) : ord.isFullBundle || ord.orderType === 'full_bundle' ? (
+                                  <span className="inline-block mt-0.5 px-1.5 py-0.2 text-[9px] bg-amber-100 text-amber-900 rounded font-bold border border-amber-200">
+                                    সম্পূর্ণ বান্ডিল
+                                  </span>
+                                ) : (
+                                  <span className="inline-block mt-0.5 px-1.5 py-0.2 text-[9px] bg-emerald-100 text-emerald-800 rounded font-bold border border-emerald-200">
+                                    গ্রুপ বাই স্লট
+                                  </span>
+                                )}
                               </td>
                               <td className="p-2.5">
                                 <div className="font-bold text-stone-900">{ord.customerName || 'কাস্টমার'}</div>
@@ -871,7 +1037,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                               <td className="p-2.5">
                                 <div className="font-medium text-stone-900 truncate max-w-[150px]">{ord.productTitle}</div>
                                 <div className="text-stone-500 text-[11px]">
-                                  সাইজ: <span className="font-bold text-stone-800">{ord.size}</span> (ব্যাচ #{ord.batchNumber})
+                                  সাইজ: <span className="font-bold text-stone-800">{ord.size}</span> {!ord.isSingleBuy && `(ব্যাচ #${ord.batchNumber})`}
                                 </div>
                               </td>
                               <td className="p-2.5 whitespace-nowrap">

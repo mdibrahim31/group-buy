@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Product, Bundle, BundleSlot } from '../types';
 import { useApp } from '../context/AppContext';
-import { Users, Clock, PlusCircle, CheckCircle2, AlertCircle, Sparkles, TrendingDown, ArrowRight } from 'lucide-react';
+import { Users, Clock, PlusCircle, CheckCircle2, AlertCircle, Sparkles, TrendingDown, ArrowRight, ShoppingBag, Zap } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
   onSelectSlot: (bundle: Bundle, slot: BundleSlot) => void;
   onStartNewBatch: (product: Product, desiredSize?: string) => void;
   onBuyWholeBundle: (product: Product) => void;
+  onSingleBuy: (product: Product, desiredSize?: string) => void;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -15,6 +16,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onSelectSlot,
   onStartNewBatch,
   onBuyWholeBundle,
+  onSingleBuy,
 }) => {
   const { bundles } = useApp();
   
@@ -64,24 +66,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {product.category}
         </div>
 
-        {/* Wholesale vs Group Price overlay footer */}
-        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-stone-950/95 via-stone-950/70 to-transparent p-3 pt-6 text-white flex items-end justify-between">
-          <div>
-            <div className="text-[11px] text-stone-300 flex items-center gap-2">
-              <span>খুচরা: <del className="text-stone-400">৳{product.retailPrice}</del></span>
-              <span className="text-emerald-400 font-medium">হোলসেল: ৳{product.wholesalePrice}</span>
+        {/* 3 Price Options Overlay Banner */}
+        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-stone-950/95 via-stone-950/80 to-transparent p-3 pt-6 text-white">
+          <div className="grid grid-cols-3 gap-1.5 text-center">
+            {/* Option 1: Group Buy */}
+            <div className="bg-emerald-950/70 border border-emerald-500/40 rounded-lg p-1.5">
+              <span className="text-[9px] text-emerald-300 font-bold block">১. গ্রুপ বাই</span>
+              <span className="text-xs font-extrabold text-emerald-400">৳{product.groupPrice}</span>
             </div>
-            <div className="text-sm font-bold text-white flex items-baseline gap-1 mt-0.5">
-              <span>গ্রুপ বাই:</span>
-              <span className="text-lg text-emerald-400 font-extrabold">৳{product.groupPrice}</span>
+
+            {/* Option 2: Full Bundle */}
+            <div className="bg-amber-950/70 border border-amber-500/40 rounded-lg p-1.5">
+              <span className="text-[9px] text-amber-300 font-bold block">২. পুরো বান্ডিল</span>
+              <span className="text-xs font-extrabold text-amber-300">৳{product.fullBundlePricePerPiece}<span className="text-[9px] font-normal">/পিস</span></span>
             </div>
-          </div>
-          <div className="text-right">
-            <span className="text-[10px] bg-amber-400 text-stone-950 font-extrabold px-1.5 py-0.5 rounded">
-              পুরো বান্ডিল অফার
-            </span>
-            <div className="text-xs font-bold text-amber-300 mt-0.5">
-              ৳{product.fullBundlePricePerPiece} <span className="text-[10px] text-stone-300 font-normal">/পিস</span>
+
+            {/* Option 3: Single Buy */}
+            <div className="bg-blue-950/70 border border-blue-500/40 rounded-lg p-1.5">
+              <span className="text-[9px] text-blue-300 font-bold block">৩. একক ক্রয়</span>
+              <span className="text-xs font-extrabold text-blue-300">৳{product.retailPrice}</span>
             </div>
           </div>
         </div>
@@ -97,16 +100,34 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {product.description}
           </p>
 
-          {/* Batches Navigation Tabs */}
-          <div className="mt-4 pt-3 border-t border-stone-100">
+          {/* 3 Buying Options Navigation / Summary Banner */}
+          <div className="mt-3.5 p-2 bg-stone-50 border border-stone-200/80 rounded-xl flex items-center justify-between text-[11px]">
+            <span className="font-bold text-stone-700 flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+              <span>৩টি ক্রয় অপশন:</span>
+            </span>
+            <div className="flex items-center gap-2 text-stone-500 font-medium">
+              <span className="text-emerald-700 font-bold">গ্রুপ বাই</span>
+              <span>•</span>
+              <span className="text-amber-700 font-bold">বান্ডিল</span>
+              <span>•</span>
+              <span className="text-blue-700 font-bold">একক ক্রয়</span>
+            </div>
+          </div>
+
+          {/* Batches Navigation Tabs for Group Buy */}
+          <div className="mt-3.5 pt-3 border-t border-stone-100">
             <div className="flex items-center justify-between text-xs mb-2">
-              <span className="font-semibold text-stone-700">চলমান ব্যাচসমূহ:</span>
+              <span className="font-bold text-emerald-800 flex items-center gap-1">
+                <Users className="w-3.5 h-3.5 text-emerald-600" />
+                <span>অপশন ১: গ্রুপ বাই ব্যাচ (৳{product.groupPrice}):</span>
+              </span>
               <button
                 onClick={() => onStartNewBatch(product)}
                 className="text-emerald-700 hover:text-emerald-800 font-semibold flex items-center gap-1 text-[11px] hover:underline"
               >
-                <PlusCircle className="w-3.5 h-3.5" />
-                <span>+ নতুন ব্যাচ শুরু করুন</span>
+                <PlusCircle className="w-3 h-3" />
+                <span>+ নতুন ব্যাচ</span>
               </button>
             </div>
 
@@ -147,7 +168,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
           {/* Active Batch Tracker Details */}
           {activeBundle && (
-            <div className="bg-stone-50 rounded-xl p-3 border border-stone-200/80 mb-4">
+            <div className="bg-stone-50 rounded-xl p-3 border border-stone-200/80 mb-3">
               <div className="flex items-center justify-between text-xs mb-1.5 font-medium">
                 <span className="text-stone-700 flex items-center gap-1">
                   <Users className="w-3.5 h-3.5 text-emerald-600" />
@@ -175,23 +196,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 {filledSlots >= totalSlots ? (
                   <span className="text-emerald-800 bg-emerald-100/90 border border-emerald-300 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>✓ স্লট পূরণ হয়েছে (Slot Completed) - হোলসেলার অর্ডার প্রক্রিয়াধীন</span>
+                    <span>✓ স্লট পূরণ হয়েছে - হোলসেলার অর্ডার প্রক্রিয়াধীন</span>
                   </span>
                 ) : (
                   <span className="text-stone-600 flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5 text-amber-600" />
-                    আর মাত্র <strong className="text-stone-900 font-bold">{remainingSlots} জন</strong> যুক্ত হলেই পাইকারি রেটে সরবরাহ!
+                    আর মাত্র <strong className="text-stone-900 font-bold">{remainingSlots} জন</strong> যুক্ত হলেই সরবরাহ!
                   </span>
                 )}
               </div>
             </div>
           )}
 
-          {/* Slots / Size Grid */}
+          {/* Slots / Size Grid for Group Buy */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs text-stone-600 font-medium px-1">
-              <span>সাইজ নির্বাচন করুন:</span>
-              <span className="text-[11px] text-stone-400">টোকেন অগ্রিম: ৳১৫০</span>
+              <span>গ্রুপ বাই সাইজ স্লট বুকিং:</span>
+              <span className="text-[11px] text-emerald-700 font-bold">টোকেন অগ্রিম: ৳১৫০</span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -205,7 +226,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                       if (isAvailable) {
                         onSelectSlot(activeBundle, slot);
                       } else {
-                        // If booked, suggest starting a new batch for this size
                         onStartNewBatch(product, slot.size);
                       }
                     }}
@@ -244,15 +264,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </div>
         </div>
 
-        {/* Whole Bundle Direct Buy CTA */}
-        <div className="mt-3 pt-3 border-t border-stone-100 flex flex-col gap-2">
+        {/* Action Buttons: Option 2 (Full Bundle) & Option 3 (Single Buy) */}
+        <div className="mt-3.5 pt-3 border-t border-stone-100 flex flex-col gap-2">
+          {/* Option 2: Whole Bundle Direct Buy CTA */}
           <button
             onClick={() => onBuyWholeBundle(product)}
             className="w-full py-2 px-3 bg-amber-50 hover:bg-amber-100 active:bg-amber-200 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold transition-all flex items-center justify-between shadow-xs cursor-pointer group/wb"
           >
             <span className="flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-              <span>সম্পূর্ণ বান্ডিল কিনুন ({product.bundleSize} পিস)</span>
+              <span>অপশন ২: সম্পূর্ণ বান্ডিল ({product.bundleSize} পিস)</span>
             </span>
             <span className="flex items-center gap-1 font-extrabold text-amber-900">
               <span>৳{product.fullBundlePricePerPiece}/পিস</span>
@@ -260,17 +281,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </span>
           </button>
 
-          <div className="flex items-center justify-between text-[11px] text-stone-500 px-1">
-            <span>টোকেন অগ্রিম: ৳১৫০ (একক)</span>
-            <button
-              onClick={() => onStartNewBatch(product)}
-              className="text-stone-600 hover:text-stone-900 font-semibold underline cursor-pointer"
-            >
-              অন্য সাইজের ব্যাচ চান?
-            </button>
-          </div>
+          {/* Option 3: Single Buy Instant Purchase CTA */}
+          <button
+            onClick={() => onSingleBuy(product)}
+            className="w-full py-2 px-3 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-blue-900 border border-blue-300 rounded-xl text-xs font-bold transition-all flex items-center justify-between shadow-xs cursor-pointer group/sb"
+          >
+            <span className="flex items-center gap-1.5">
+              <ShoppingBag className="w-3.5 h-3.5 text-blue-600" />
+              <span>অপশন ৩: একক ক্রয় (Single Buy - ১ পিস)</span>
+            </span>
+            <span className="flex items-center gap-1 font-extrabold text-blue-900">
+              <span>৳{product.retailPrice}</span>
+              <ArrowRight className="w-3 h-3 group-hover/sb:translate-x-0.5 transition-transform" />
+            </span>
+          </button>
         </div>
       </div>
     </div>
   );
 };
+

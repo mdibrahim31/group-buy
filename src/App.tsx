@@ -5,6 +5,7 @@ import { ProductCard } from './components/ProductCard';
 import { BookingModal } from './components/BookingModal';
 import { StartNewBatchModal } from './components/StartNewBatchModal';
 import { BuyWholeBundleModal } from './components/BuyWholeBundleModal';
+import { SingleBuyModal } from './components/SingleBuyModal';
 import { AuthModal } from './components/AuthModal';
 import { AuthScreen } from './components/AuthScreen';
 import { MyBookingsModal } from './components/MyBookingsModal';
@@ -43,6 +44,12 @@ const MainContent: React.FC = () => {
 
   // Buy Whole Bundle Modal State
   const [wholeBundleTarget, setWholeBundleTarget] = useState<Product | null>(null);
+
+  // Single Buy Modal State
+  const [singleBuyTarget, setSingleBuyTarget] = useState<{
+    product: Product;
+    desiredSize?: string;
+  } | null>(null);
 
   // Admin Modal State
   const [adminModalOpen, setAdminModalOpen] = useState(false);
@@ -141,6 +148,7 @@ const MainContent: React.FC = () => {
                 onSelectSlot={(bundle, slot) => setSelectedBooking({ product, bundle, slot })}
                 onStartNewBatch={(prod, size) => setNewBatchTarget({ product: prod, preselectedSize: size })}
                 onBuyWholeBundle={(prod) => setWholeBundleTarget(prod)}
+                onSingleBuy={(prod, size) => setSingleBuyTarget({ product: prod, desiredSize: size })}
               />
             ))}
           </div>
@@ -212,6 +220,19 @@ const MainContent: React.FC = () => {
           onSuccess={() => {
             setWholeBundleTarget(null);
             showToast('অভিনন্দন! সম্পূর্ণ বান্ডিল অর্ডার সফল হয়েছে।');
+            setMyBookingsOpen(true);
+          }}
+        />
+      )}
+
+      {singleBuyTarget && (
+        <SingleBuyModal
+          product={singleBuyTarget.product}
+          preselectedSize={singleBuyTarget.desiredSize}
+          onClose={() => setSingleBuyTarget(null)}
+          onSuccess={() => {
+            setSingleBuyTarget(null);
+            showToast('অভিনন্দন! আপনার একক অর্ডারটি সফলভাবে গ্রহণ করা হয়েছে।');
             setMyBookingsOpen(true);
           }}
         />

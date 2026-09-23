@@ -179,10 +179,13 @@ export const MyBookingsModal: React.FC = () => {
           ) : (
             <div className="space-y-4">
               {orders.map((order) => {
+                const isSingleBuy = order.isSingleBuy || order.orderType === 'single_buy' || order.bundleId === 'single-buy';
+                const isFullBundle = order.isFullBundle || order.orderType === 'full_bundle';
+
                 const targetBundle = bundles.find((b) => b.id === order.bundleId);
                 const totalSlots = targetBundle?.totalSlots || 6;
                 const filledSlots = targetBundle?.filledSlots || 0;
-                const isCompleted = filledSlots >= totalSlots;
+                const isCompleted = isSingleBuy || isFullBundle || filledSlots >= totalSlots;
                 const progressPercent = Math.min(100, Math.round((filledSlots / totalSlots) * 100));
 
                 return (
@@ -198,75 +201,115 @@ export const MyBookingsModal: React.FC = () => {
                         className="w-14 h-14 rounded-lg object-cover border border-stone-200 shrink-0"
                       />
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-stone-900 text-sm truncate">{order.productTitle}</h4>
+                        <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                          <h4 className="font-bold text-stone-900 text-sm truncate">{order.productTitle}</h4>
+                          {isSingleBuy ? (
+                            <span className="bg-blue-100 text-blue-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-blue-200">
+                              একক ক্রয় (Single Buy)
+                            </span>
+                          ) : isFullBundle ? (
+                            <span className="bg-amber-100 text-amber-900 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-amber-200">
+                              সম্পূর্ণ বান্ডিল
+                            </span>
+                          ) : (
+                            <span className="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-200">
+                              গ্রুপ বাই স্লট
+                            </span>
+                          )}
+                        </div>
 
-                        <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs">
+                        <div className="flex flex-wrap items-center gap-2 text-xs">
                           <span className="bg-stone-900 text-white px-2 py-0.5 rounded font-bold">
                             সাইজ: {order.size}
                           </span>
-                          <span className="text-stone-600 font-semibold">
-                            ব্যাচ #{order.batchNumber}
-                          </span>
+                          {!isSingleBuy && (
+                            <span className="text-stone-600 font-semibold">
+                              ব্যাচ #{order.batchNumber}
+                            </span>
+                          )}
                           <span className="text-emerald-700 font-bold">
-                            মোট: ৳{order.groupPrice} (টোকেন পেইড ৳{Math.min(order.advanceAmount, order.groupPrice)}, বাকি ৳{Math.max(0, order.dueAmount)})
+                            মোট: ৳{order.groupPrice} (পেইড ৳{Math.min(order.advanceAmount, order.groupPrice)}, বাকি ৳{Math.max(0, order.dueAmount)})
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Batch Progress Bar */}
-                    <div className="bg-white p-3 rounded-lg border border-stone-200 text-xs space-y-1.5">
-                      <div className="flex justify-between items-center text-stone-700 font-medium">
-                        <span className="flex items-center gap-1.5">
-                          <Users className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>ব্যাচ #{order.batchNumber} প্রগ্রেস:</span>
-                        </span>
-                        <span className="font-bold text-stone-900">
-                          {filledSlots} / {totalSlots} স্লট বুকড ({progressPercent}%)
+                    {/* Progress / Status Block */}
+                    {isSingleBuy ? (
+                      <div className="bg-blue-50/70 p-3 rounded-lg border border-blue-200 text-xs flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-blue-900 font-medium">
+                          <Truck className="w-4 h-4 text-blue-700 shrink-0" />
+                          <span>তাত্ক্ষণিক একক অর্ডার — কোনো গ্রুপ ব্যাচ অপেক্ষা নেই, সরাসরি কুরিয়ার প্রস্তুত হচ্ছে।</span>
+                        </div>
+                        <span className="text-[10px] font-mono bg-white text-blue-800 px-2 py-0.5 rounded border border-blue-200 shrink-0">
+                          {order.paymentMethod}
                         </span>
                       </div>
-
-                      <div className="w-full h-2 bg-stone-100 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            isCompleted ? 'bg-emerald-600' : 'bg-emerald-500'
-                          }`}
-                          style={{ width: `${progressPercent}%` }}
-                        />
+                    ) : isFullBundle ? (
+                      <div className="bg-amber-50/70 p-3 rounded-lg border border-amber-200 text-xs flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-amber-900 font-medium">
+                          <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                          <span>সম্পূর্ণ পাইকারি বান্ডিল নিশ্চিত — সরাসরি কারখানা/হোলসেলার প্যাকেজিং সম্পন্ন।</span>
+                        </div>
+                        <span className="text-[10px] font-mono bg-white text-amber-800 px-2 py-0.5 rounded border border-amber-200 shrink-0">
+                          {order.paymentMethod}
+                        </span>
                       </div>
-
-                      <div className="flex items-center justify-between text-[11px] pt-1">
-                        {isCompleted ? (
-                          <span className="text-emerald-700 font-semibold flex items-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            দল পূর্ণ! হোলসেলার থেকে প্রস্তুত হচ্ছে।
+                    ) : (
+                      /* Batch Progress Bar for Group Buy */
+                      <div className="bg-white p-3 rounded-lg border border-stone-200 text-xs space-y-1.5">
+                        <div className="flex justify-between items-center text-stone-700 font-medium">
+                          <span className="flex items-center gap-1.5">
+                            <Users className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>ব্যাচ #{order.batchNumber} প্রগ্রেস:</span>
                           </span>
-                        ) : (
-                          <span className="text-stone-500 flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 text-amber-500" />
-                            আর মাত্র {totalSlots - filledSlots} জন গ্রাহক জয়েন করলেই হোলসেলার অর্ডার শুরু হবে।
+                          <span className="font-bold text-stone-900">
+                            {filledSlots} / {totalSlots} স্লট বুকড ({progressPercent}%)
                           </span>
-                        )}
+                        </div>
 
-                        {/* Share button */}
-                        <button
-                          onClick={() => handleCopyShare(order.id, order.productTitle, order.batchNumber)}
-                          className="text-emerald-700 hover:text-emerald-800 font-semibold flex items-center gap-1 cursor-pointer"
-                        >
-                          {copiedId === order.id ? (
-                            <>
-                              <Check className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>লিংক কপি হয়েছে!</span>
-                            </>
+                        <div className="w-full h-2 bg-stone-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              isCompleted ? 'bg-emerald-600' : 'bg-emerald-500'
+                            }`}
+                            style={{ width: `${progressPercent}%` }}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between text-[11px] pt-1">
+                          {isCompleted ? (
+                            <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              দল পূর্ণ! হোলসেলার থেকে প্রস্তুত হচ্ছে।
+                            </span>
                           ) : (
-                            <>
-                              <Share2 className="w-3.5 h-3.5" />
-                              <span>ইনভাইট শেয়ার করুন</span>
-                            </>
+                            <span className="text-stone-500 flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-amber-500" />
+                              আর মাত্র {totalSlots - filledSlots} জন গ্রাহক জয়েন করলেই হোলসেলার অর্ডার শুরু হবে।
+                            </span>
                           )}
-                        </button>
+
+                          {/* Share button */}
+                          <button
+                            onClick={() => handleCopyShare(order.id, order.productTitle, order.batchNumber)}
+                            className="text-emerald-700 hover:text-emerald-800 font-semibold flex items-center gap-1 cursor-pointer"
+                          >
+                            {copiedId === order.id ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>লিংক কপি হয়েছে!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Share2 className="w-3.5 h-3.5" />
+                                <span>ইনভাইট শেয়ার করুন</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Address & Status row */}
                     <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-stone-500 pt-1">
@@ -275,7 +318,16 @@ export const MyBookingsModal: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-1.5 font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>স্ট্যাটাস: {isCompleted ? 'হোলসেলার প্রসেসিং' : 'স্লট নিশ্চিত (দল গঠন চলছে)'}</span>
+                        <span>
+                          স্ট্যাটাস:{' '}
+                          {isSingleBuy
+                            ? 'একক অর্ডার কনফার্মড'
+                            : isFullBundle
+                            ? 'বান্ডিল কুরিয়ার প্রসেসিং'
+                            : isCompleted
+                            ? 'হোলসেলার প্রসেসিং'
+                            : 'স্লট নিশ্চিত (দল গঠন চলছে)'}
+                        </span>
                       </div>
                     </div>
                   </div>

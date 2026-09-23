@@ -137,7 +137,7 @@ export const StartNewBatchModal: React.FC<StartNewBatchModalProps> = ({
               আপনার কাঙ্ক্ষিত সাইজ নির্বাচন করুন *
             </label>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {product.availableSizes.map(size => (
+              {Array.from(new Set(product.availableSizes)).map(size => (
                 <button
                   key={size}
                   type="button"

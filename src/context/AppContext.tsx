@@ -74,6 +74,17 @@ interface AppContextType {
     buyerName: string,
     transactionId?: string
   ) => { success: boolean; order?: Order; message: string };
+  singleBuyProduct: (
+    productId: string,
+    selectedSize: string,
+    advanceAmount: number,
+    paymentMethod: 'bKash' | 'Nagad' | 'Rocket' | 'COD',
+    deliveryAddress: string,
+    contactPhone: string,
+    buyerName: string,
+    transactionId?: string,
+    quantity?: number
+  ) => { success: boolean; order?: Order; message: string };
   updateBatchStatus: (bundleId: string, status: Bundle['status']) => void;
   removeCustomerSlot: (bundleId: string, slotId: string, reason?: string) => { success: boolean; message: string };
   addProduct: (product: Omit<Product, 'id'>) => void;
@@ -767,6 +778,86 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   };
 
+  // Single Buy (Direct Instant Purchase at Retail Price without group/batch waiting)
+  const singleBuyProduct = (
+    productId: string,
+    selectedSize: string,
+    advanceAmount: number,
+    paymentMethod: 'bKash' | 'Nagad' | 'Rocket' | 'COD',
+    deliveryAddress: string,
+    contactPhone: string,
+    buyerName: string,
+    transactionId?: string,
+    quantity = 1
+  ) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) {
+      return { success: false, message: 'পণ্য খুঁজে পাওয়া যায়নি।' };
+    }
+
+    const currentCustomerId = user?.id || `guest-${Date.now()}`;
+    const currentCustomerName = buyerName || user?.fullName || 'একক ক্রেতা';
+    const currentPhone = contactPhone || user?.phone || '01700000000';
+    const qty = Math.max(1, quantity);
+    const totalAmount = product.retailPrice * qty;
+    const effectiveAdvance = Math.min(advanceAmount, totalAmount);
+    const dueAmount = Math.max(0, totalAmount - effectiveAdvance);
+
+    const newOrder: Order = {
+      id: 'ord-single-' + Date.now(),
+      customerId: currentCustomerId,
+      customerName: currentCustomerName,
+      customerPhone: currentPhone,
+      bundleId: 'single-buy',
+      batchNumber: 0,
+      productId: product.id,
+      productTitle: `${product.title} (একক ক্রয় - ${qty} পিস)`,
+      productImage: product.imageUrl,
+      size: selectedSize,
+      isSingleBuy: true,
+      orderType: 'single_buy',
+      totalPieces: qty,
+      groupPrice: totalAmount,
+      advanceAmount: effectiveAdvance,
+      dueAmount: dueAmount,
+      deliveryAddress,
+      contactPhone: currentPhone,
+      paymentMethod,
+      transactionId: transactionId?.trim() || undefined,
+      status: 'confirmed',
+      createdAt: new Date().toISOString(),
+    };
+
+    setOrders(prev => [newOrder, ...prev]);
+
+    // Customer Notification
+    addNotification({
+      title: '🛍️ একক অর্ডার নিশ্চিত হয়েছে (Single Buy)!',
+      message: `আপনার "${product.title}" (সাইজ: ${selectedSize}, ${qty} পিস) একক অর্ডারটি গৃহীত হয়েছে। কোনো গ্রুপ অপেক্ষার প্রয়োজন নেই, দ্রুত পার্সেল পাঠানো হবে।`,
+      type: 'order',
+      linkAction: 'my_bookings',
+      productId: product.id,
+    });
+
+    // Admin Notification
+    addNotification({
+      title: '🚨 [নতুন একক ক্রয়] Single Buy Order!',
+      message: `${currentCustomerName} (${currentPhone}) "${product.title}" এর ${qty} পিস (সাইজ: ${selectedSize}) এককভাবে অর্ডার করেছেন।`,
+      type: 'system',
+      linkAction: 'my_bookings',
+      productId: product.id,
+    });
+
+    // Save to Supabase
+    dbSaveOrder(newOrder);
+
+    return {
+      success: true,
+      order: newOrder,
+      message: `অভিনন্দন! আপনার একক অর্ডারটি সফলভাবে গ্রহণ করা হয়েছে।`
+    };
+  };
+
   const updateBatchStatus = (bundleId: string, status: Bundle['status']) => {
     setBundles(prev => prev.map(b => b.id === bundleId ? { ...b, status } : b));
     setOrders(prev => prev.map(o => o.bundleId === bundleId ? {
@@ -983,6 +1074,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         bookSlot,
         createNewBatchForProduct,
         buyWholeBundle,
+        singleBuyProduct,
         updateBatchStatus,
         removeCustomerSlot,
         addProduct,

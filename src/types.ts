@@ -60,6 +60,8 @@ export interface Order {
   productImage: string;
   size: string;
   isFullBundle?: boolean;
+  isSingleBuy?: boolean;
+  orderType?: 'group_slot' | 'full_bundle' | 'single_buy';
   totalPieces?: number;
   groupPrice: number;
   advanceAmount: number;
