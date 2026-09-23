@@ -1,10 +1,14 @@
-export interface User {
+export interface Customer {
   id: string;
   phone: string;
+  password?: string;
   fullName: string;
   deliveryAddress: string;
   district: string;
+  createdAt?: string;
 }
+
+export type User = Customer;
 
 export interface Product {
   id: string;
@@ -45,6 +49,9 @@ export interface Bundle {
 
 export interface Order {
   id: string;
+  customerId?: string;
+  customerName?: string;
+  customerPhone?: string;
   bundleId: string;
   batchNumber: number;
   productId: string;

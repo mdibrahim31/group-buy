@@ -1,6 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Product, Bundle, Order, BundleSlot } from '../types';
+import { User, Product, Bundle, Order, BundleSlot, Customer } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_BUNDLES } from '../data/initialData';
+import {
+  dbGetCustomerByPhone,
+  dbSaveCustomer,
+  dbSaveOrder,
+  dbGetOrdersByCustomerId,
+  dbFindOrderById,
+  isSupabaseConfigured,
+} from '../lib/supabase';
 
 interface AppContextType {
   user: User | null;
@@ -17,8 +25,8 @@ interface AppContextType {
   setMyBookingsOpen: (open: boolean) => void;
   profileModalOpen: boolean;
   setProfileModalOpen: (open: boolean) => void;
-  login: (phone: string, pass: string) => { success: boolean; message: string };
-  register: (phone: string, pass: string, name: string, address: string, district: string) => { success: boolean; message: string };
+  login: (phone: string, pass: string) => Promise<{ success: boolean; message: string }>;
+  register: (phone: string, pass: string, name: string, address: string, district: string) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
   bookSlot: (
     bundleId: string,
@@ -48,15 +56,16 @@ interface AppContextType {
   ) => { success: boolean; order?: Order; message: string };
   updateBatchStatus: (bundleId: string, status: Bundle['status']) => void;
   addProduct: (product: Omit<Product, 'id'>) => void;
+  findOrderByIdOrCustomer: (query: string) => Promise<Order[]>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const LOCAL_STORAGE_KEY_USER = 'groupbuy_user_session';
 const LOCAL_STORAGE_KEY_BUNDLES = 'groupbuy_bundles_data';
+const LOCAL_STORAGE_KEY_ORDERS = 'groupbuy_user_orders';
 const LOCAL_STORAGE_KEY_PRODUCTS = 'groupbuy_products_data';
-const LOCAL_STORAGE_KEY_ORDERS = 'groupbuy_orders_data';
-const LOCAL_STORAGE_KEY_USERS_DB = 'groupbuy_registered_users';
+const LOCAL_STORAGE_KEY_USERS_DB = 'groupbuy_registered_customers_db';
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
@@ -138,65 +147,143 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [products]);
 
-  // Auth: Phone + Password
-  const login = (phone: string, pass: string) => {
+  // Sync user's orders from Supabase on launch
+  useEffect(() => {
+    if (!user) return;
+    const fetchRemoteUserOrders = async () => {
+      try {
+        const remoteOrders = await dbGetOrdersByCustomerId(user.id, user.phone);
+        if (remoteOrders.length > 0) {
+          setOrders(prev => {
+            const map = new Map<string, Order>();
+            remoteOrders.forEach(o => map.set(o.id, o));
+            prev.forEach(o => {
+              if (!map.has(o.id)) map.set(o.id, o);
+            });
+            return Array.from(map.values());
+          });
+        }
+      } catch (e) {
+        console.warn('Orders sync notice:', e);
+      }
+    };
+    fetchRemoteUserOrders();
+  }, [user?.id]);
+
+  // Auth: Phone + Password with Supabase Customers table
+  const login = async (phone: string, pass: string): Promise<{ success: boolean; message: string }> => {
     const cleanPhone = phone.trim();
     if (!cleanPhone || !pass) {
       return { success: false, message: 'ফোন নম্বর ও পাসওয়ার্ড প্রদান করুন।' };
     }
 
     try {
+      // 1. Try Supabase customers table first
+      const remoteCustomer = await dbGetCustomerByPhone(cleanPhone);
+      if (remoteCustomer) {
+        if (remoteCustomer.password && remoteCustomer.password !== pass) {
+          return { success: false, message: 'ভুল পাসওয়ার্ড। আবার চেষ্টা করুন।' };
+        }
+        setUser(remoteCustomer);
+
+        // Fetch their orders from Supabase
+        const remoteOrders = await dbGetOrdersByCustomerId(remoteCustomer.id, cleanPhone);
+        if (remoteOrders.length > 0) {
+          setOrders(prev => {
+            const map = new Map<string, Order>();
+            remoteOrders.forEach(o => map.set(o.id, o));
+            prev.forEach(o => {
+              if (!map.has(o.id)) map.set(o.id, o);
+            });
+            return Array.from(map.values());
+          });
+        }
+
+        return { success: true, message: 'সফলভাবে লগইন হয়েছে।' };
+      }
+
+      // 2. Fallback to local storage database
       const usersDbRaw = localStorage.getItem(LOCAL_STORAGE_KEY_USERS_DB);
       const usersDb: Record<string, { user: User; pass: string }> = usersDbRaw ? JSON.parse(usersDbRaw) : {};
-      
-      // Check if user exists in custom db
+
       if (usersDb[cleanPhone]) {
         if (usersDb[cleanPhone].pass === pass) {
-          setUser(usersDb[cleanPhone].user);
+          const localUser = usersDb[cleanPhone].user;
+          setUser(localUser);
+          // Sync to Supabase in background
+          dbSaveCustomer({ ...localUser, password: pass });
           return { success: true, message: 'সফলভাবে লগইন হয়েছে।' };
         } else {
           return { success: false, message: 'ভুল পাসওয়ার্ড। আবার চেষ্টা করুন।' };
         }
       }
 
-      // Default quick test login if new
-      const newUser: User = {
-        id: 'user-' + Date.now(),
+      // If customer not found, create new customer profile automatically
+      const newCustomer: Customer = {
+        id: 'cust-' + Date.now(),
         phone: cleanPhone,
+        password: pass,
         fullName: 'কাস্টমার (' + cleanPhone.slice(-4) + ')',
         deliveryAddress: 'ঢাকা, বাংলাদেশ',
-        district: 'ঢাকা'
+        district: 'ঢাকা',
+        createdAt: new Date().toISOString(),
       };
-      usersDb[cleanPhone] = { user: newUser, pass };
+
+      await dbSaveCustomer(newCustomer);
+      usersDb[cleanPhone] = { user: newCustomer, pass };
       localStorage.setItem(LOCAL_STORAGE_KEY_USERS_DB, JSON.stringify(usersDb));
-      setUser(newUser);
+      setUser(newCustomer);
       return { success: true, message: 'লগইন সফল হয়েছে।' };
     } catch (err) {
       return { success: false, message: 'লগইনে সমস্যা হয়েছে।' };
     }
   };
 
-  const register = (phone: string, pass: string, name: string, address: string, district: string) => {
+  const register = async (
+    phone: string,
+    pass: string,
+    name: string,
+    address: string,
+    district: string
+  ): Promise<{ success: boolean; message: string }> => {
     const cleanPhone = phone.trim();
     if (!cleanPhone || !pass || !name) {
       return { success: false, message: 'সব প্রয়োজনীয় তথ্য পূরণ করুন।' };
     }
 
     try {
+      // 1. Check if customer already exists in Supabase
+      const existingRemote = await dbGetCustomerByPhone(cleanPhone);
+      if (existingRemote) {
+        return { success: false, message: 'এই ফোন নম্বরে ইতোমধ্যে অ্যাকাউন্ট রয়েছে। দয়া করে লগইন করুন।' };
+      }
+
+      // 2. Check local database
       const usersDbRaw = localStorage.getItem(LOCAL_STORAGE_KEY_USERS_DB);
       const usersDb: Record<string, { user: User; pass: string }> = usersDbRaw ? JSON.parse(usersDbRaw) : {};
 
-      const newUser: User = {
-        id: 'user-' + Date.now(),
+      if (usersDb[cleanPhone]) {
+        return { success: false, message: 'এই ফোন নম্বরে ইতোমধ্যে অ্যাকাউন্ট রয়েছে। দয়া করে লগইন করুন।' };
+      }
+
+      const newCustomer: Customer = {
+        id: 'cust-' + Date.now(),
         phone: cleanPhone,
+        password: pass,
         fullName: name.trim(),
         deliveryAddress: address.trim(),
-        district: district.trim() || 'ঢাকা'
+        district: district.trim() || 'ঢাকা',
+        createdAt: new Date().toISOString(),
       };
 
-      usersDb[cleanPhone] = { user: newUser, pass };
+      // Save to Supabase customers table
+      await dbSaveCustomer(newCustomer);
+
+      // Save to localStorage
+      usersDb[cleanPhone] = { user: newCustomer, pass };
       localStorage.setItem(LOCAL_STORAGE_KEY_USERS_DB, JSON.stringify(usersDb));
-      setUser(newUser);
+
+      setUser(newCustomer);
       return { success: true, message: 'রেজিস্ট্রেশন সফলভাবে সম্পন্ন হয়েছে।' };
     } catch (err) {
       return { success: false, message: 'রেজিস্ট্রেশনে সমস্যা হয়েছে।' };
@@ -238,12 +325,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, message: 'পণ্য খুঁজে পাওয়া যায়নি।' };
     }
 
+    const currentCustomerId = user?.id || `guest-${Date.now()}`;
+    const currentCustomerName = buyerName || user?.fullName || 'গ্রাহক';
+    const currentPhone = contactPhone || user?.phone || '01700000000';
+
     const bookedSlot: BundleSlot = {
       ...targetSlot,
       status: 'booked',
-      userId: user?.id || 'guest-' + Date.now(),
-      userName: buyerName || user?.fullName || 'গ্রাহক',
-      userPhoneMasked: maskPhone(contactPhone || user?.phone || '01700000000'),
+      userId: currentCustomerId,
+      userName: currentCustomerName,
+      userPhoneMasked: maskPhone(currentPhone),
       bookedAt: new Date().toISOString(),
     };
 
@@ -260,9 +351,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setBundles(prev => prev.map(b => b.id === bundleId ? updatedBundle : b));
 
-    // Create Order record
+    // Create Order record linked with customer ID
     const newOrder: Order = {
       id: 'ord-' + Date.now(),
+      customerId: currentCustomerId,
+      customerName: currentCustomerName,
+      customerPhone: currentPhone,
       bundleId: targetBundle.id,
       batchNumber: targetBundle.batchNumber,
       productId: product.id,
@@ -273,13 +367,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       advanceAmount: advanceAmount,
       dueAmount: product.groupPrice - advanceAmount,
       deliveryAddress,
-      contactPhone,
+      contactPhone: currentPhone,
       paymentMethod,
       status: isNowCompleted ? 'ordered_wholesale' : 'confirmed',
       createdAt: new Date().toISOString(),
     };
 
     setOrders(prev => [newOrder, ...prev]);
+
+    // Save to Supabase orders table
+    dbSaveOrder(newOrder);
 
     return {
       success: true,
@@ -305,6 +402,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, newBatchNumber: 0, message: 'পণ্য খুঁজে পাওয়া যায়নি।' };
     }
 
+    const currentCustomerId = user?.id || `guest-${Date.now()}`;
+    const currentCustomerName = buyerName || user?.fullName || 'গ্রাহক';
+    const currentPhone = contactPhone || user?.phone || '01700000000';
+
     // Determine current max batch number for this product
     const existingBatches = bundles.filter(b => b.productId === productId);
     const nextBatchNumber = existingBatches.length > 0
@@ -317,7 +418,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const slots: BundleSlot[] = [];
     let slotCounter = 1;
     
-    // Fill slots up to product.bundleSize
     for (let i = 0; i < product.bundleSize; i++) {
       const sizeIndex = i % product.availableSizes.length;
       const size = product.availableSizes[sizeIndex];
@@ -334,19 +434,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let initialFilled = 0;
     let initialOrder: Order | undefined;
 
-    // If customer selected a desired size to join this new batch immediately
     if (desiredSize) {
       const matchingSlot = slots.find(s => s.size === desiredSize && s.status === 'available');
       if (matchingSlot) {
         matchingSlot.status = 'booked';
-        matchingSlot.userId = user?.id || 'guest-' + Date.now();
-        matchingSlot.userName = buyerName || user?.fullName || 'গ্রাহক';
-        matchingSlot.userPhoneMasked = maskPhone(contactPhone || user?.phone || '01700000000');
+        matchingSlot.userId = currentCustomerId;
+        matchingSlot.userName = currentCustomerName;
+        matchingSlot.userPhoneMasked = maskPhone(currentPhone);
         matchingSlot.bookedAt = new Date().toISOString();
         initialFilled = 1;
 
         initialOrder = {
           id: 'ord-' + Date.now(),
+          customerId: currentCustomerId,
+          customerName: currentCustomerName,
+          customerPhone: currentPhone,
           bundleId: newBundleId,
           batchNumber: nextBatchNumber,
           productId: product.id,
@@ -357,11 +459,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           advanceAmount: advanceAmount,
           dueAmount: product.groupPrice - advanceAmount,
           deliveryAddress: deliveryAddress || user?.deliveryAddress || 'ঠিকানা পরে যোগ করা হবে',
-          contactPhone: contactPhone || user?.phone || '01700000000',
+          contactPhone: currentPhone,
           paymentMethod,
           status: 'confirmed',
           createdAt: new Date().toISOString(),
         };
+
+        dbSaveOrder(initialOrder);
       }
     }
 
@@ -403,6 +507,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, message: 'পণ্য খুঁজে পাওয়া যায়নি।' };
     }
 
+    const currentCustomerId = user?.id || `guest-${Date.now()}`;
+    const currentCustomerName = buyerName || user?.fullName || 'সম্পূর্ণ বান্ডিল ক্রেতা';
+    const currentPhone = contactPhone || user?.phone || '01700000000';
+
     const existingBatches = bundles.filter(b => b.productId === productId);
     const nextBatchNumber = existingBatches.length > 0
       ? Math.max(...existingBatches.map(b => b.batchNumber)) + 1
@@ -422,9 +530,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         bundleId: newBundleId,
         size: size,
         status: 'booked',
-        userId: user?.id || 'guest-' + Date.now(),
-        userName: buyerName || user?.fullName || 'সম্পূর্ণ বান্ডিল ক্রেতা',
-        userPhoneMasked: maskPhone(contactPhone || user?.phone || '01700000000'),
+        userId: currentCustomerId,
+        userName: currentCustomerName,
+        userPhoneMasked: maskPhone(currentPhone),
         bookedAt: new Date().toISOString(),
       });
     }
@@ -435,7 +543,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       batchNumber: nextBatchNumber,
       totalSlots: product.bundleSize,
       filledSlots: product.bundleSize,
-      status: 'completed', // Immediately completed
+      status: 'completed',
       createdAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + 3600000 * 48).toISOString(),
       slots,
@@ -443,6 +551,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const newOrder: Order = {
       id: 'ord-bundle-' + Date.now(),
+      customerId: currentCustomerId,
+      customerName: currentCustomerName,
+      customerPhone: currentPhone,
       bundleId: newBundleId,
       batchNumber: nextBatchNumber,
       productId: product.id,
@@ -455,7 +566,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       advanceAmount: advanceAmount,
       dueAmount: totalAmount - advanceAmount,
       deliveryAddress,
-      contactPhone,
+      contactPhone: currentPhone,
       paymentMethod,
       status: 'ordered_wholesale',
       createdAt: new Date().toISOString(),
@@ -463,6 +574,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setBundles(prev => [newBundle, ...prev]);
     setOrders(prev => [newOrder, ...prev]);
+
+    // Save to Supabase orders table
+    dbSaveOrder(newOrder);
 
     return {
       success: true,
@@ -515,6 +629,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setBundles(prev => [firstBundle, ...prev]);
   };
 
+  // Find order by Order ID or Customer ID
+  const findOrderByIdOrCustomer = async (query: string): Promise<Order[]> => {
+    const clean = query.trim();
+    if (!clean) return [];
+
+    // Search local orders state first
+    const localMatches = orders.filter(
+      o => o.id.toLowerCase().includes(clean.toLowerCase()) ||
+           o.customerId?.toLowerCase().includes(clean.toLowerCase()) ||
+           o.customerPhone?.includes(clean) ||
+           o.contactPhone?.includes(clean)
+    );
+
+    // Also search Supabase if available
+    try {
+      const singleOrder = await dbFindOrderById(clean);
+      const customerOrders = await dbGetOrdersByCustomerId(clean, clean);
+      
+      const merged = new Map<string, Order>();
+      localMatches.forEach(o => merged.set(o.id, o));
+      if (singleOrder) merged.set(singleOrder.id, singleOrder);
+      customerOrders.forEach(o => merged.set(o.id, o));
+      return Array.from(merged.values());
+    } catch {
+      return localMatches;
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -540,6 +682,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         buyWholeBundle,
         updateBatchStatus,
         addProduct,
+        findOrderByIdOrCustomer,
       }}
     >
       {children}
