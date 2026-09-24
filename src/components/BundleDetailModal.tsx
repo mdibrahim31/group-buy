@@ -246,29 +246,27 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                   return (
                     <button
                       key={slot.id}
+                      disabled={!isAvailable}
                       onClick={() => {
                         if (isAvailable) {
                           onSelectSlot(activeBundle, slot);
                           onClose();
-                        } else {
-                          onStartNewBatch(product, slot.size);
-                          onClose();
                         }
                       }}
-                      className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer group/slot ${
+                      className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all ${
                         isAvailable
-                          ? 'border-emerald-300 bg-white hover:bg-emerald-50 hover:border-emerald-500 shadow-xs'
-                          : 'border-stone-200 bg-stone-100 text-stone-400'
+                          ? 'border-emerald-300 bg-white hover:bg-emerald-50 hover:border-emerald-500 shadow-xs cursor-pointer group/slot'
+                          : 'border-stone-200 bg-stone-100 text-stone-700 cursor-not-allowed opacity-90'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className={`text-sm font-bold ${isAvailable ? 'text-stone-900' : 'text-stone-500 line-through'}`}>
+                        <span className={`text-sm font-bold ${isAvailable ? 'text-stone-900' : 'text-stone-800'}`}>
                           সাইজ {slot.size}
                         </span>
                         {isAvailable ? (
                           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                         ) : (
-                          <span className="text-[10px] bg-stone-200 text-stone-600 px-1.5 py-0.2 rounded font-semibold">বুকড</span>
+                          <span className="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded font-bold">বুকড</span>
                         )}
                       </div>
                       <div className="mt-2 text-[11px]">
@@ -277,8 +275,8 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                             বুক করুন ৳১৫০ <ArrowRight className="w-3 h-3" />
                           </span>
                         ) : (
-                          <span className="text-stone-500 block truncate">
-                            {slot.userPhoneMasked || 'বুকড'} • নতুন ব্যাচে নিন
+                          <span className="text-stone-600 block truncate font-medium">
+                            {slot.userPhoneMasked || 'সংরক্ষিত'} • বুকড
                           </span>
                         )}
                       </div>

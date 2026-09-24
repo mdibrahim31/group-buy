@@ -419,13 +419,38 @@ export async function dbGetAllBundles(): Promise<Bundle[]> {
 
     if (bundlesError || !bundlesData) return [];
 
-    const { data: slotsData } = await supabase
-      .from('bundle_slots')
-      .select('*');
+    const [{ data: slotsData }, { data: ordersData }] = await Promise.all([
+      supabase.from('bundle_slots').select('*'),
+      supabase.from('orders').select('*')
+    ]);
 
+    const ordersList = ordersData || [];
     const slotsByBundleId: Record<string, BundleSlot[]> = {};
+
     if (slotsData) {
-      slotsData.forEach((s: any) => {
+      for (const s of slotsData) {
+        let isBooked = s.status === 'booked';
+        if (isBooked) {
+          const hasOrder = ordersList.some((o: any) => 
+            o.bundle_id === s.bundle_id && (o.slot_id === s.id || (o.size === s.size && (o.customer_id === s.user_id || o.customer_phone === s.user_phone_masked)))
+          );
+          if (!hasOrder) {
+            // Order was deleted from database orders table! Free this slot automatically.
+            s.status = 'available';
+            s.user_id = null;
+            s.user_name = null;
+            s.user_phone_masked = null;
+            s.booked_at = null;
+            supabase.from('bundle_slots').update({
+              status: 'available',
+              user_id: null,
+              user_name: null,
+              user_phone_masked: null,
+              booked_at: null,
+            }).eq('id', s.id).then();
+          }
+        }
+
         if (!slotsByBundleId[s.bundle_id]) slotsByBundleId[s.bundle_id] = [];
         slotsByBundleId[s.bundle_id].push({
           id: s.id,
@@ -437,20 +462,24 @@ export async function dbGetAllBundles(): Promise<Bundle[]> {
           userPhoneMasked: s.user_phone_masked,
           bookedAt: s.booked_at,
         });
-      });
+      }
     }
 
-    return bundlesData.map((b: any) => ({
-      id: b.id,
-      productId: b.product_id,
-      batchNumber: Number(b.batch_number),
-      totalSlots: Number(b.total_slots),
-      filledSlots: Number(b.filled_slots),
-      status: b.status,
-      createdAt: b.created_at,
-      expiresAt: b.expires_at || new Date(Date.now() + 3600000 * 48).toISOString(),
-      slots: slotsByBundleId[b.id] || [],
-    }));
+    return bundlesData.map((b: any) => {
+      const bundleSlots = slotsByBundleId[b.id] || [];
+      const filledCount = bundleSlots.filter(s => s.status === 'booked').length;
+      return {
+        id: b.id,
+        productId: b.product_id,
+        batchNumber: Number(b.batch_number),
+        totalSlots: Number(b.total_slots),
+        filledSlots: filledCount,
+        status: b.status === 'completed' && filledCount < Number(b.total_slots) ? 'open' : b.status,
+        createdAt: b.created_at,
+        expiresAt: b.expires_at || new Date(Date.now() + 3600000 * 48).toISOString(),
+        slots: bundleSlots,
+      };
+    });
   } catch (err) {
     console.warn('Supabase dbGetAllBundles error:', err);
     return [];
