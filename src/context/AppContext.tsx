@@ -133,42 +133,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
-  const [products, setProducts] = useState<Product[]>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY_PRODUCTS);
-      if (!saved) return [];
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) {
-        return parsed.filter(p => !['prod-1', 'prod-2', 'prod-3', 'prod-4', 'prod-5'].includes(p.id));
-      }
-      return [];
-    } catch {
-      return [];
-    }
-  });
+  const [products, setProducts] = useState<Product[]>([]);
 
-  const [bundles, setBundles] = useState<Bundle[]>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY_BUNDLES);
-      if (!saved) return [];
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) {
-        return parsed.filter(b => !b.id.startsWith('bundle-prod-1') && !b.id.startsWith('bundle-prod-2') && !b.id.startsWith('bundle-prod-3'));
-      }
-      return [];
-    } catch {
-      return [];
-    }
-  });
+  const [bundles, setBundles] = useState<Bundle[]>([]);
 
-  const [orders, setOrders] = useState<Order[]>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY_ORDERS);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [orders, setOrders] = useState<Order[]>([]);
 
   const [notifications, setNotifications] = useState<AppNotification[]>(() => {
     try {
@@ -282,128 +251,130 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     fetchRemoteUserOrders();
   }, [user?.id]);
 
-  // Load products, bundles, and categories from Supabase on launch
+  // Load products, bundles, categories, and orders strictly from Supabase database on launch
   useEffect(() => {
     const loadSupabaseCatalog = async () => {
       if (!isSupabaseConfigured()) return;
       try {
-        const [remoteProducts, remoteBundles, remoteCategories] = await Promise.all([
+        const [remoteProducts, remoteBundles, remoteCategories, remoteOrders] = await Promise.all([
           dbGetAllProducts(),
           dbGetAllBundles(),
           dbGetAllCategories(),
+          dbGetAllOrders(),
         ]);
 
-        if (remoteProducts.length > 0) {
-          setProducts(prev => {
-            const map = new Map<string, Product>();
-            prev.forEach(p => map.set(p.id, p));
-            remoteProducts.forEach(p => map.set(p.id, p));
-            return Array.from(map.values());
-          });
-        }
+        setProducts(remoteProducts);
+        setBundles(remoteBundles);
+        if (remoteCategories.length > 0) setCategories(remoteCategories);
+        setOrders(remoteOrders);
 
-        if (remoteBundles.length > 0) {
-          setBundles(prev => {
-            const map = new Map<string, Bundle>();
-            prev.forEach(b => map.set(b.id, b));
-            remoteBundles.forEach(b => map.set(b.id, b));
-            return Array.from(map.values());
-          });
-        }
-
-        if (remoteCategories.length > 0) {
-          setCategories(prev => {
-            const combined = Array.from(new Set([...prev, ...remoteCategories]));
-            try {
-              localStorage.setItem(LOCAL_STORAGE_KEY_CATEGORIES, JSON.stringify(combined));
-            } catch (e) {
-              console.error(e);
-            }
-            return combined;
-          });
+        // Verify logged-in user still exists in database (Desktop Monitor rule)
+        if (user && user.phone) {
+          const remoteCust = await dbGetCustomerByPhone(user.phone);
+          if (!remoteCust) {
+            setUser(null);
+            localStorage.removeItem(LOCAL_STORAGE_KEY_USER);
+          }
         }
       } catch (err) {
-        console.warn('Catalog sync notice:', err);
+        console.warn('Database load notice:', err);
       }
     };
     loadSupabaseCatalog();
   }, []);
 
-  // Supabase Realtime listener & periodic sync for bundles, bundle_slots, and orders tables
+  // Supabase Realtime listener & strict database monitor sync
   useEffect(() => {
     if (!supabase) return;
 
     const channel = supabase
-      .channel('public:catalog-realtime')
+      .channel('public:database-monitor')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'products' },
+        async () => {
+          const remoteProducts = await dbGetAllProducts();
+          setProducts(remoteProducts);
+        }
+      )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'bundles' },
         async () => {
-          try {
-            const remoteBundles = await dbGetAllBundles();
-            if (remoteBundles.length > 0) {
-              setBundles(remoteBundles);
-            }
-          } catch (e) {
-            console.warn('Realtime bundle sync error:', e);
-          }
+          const remoteBundles = await dbGetAllBundles();
+          setBundles(remoteBundles);
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'bundle_slots' },
         async () => {
-          try {
-            const remoteBundles = await dbGetAllBundles();
-            if (remoteBundles.length > 0) {
-              setBundles(remoteBundles);
-            }
-          } catch (e) {
-            console.warn('Realtime bundle_slots sync error:', e);
-          }
+          const remoteBundles = await dbGetAllBundles();
+          setBundles(remoteBundles);
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders' },
         async () => {
-          try {
-            const remoteOrders = await dbGetAllOrders();
-            if (remoteOrders.length > 0) {
-              setOrders(remoteOrders);
+          const remoteOrders = await dbGetAllOrders();
+          setOrders(remoteOrders);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'categories' },
+        async () => {
+          const remoteCategories = await dbGetAllCategories();
+          if (remoteCategories.length > 0) setCategories(remoteCategories);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'customers' },
+        async () => {
+          if (user && user.phone) {
+            const remoteCust = await dbGetCustomerByPhone(user.phone);
+            if (!remoteCust) {
+              setUser(null);
+              localStorage.removeItem(LOCAL_STORAGE_KEY_USER);
             }
-          } catch (e) {
-            console.warn('Realtime orders sync error:', e);
           }
         }
       )
       .subscribe();
 
-    // Periodic background sync every 10 seconds to ensure live cross-user updates
+    // Periodic sync every 5 seconds as strict database monitor
     const syncInterval = setInterval(async () => {
       try {
-        const [remoteBundles, remoteProducts] = await Promise.all([
-          dbGetAllBundles(),
+        const [remoteProducts, remoteBundles, remoteOrders] = await Promise.all([
           dbGetAllProducts(),
+          dbGetAllBundles(),
+          dbGetAllOrders(),
         ]);
-        if (remoteBundles.length > 0) {
-          setBundles(remoteBundles);
-        }
-        if (remoteProducts.length > 0) {
-          setProducts(remoteProducts);
+        setProducts(remoteProducts);
+        setBundles(remoteBundles);
+        setOrders(remoteOrders);
+
+        if (user && user.phone) {
+          const remoteCust = await dbGetCustomerByPhone(user.phone);
+          if (!remoteCust) {
+            setUser(null);
+            localStorage.removeItem(LOCAL_STORAGE_KEY_USER);
+          }
         }
       } catch (err) {
-        console.warn('Periodic background sync notice:', err);
+        console.warn('Monitor sync warning:', err);
       }
-    }, 10000);
+    }, 5000);
 
     return () => {
       supabase.removeChannel(channel);
       clearInterval(syncInterval);
     };
-  }, []);
+  }, [user]);
 
-  // Auth: Phone + Password with Supabase Customers table
+  // Auth: Strict Supabase Database Authentication (Desktop Monitor model)
   const login = async (phone: string, pass: string): Promise<{ success: boolean; message: string }> => {
     const cleanPhone = phone.trim();
     if (!cleanPhone || !pass) {
@@ -411,47 +382,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     try {
-      // 1. Try Supabase customers table first
       const remoteCustomer = await dbGetCustomerByPhone(cleanPhone);
-      if (remoteCustomer) {
-        if (remoteCustomer.password && remoteCustomer.password !== pass) {
-          return { success: false, message: 'ভুল পাসওয়ার্ড। আবার চেষ্টা করুন।' };
-        }
-        setUser(remoteCustomer);
-
-        // Fetch their orders from Supabase
-        const remoteOrders = await dbGetOrdersByCustomerId(remoteCustomer.id, cleanPhone);
-        setOrders(remoteOrders);
-        localStorage.setItem(LOCAL_STORAGE_KEY_ORDERS, JSON.stringify(remoteOrders));
-
-        return { success: true, message: 'সফলভাবে লগইন হয়েছে।' };
+      if (!remoteCustomer) {
+        return { success: false, message: 'এই ফোন নম্বরে কোনো অ্যাকাউন্ট পাওয়া যায়নি (ডাটাবেজে নেই)। অনুগ্রহ করে রেজিস্ট্রেশন করুন।' };
       }
 
-      // 2. Fallback to local storage database
-      const usersDbRaw = localStorage.getItem(LOCAL_STORAGE_KEY_USERS_DB);
-      const usersDb: Record<string, { user: User; pass: string }> = usersDbRaw ? JSON.parse(usersDbRaw) : {};
-
-      if (usersDb[cleanPhone]) {
-        if (usersDb[cleanPhone].pass === pass) {
-          const localUser = usersDb[cleanPhone].user;
-          setUser(localUser);
-          // Sync to Supabase in background
-          dbSaveCustomer({ ...localUser, password: pass });
-          const remoteOrders = await dbGetOrdersByCustomerId(localUser.id, cleanPhone);
-          setOrders(remoteOrders);
-          return { success: true, message: 'সফলভাবে লগইন হয়েছে।' };
-        } else {
-          return { success: false, message: 'ভুল পাসওয়ার্ড। আবার চেষ্টা করুন।' };
-        }
+      if (remoteCustomer.password && remoteCustomer.password !== pass) {
+        return { success: false, message: 'ভুল পাসওয়ার্ড। আবার চেষ্টা করুন।' };
       }
 
-      // Account not found - Must register first
-      return {
-        success: false,
-        message: 'এই ফোন নম্বরে কোনো অ্যাকাউন্ট পাওয়া যায়নি। অনুগ্রহ করে আগে রেজিস্ট্রেশন করুন।',
-      };
+      setUser(remoteCustomer);
+      const remoteOrders = await dbGetOrdersByCustomerId(remoteCustomer.id, cleanPhone);
+      setOrders(remoteOrders);
+
+      return { success: true, message: 'সফলভাবে লগইন হয়েছে।' };
     } catch (err) {
-      return { success: false, message: 'লগইনে সমস্যা হয়েছে। আবার চেষ্টা করুন।' };
+      return { success: false, message: 'লগইনে সমস্যা হয়েছে।' };
     }
   };
 
@@ -468,17 +414,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     try {
-      // 1. Check if customer already exists in Supabase
       const existingRemote = await dbGetCustomerByPhone(cleanPhone);
       if (existingRemote) {
-        return { success: false, message: 'এই ফোন নম্বরে ইতোমধ্যে অ্যাকাউন্ট রয়েছে। দয়া করে লগইন করুন।' };
-      }
-
-      // 2. Check local database
-      const usersDbRaw = localStorage.getItem(LOCAL_STORAGE_KEY_USERS_DB);
-      const usersDb: Record<string, { user: User; pass: string }> = usersDbRaw ? JSON.parse(usersDbRaw) : {};
-
-      if (usersDb[cleanPhone]) {
         return { success: false, message: 'এই ফোন নম্বরে ইতোমধ্যে অ্যাকাউন্ট রয়েছে। দয়া করে লগইন করুন।' };
       }
 
@@ -492,25 +429,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         createdAt: new Date().toISOString(),
       };
 
-      // 3. Save to Supabase customers table if configured
-      if (isSupabaseConfigured()) {
-        const dbResult = await dbSaveCustomer(newCustomer);
-        if (!dbResult.success) {
-          console.error('Supabase customer registration failed:', dbResult.error);
-          return {
-            success: false,
-            message: `ডাটাবেজ ত্রুটি: ${dbResult.error || 'তথ্য সংরক্ষণ করা যায়নি।'} (Supabase RLS বা টেবিল চেক করুন)`,
-          };
-        }
+      const dbResult = await dbSaveCustomer(newCustomer);
+      if (!dbResult.success) {
+        return { success: false, message: dbResult.error || 'ডাটাবেজে রেজিস্ট্রেশন সংরক্ষণ করা যায়নি।' };
       }
 
-      // Save to localStorage cache
-      usersDb[cleanPhone] = { user: newCustomer, pass };
-      localStorage.setItem(LOCAL_STORAGE_KEY_USERS_DB, JSON.stringify(usersDb));
-
       setUser(newCustomer);
-      setOrders([]);
-      return { success: true, message: 'রেজিস্ট্রেশন সফলভাবে সম্পন্ন হয়েছে।' };
+      const remoteOrders = await dbGetOrdersByCustomerId(newCustomer.id, cleanPhone);
+      setOrders(remoteOrders);
+
+      return { success: true, message: 'সফলভাবে রেজিস্ট্রেশন ও লগইন হয়েছে!' };
     } catch (err: any) {
       return { success: false, message: err?.message || 'রেজিস্ট্রেশনে সমস্যা হয়েছে।' };
     }
