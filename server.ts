@@ -226,9 +226,9 @@ app.post('/api/customers', async (req, res) => {
 const distPath = path.join(__dirname, 'dist');
 app.use(express.static(distPath));
 
-// Also serve admin.html as a separate route if requested
+// Also serve admin.html from dist build
 app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin.html'));
+  res.sendFile(path.join(distPath, 'admin.html'));
 });
 
 // SPA fallback for React Router / client routes
