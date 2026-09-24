@@ -231,7 +231,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
   });
 
   // Handle Post New Bundle
-  const handlePostBundle = (e: React.FormEvent) => {
+  const handlePostBundle = async (e: React.FormEvent) => {
     e.preventDefault();
     setPostError('');
 
@@ -271,32 +271,40 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
 
     const autoWholesalePrice = Math.round(Number(newGroupPrice) * 0.75);
 
-    addProduct({
-      title: newTitle.trim(),
-      category: newCategory,
-      description: newDescription.trim() || `${newTitle.trim()} - হোলসেল বান্ডিল গ্রুপ বায়িং।`,
-      imageUrl: newImageUrl.trim(),
-      retailPrice: Number(newRetailPrice),
-      groupPrice: Number(newGroupPrice),
-      wholesalePrice: autoWholesalePrice,
-      fullBundlePricePerPiece: calculatedFullBundlePrice,
-      bundleSize: finalSizes.length,
-      availableSizes: finalSizes,
-    });
+    try {
+      const res = await addProduct({
+        title: newTitle.trim(),
+        category: newCategory,
+        description: newDescription.trim() || `${newTitle.trim()} - হোলসেল বান্ডিল গ্রুপ বায়িং।`,
+        imageUrl: newImageUrl.trim(),
+        retailPrice: Number(newRetailPrice),
+        groupPrice: Number(newGroupPrice),
+        wholesalePrice: autoWholesalePrice,
+        fullBundlePricePerPiece: calculatedFullBundlePrice,
+        bundleSize: finalSizes.length,
+        availableSizes: finalSizes,
+      });
 
-    setPostSuccess(true);
-    // Reset Form
-    setNewTitle('');
-    setNewImageUrl('');
-    setNewRetailPrice('');
-    setNewGroupPrice('');
-    setNewFullBundlePrice('');
-    setNewDescription('');
+      if (res && res.success) {
+        setPostSuccess(true);
+        // Reset Form
+        setNewTitle('');
+        setNewImageUrl('');
+        setNewRetailPrice('');
+        setNewGroupPrice('');
+        setNewFullBundlePrice('');
+        setNewDescription('');
 
-    setTimeout(() => {
-      setPostSuccess(false);
-      setActiveTab('bundles');
-    }, 1500);
+        setTimeout(() => {
+          setPostSuccess(false);
+          setActiveTab('bundles');
+        }, 1500);
+      } else {
+        setPostError('বান্ডিল সংরক্ষণ করতে সমস্যা হয়েছে। ডাটাবেজ কানেকশন চেক করুন।');
+      }
+    } catch (err: any) {
+      setPostError(err?.message || 'বান্ডিল পোস্ট করার সময় ত্রুটি ঘটেছে।');
+    }
   };
 
   return (

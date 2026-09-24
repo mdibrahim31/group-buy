@@ -889,7 +889,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     dbUpdateBundleStatus(bundleId, status);
   };
 
-  const addProduct = (newProdData: Omit<Product, 'id'>) => {
+  const addProduct = async (newProdData: Omit<Product, 'id'>) => {
     const newId = 'prod-' + Date.now();
     const product: Product = {
       ...newProdData,
@@ -925,8 +925,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setBundles(prev => [firstBundle, ...prev]);
 
     // Save to Supabase so all customers see it
-    dbSaveProduct(product);
-    dbSaveBundle(firstBundle);
+    const productSaved = await dbSaveProduct(product);
+    const bundleSaved = await dbSaveBundle(firstBundle);
+
+    if (!productSaved || !bundleSaved) {
+      console.warn('Warning: Product or bundle saved locally but Supabase sync returned false.');
+    }
 
     // Broadcast notification to all customers that a new wholesale bundle is posted
     addNotification({
@@ -936,6 +940,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       linkAction: 'product',
       productId: product.id,
     });
+
+    return { success: true, message: 'বান্ডিল সফলভাবে পোস্ট হয়েছে!' };
   };
 
   // Admin remove customer from a slot
