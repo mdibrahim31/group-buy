@@ -17,6 +17,7 @@ import {
   dbSaveCategory,
   dbDeleteCategory,
   isSupabaseConfigured,
+  supabase,
 } from '../lib/supabase';
 
 interface AppContextType {
@@ -325,6 +326,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     };
     loadSupabaseCatalog();
+  }, []);
+
+  // Supabase Realtime listener for bundles table
+  useEffect(() => {
+    if (!supabase) return;
+
+    const channel = supabase
+      .channel('public:bundles-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bundles' },
+        async () => {
+          try {
+            const remoteBundles = await dbGetAllBundles();
+            if (remoteBundles.length > 0) {
+              setBundles(remoteBundles);
+            }
+          } catch (e) {
+            console.warn('Realtime bundle sync error:', e);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Auth: Phone + Password with Supabase Customers table
