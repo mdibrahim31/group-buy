@@ -60,8 +60,21 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
   const [adminPin, setAdminPin] = useState('');
   const [pinError, setPinError] = useState('');
 
-  // Tabs: 'orders' | 'new-bundle' | 'bundles' | 'categories'
-  const [activeTab, setActiveTab] = useState<'orders' | 'new-bundle' | 'bundles' | 'categories'>('bundles');
+  // Tabs: 'orders' | 'new-bundle' | 'bundles' | 'categories' | 'supabase-settings'
+  const [activeTab, setActiveTab] = useState<'orders' | 'new-bundle' | 'bundles' | 'categories' | 'supabase-settings'>('bundles');
+  const [supabaseUrlInput, setSupabaseUrlInput] = useState(() => localStorage.getItem('custom_supabase_url') || '');
+  const [supabaseKeyInput, setSupabaseKeyInput] = useState(() => localStorage.getItem('custom_supabase_key') || '');
+  const [supabaseSaveMsg, setSupabaseSaveMsg] = useState<string | null>(null);
+
+  const handleSaveSupabaseSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    localStorage.setItem('custom_supabase_url', supabaseUrlInput.trim());
+    localStorage.setItem('custom_supabase_key', supabaseKeyInput.trim());
+    setSupabaseSaveMsg('সুপাবেস কানেকশন সফলভাবে সেভ হয়েছে! পেজ রিলোড হচ্ছে...');
+    setTimeout(() => {
+      window.location.reload();
+    }, 1500);
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
@@ -458,6 +471,18 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                   </button>
 
                   <button
+                    onClick={() => setActiveTab('supabase-settings')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                      activeTab === 'supabase-settings'
+                        ? 'bg-amber-600 text-white shadow-sm'
+                        : 'bg-stone-100 text-stone-700 border border-stone-200 hover:bg-stone-200'
+                    }`}
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>সুপাবেস সেটিংস</span>
+                  </button>
+
+                  <button
                     onClick={refreshAdminData}
                     className="p-2 bg-stone-100 border border-stone-200 text-stone-700 hover:bg-stone-200 rounded-xl text-xs cursor-pointer ml-auto sm:ml-1 transition-colors"
                     title="ডাটা রিফ্রেশ করুন"
@@ -493,6 +518,52 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
             {/* Tab Contents - Fullscreen Container with mobile safe area bottom padding */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-36 sm:pb-24 bg-stone-100/70">
               <div className="max-w-7xl mx-auto w-full space-y-6">
+              {/* TAB SUPABASE SETTINGS */}
+              {activeTab === 'supabase-settings' && (
+                <div className="max-w-xl mx-auto bg-white border border-stone-200 rounded-2xl p-6 shadow-sm space-y-4">
+                  <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                    <span>GitHub Pages বা Static Hosting এর জন্য Supabase কানেকশন</span>
+                  </h3>
+                  <p className="text-xs text-stone-600 leading-relaxed">
+                    যেহেতু আপনি GitHub Pages এ হোস্ট করেছেন, সেখানে এনভায়রনমেন্ট ভেরিয়েবল (.env) সরাসরি কাজ করে না। তাই আপনার সুপাবেস প্রজেক্টের **Project URL** এবং **anon public API Key** নিচে দিয়ে সেভ করুন। এতে সাথে সাথেই ডাটাবেজের সমস্ত পণ্য ও বান্ডিল GitHub Pages এ শো করবে!
+                  </p>
+                  <form onSubmit={handleSaveSupabaseSettings} className="space-y-4 pt-2">
+                    <div>
+                      <label className="text-xs font-bold text-stone-700 block mb-1">Supabase Project URL</label>
+                      <input
+                        type="text"
+                        placeholder="https://xxxxxx.supabase.co"
+                        value={supabaseUrlInput}
+                        onChange={(e) => setSupabaseUrlInput(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-stone-700 block mb-1">Supabase Anon Public Key</label>
+                      <input
+                        type="password"
+                        placeholder="eyJhbGciOiJIUzI1NiIsIn..."
+                        value={supabaseKeyInput}
+                        onChange={(e) => setSupabaseKeyInput(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                    {supabaseSaveMsg && (
+                      <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-xl text-xs font-bold text-center">
+                        {supabaseSaveMsg}
+                      </div>
+                    )}
+                    <button
+                      type="submit"
+                      className="w-full py-3 bg-stone-900 hover:bg-stone-800 text-white font-bold rounded-xl text-xs sm:text-sm cursor-pointer shadow-md transition-all"
+                    >
+                      কানেকশন সেভ করুন ও রিলোড দিন
+                    </button>
+                  </form>
+                </div>
+              )}
+
               {/* TAB 1: POST NEW BUNDLE */}
               {activeTab === 'new-bundle' && (
                 <div className="max-w-2xl mx-auto bg-stone-50 border border-stone-200 rounded-2xl p-5 sm:p-6 mb-12 shadow-sm">

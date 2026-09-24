@@ -1,12 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
 import { Customer, Order, Product, Bundle, BundleSlot } from '../types';
 
-const rawUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim();
-const rawKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
+const getConfig = () => {
+  const envUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim().replace(/^["']|["']$/g, '');
+  const envKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim().replace(/^["']|["']$/g, '');
+  
+  const customUrl = (typeof window !== 'undefined' ? localStorage.getItem('custom_supabase_url') || '' : '').trim().replace(/^["']|["']$/g, '');
+  const customKey = (typeof window !== 'undefined' ? localStorage.getItem('custom_supabase_key') || '' : '').trim().replace(/^["']|["']$/g, '');
 
-// Clean quotes or extra spaces that might be passed from .env or CI
-export const SUPABASE_URL = rawUrl.replace(/^["']|["']$/g, '');
-export const SUPABASE_ANON_KEY = rawKey.replace(/^["']|["']$/g, '');
+  return {
+    url: envUrl || customUrl,
+    key: envKey || customKey,
+  };
+};
+
+const config = getConfig();
+export const SUPABASE_URL = config.url;
+export const SUPABASE_ANON_KEY = config.key;
 
 export const isSupabaseConfigured = () => {
   return Boolean(
