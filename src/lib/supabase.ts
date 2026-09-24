@@ -118,6 +118,35 @@ export async function dbSaveCustomer(customer: Customer): Promise<{ success: boo
 
 // ======================= ORDERS DB =======================
 
+export async function dbDeleteOrderBySlot(bundleId: string, slotId: string): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase
+      .from('orders')
+      .delete()
+      .eq('bundle_id', bundleId)
+      .eq('slot_id', slotId);
+
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+export async function dbDeleteOrder(orderId: string): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase
+      .from('orders')
+      .delete()
+      .eq('id', orderId);
+
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
 export async function dbSaveOrder(order: Order): Promise<{ success: boolean; error?: string }> {
   if (!supabase) {
     return { success: false, error: 'ডাটাবেজ কানেক্টেড নেই।' };
@@ -478,14 +507,16 @@ export async function dbUpdateBundleSlot(slot: BundleSlot): Promise<boolean> {
   try {
     const { error } = await supabase
       .from('bundle_slots')
-      .update({
+      .upsert({
+        id: slot.id,
+        bundle_id: slot.bundleId,
+        size: slot.size,
         status: slot.status,
         user_id: slot.userId || null,
         user_name: slot.userName || null,
         user_phone_masked: slot.userPhoneMasked || null,
         booked_at: slot.bookedAt || new Date().toISOString(),
-      })
-      .eq('id', slot.id);
+      }, { onConflict: 'id' });
 
     return !error;
   } catch {

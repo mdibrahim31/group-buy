@@ -5,6 +5,7 @@ import {
   dbGetCustomerByPhone,
   dbSaveCustomer,
   dbSaveOrder,
+  dbDeleteOrderBySlot,
   dbGetOrdersByCustomerId,
   dbFindOrderById,
   dbGetAllProducts,
@@ -328,12 +329,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     loadSupabaseCatalog();
   }, []);
 
-  // Supabase Realtime listener for bundles table
+  // Supabase Realtime listener & periodic sync for bundles, bundle_slots, and orders tables
   useEffect(() => {
     if (!supabase) return;
 
     const channel = supabase
-      .channel('public:bundles-realtime')
+      .channel('public:catalog-realtime')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'bundles' },
@@ -348,10 +349,57 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bundle_slots' },
+        async () => {
+          try {
+            const remoteBundles = await dbGetAllBundles();
+            if (remoteBundles.length > 0) {
+              setBundles(remoteBundles);
+            }
+          } catch (e) {
+            console.warn('Realtime bundle_slots sync error:', e);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        async () => {
+          try {
+            const remoteOrders = await dbGetAllOrders();
+            if (remoteOrders.length > 0) {
+              setOrders(remoteOrders);
+            }
+          } catch (e) {
+            console.warn('Realtime orders sync error:', e);
+          }
+        }
+      )
       .subscribe();
+
+    // Periodic background sync every 10 seconds to ensure live cross-user updates
+    const syncInterval = setInterval(async () => {
+      try {
+        const [remoteBundles, remoteProducts] = await Promise.all([
+          dbGetAllBundles(),
+          dbGetAllProducts(),
+        ]);
+        if (remoteBundles.length > 0) {
+          setBundles(remoteBundles);
+        }
+        if (remoteProducts.length > 0) {
+          setProducts(remoteProducts);
+        }
+      } catch (err) {
+        console.warn('Periodic background sync notice:', err);
+      }
+    }, 10000);
 
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(syncInterval);
     };
   }, []);
 
@@ -1028,9 +1076,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       productId: product?.id,
     });
 
-    // Update Supabase
+    // Update Supabase (including deleting order from database)
     dbUpdateBundleSlot(clearedSlot);
     dbUpdateBundleStatus(updatedBundle.id, updatedBundle.status, updatedBundle.filledSlots);
+    dbDeleteOrderBySlot(bundleId, slotId);
 
     return {
       success: true,
