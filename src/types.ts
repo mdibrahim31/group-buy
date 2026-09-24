@@ -16,6 +16,8 @@ export interface Product {
   category: string;
   description: string;
   imageUrl: string;
+  additionalImageUrls?: string[];
+  youtubeVideoUrl?: string;
   wholesalePrice: number;
   groupPrice: number;
   fullBundlePricePerPiece: number; // দাম আরও কম (সম্পূর্ণ বান্ডিল কিনলে প্রতি পিসের দাম)

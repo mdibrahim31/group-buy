@@ -39,6 +39,8 @@ CREATE TABLE public.products (
     description TEXT,
     image_url TEXT NOT NULL,
     gallery_images TEXT[] DEFAULT '{}',
+    additional_image_urls TEXT[] DEFAULT '{}',
+    youtube_video_url TEXT,
     retail_price NUMERIC NOT NULL,
     group_price NUMERIC NOT NULL,
     wholesale_price NUMERIC NOT NULL,

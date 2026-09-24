@@ -81,6 +81,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState<string>(categories[0] || 'জুতা');
   const [newImageUrl, setNewImageUrl] = useState('');
+  const [additionalImages, setAdditionalImages] = useState<string[]>(['', '', '', '', '']);
+  const [newYoutubeVideoUrl, setNewYoutubeVideoUrl] = useState('');
   const [newRetailPrice, setNewRetailPrice] = useState<number | ''>('');
   const [newGroupPrice, setNewGroupPrice] = useState<number | ''>('');
   const [newFullBundlePrice, setNewFullBundlePrice] = useState<number | ''>('');
@@ -277,6 +279,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
         category: newCategory,
         description: newDescription.trim() || `${newTitle.trim()} - হোলসেল বান্ডিল গ্রুপ বায়িং।`,
         imageUrl: newImageUrl.trim(),
+        additionalImageUrls: additionalImages.filter(u => u.trim().length > 0),
+        youtubeVideoUrl: newYoutubeVideoUrl.trim() || undefined,
         retailPrice: Number(newRetailPrice),
         groupPrice: Number(newGroupPrice),
         wholesalePrice: autoWholesalePrice,
@@ -290,6 +294,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
         // Reset Form
         setNewTitle('');
         setNewImageUrl('');
+        setAdditionalImages(['', '', '', '', '']);
+        setNewYoutubeVideoUrl('');
         setNewRetailPrice('');
         setNewGroupPrice('');
         setNewFullBundlePrice('');
@@ -625,7 +631,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <label className="text-xs font-bold text-stone-700">
-                          পণ্যের ছবির লিংক (Image URL) *
+                          প্রধান ছবির লিংক (Main Image URL - হোম পেজের জন্য) *
                         </label>
                         <span className="text-[11px] text-stone-400">অনলাইন ছবির সরাসরি লিংক দিন</span>
                       </div>
@@ -669,9 +675,57 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                               (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=100';
                             }}
                           />
-                          <span className="text-[11px] text-emerald-700 font-semibold">ছবি প্রিভিউ সফল</span>
+                          <span className="text-[11px] text-emerald-700 font-semibold">প্রধান ছবি প্রিভিউ সফল</span>
                         </div>
                       )}
+                    </div>
+
+                    {/* 5 Additional Image Links (Sequential vertical scroll) */}
+                    <div className="p-3.5 bg-stone-50 border border-stone-200 rounded-2xl space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-stone-800 flex items-center gap-1.5">
+                          <ImageIcon className="w-4 h-4 text-emerald-600" />
+                          <span>অতিরিক্ত ৫টি ছবি লিংক (Optional - বান্ডিল ডিটেইলসে স্ক্রল করে দেখা যাবে)</span>
+                        </label>
+                      </div>
+                      <div className="space-y-2">
+                        {additionalImages.map((imgUrl, imgIdx) => (
+                          <div key={imgIdx} className="flex items-center gap-2">
+                            <span className="text-[11px] font-bold text-stone-500 w-16">ছবি #{imgIdx + 1}:</span>
+                            <input
+                              type="url"
+                              placeholder={`অতিরিক্ত ছবি ${imgIdx + 1} এর লিংক...`}
+                              value={imgUrl}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setAdditionalImages((prev) => {
+                                  const updated = [...prev];
+                                  updated[imgIdx] = val;
+                                  return updated;
+                                });
+                              }}
+                              className="w-full px-3 py-1.5 bg-white border border-stone-200 rounded-lg text-xs font-mono focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* YouTube Sample Video Link */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-bold text-stone-700">
+                          স্যাম্পল ইউটিউব ভিডিও লিংক (YouTube Video URL - Optional)
+                        </label>
+                        <span className="text-[11px] text-stone-400">কাস্টমার ভিডিওতে ক্লিক করলে ইউটিউবে ওপেন হবে</span>
+                      </div>
+                      <input
+                        type="url"
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        value={newYoutubeVideoUrl}
+                        onChange={(e) => setNewYoutubeVideoUrl(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono"
+                      />
                     </div>
 
                     {/* Pricing Grid - Clean (Wholesale cost removed as requested) */}

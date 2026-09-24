@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Product, Bundle, BundleSlot } from '../types';
 import { useApp } from '../context/AppContext';
-import { Users, Clock, PlusCircle, CheckCircle2, Sparkles, TrendingDown, ArrowRight, ShoppingBag, X, ShieldCheck } from 'lucide-react';
+import { Users, Clock, PlusCircle, CheckCircle2, Sparkles, TrendingDown, ArrowRight, ShoppingBag, X, ShieldCheck, ExternalLink, Image as ImageIcon } from 'lucide-react';
 
 interface BundleDetailModalProps {
   product: Product;
@@ -105,6 +105,56 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                   <span className="text-xs font-black text-blue-700">৳{product.retailPrice}</span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Sample YouTube Video Button */}
+          {product.youtubeVideoUrl && (
+            <a
+              href={product.youtubeVideoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-3.5 px-4 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+            >
+              <ExternalLink className="w-4 h-4 shrink-0" />
+              <span>▶ স্যাম্পল ভিডিও দেখুন (YouTube-এ ওপেন হবে)</span>
+            </a>
+          )}
+
+          {/* Vertical Scrolling Image List (Main Image + Additional Images) */}
+          <div className="space-y-3 bg-stone-100 p-4 rounded-2xl border border-stone-200">
+            <h4 className="text-xs font-bold text-stone-800 flex items-center gap-1.5 mb-2">
+              <ImageIcon className="w-4 h-4 text-emerald-700" />
+              <span>পণ্যের বিস্তারিত ছবিসমূহ (নিচের দিকে স্ক্রল করে দেখুন):</span>
+            </h4>
+            <div className="space-y-3">
+              {/* Main Image */}
+              <div className="bg-white rounded-xl overflow-hidden border border-stone-300 shadow-xs">
+                <img
+                  src={product.imageUrl}
+                  alt={product.title}
+                  className="w-full object-cover max-h-[450px]"
+                />
+                <div className="p-2.5 bg-stone-50 border-t border-stone-200 text-xs font-bold text-stone-700 flex items-center justify-between">
+                  <span>প্রধান ছবি (Main Product Image)</span>
+                  <span className="text-[10px] bg-stone-900 text-white px-2 py-0.5 rounded">১/{(product.additionalImageUrls?.filter(u => u.trim()).length || 0) + 1}</span>
+                </div>
+              </div>
+
+              {/* Additional Images */}
+              {product.additionalImageUrls && product.additionalImageUrls.map((imgUrl, idx) => imgUrl.trim() && (
+                <div key={idx} className="bg-white rounded-xl overflow-hidden border border-stone-300 shadow-xs">
+                  <img
+                    src={imgUrl.trim()}
+                    alt={`${product.title} - ${idx + 2}`}
+                    className="w-full object-cover max-h-[450px]"
+                  />
+                  <div className="p-2.5 bg-stone-50 border-t border-stone-200 text-xs font-bold text-stone-700 flex items-center justify-between">
+                    <span>অতিরিক্ত ছবি #{idx + 1}</span>
+                    <span className="text-[10px] bg-stone-900 text-white px-2 py-0.5 rounded">{idx + 2}/{(product.additionalImageUrls?.filter(u => u.trim()).length || 0) + 1}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
