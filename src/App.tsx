@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
 import { ProductCard } from './components/ProductCard';
+import { BundleDetailModal } from './components/BundleDetailModal';
 import { BookingModal } from './components/BookingModal';
 import { StartNewBatchModal } from './components/StartNewBatchModal';
 import { BuyWholeBundleModal } from './components/BuyWholeBundleModal';
@@ -56,6 +57,9 @@ const MainContent: React.FC = () => {
     product: Product;
     desiredSize?: string;
   } | null>(null);
+
+  // Bundle Detail Modal State
+  const [selectedProductForBundle, setSelectedProductForBundle] = useState<Product | null>(null);
 
   // Toast notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -317,10 +321,9 @@ const MainContent: React.FC = () => {
               <ProductCard
                 key={product.id}
                 product={product}
-                onSelectSlot={(bundle, slot) => setSelectedBooking({ product, bundle, slot })}
-                onStartNewBatch={(prod, size) => setNewBatchTarget({ product: prod, preselectedSize: size })}
+                onOpenBundleModal={(prod) => setSelectedProductForBundle(prod)}
                 onBuyWholeBundle={(prod) => setWholeBundleTarget(prod)}
-                onSingleBuy={(prod, size) => setSingleBuyTarget({ product: prod, desiredSize: size })}
+                onSingleBuy={(prod) => setSingleBuyTarget({ product: prod })}
               />
             ))}
           </div>
@@ -393,6 +396,25 @@ const MainContent: React.FC = () => {
             setWholeBundleTarget(null);
             showToast('অভিনন্দন! সম্পূর্ণ বান্ডিল অর্ডার সফল হয়েছে।');
             setMyBookingsOpen(true);
+          }}
+        />
+      )}
+
+      {selectedProductForBundle && (
+        <BundleDetailModal
+          product={selectedProductForBundle}
+          onClose={() => setSelectedProductForBundle(null)}
+          onSelectSlot={(bundle, slot) => {
+            setSelectedBooking({ product: selectedProductForBundle, bundle, slot });
+          }}
+          onStartNewBatch={(prod, size) => {
+            setNewBatchTarget({ product: prod, preselectedSize: size });
+          }}
+          onBuyWholeBundle={(prod) => {
+            setWholeBundleTarget(prod);
+          }}
+          onSingleBuy={(prod, size) => {
+            setSingleBuyTarget({ product: prod, desiredSize: size });
           }}
         />
       )}
