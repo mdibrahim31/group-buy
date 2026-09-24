@@ -44,8 +44,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
   const progressPercent = Math.min(100, Math.round((filledSlots / totalSlots) * 100));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-stone-200 flex flex-col">
+    <div className="fixed inset-0 z-50 w-screen h-screen bg-white flex flex-col overflow-y-auto animate-in fade-in duration-200">
         
         {/* Modal Header */}
         <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-md px-5 py-4 border-b border-stone-200 flex items-center justify-between">
@@ -301,7 +300,6 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
 
         </div>
 
-      </div>
     </div>
   );
 };
