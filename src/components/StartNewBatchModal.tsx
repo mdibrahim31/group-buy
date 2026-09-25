@@ -30,7 +30,12 @@ export const StartNewBatchModal: React.FC<StartNewBatchModalProps> = ({
   const [selectedSize, setSelectedSize] = useState<string>(
     preselectedSize || product.availableSizes[0] || '৪০'
   );
-  const [selectedColor, setSelectedColor] = useState<string>(preselectedColor || defaultColors[0] || 'কালো');
+  const [selectedColor, setSelectedColor] = useState<string>(() => {
+    if (preselectedColor && defaultColors.includes(preselectedColor)) {
+      return preselectedColor;
+    }
+    return defaultColors[0] || 'কালো';
+  });
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [address, setAddress] = useState(user?.deliveryAddress || '');

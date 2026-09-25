@@ -112,6 +112,36 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
   const [newFullBundlePrice, setNewFullBundlePrice] = useState<number | ''>('');
   const [newColorsText, setNewColorsText] = useState('কালো, সাদা, ব্রাউন, নীল, লাল');
   const [newBundleColor, setNewBundleColor] = useState('কালো');
+  const [selectedColors, setSelectedColors] = useState<string[]>([]);
+
+  // Sync selectedColors with database colors initially or when colors update
+  useEffect(() => {
+    if (colors && colors.length > 0) {
+      if (selectedColors.length === 0) {
+        setSelectedColors(colors);
+      }
+    }
+  }, [colors, selectedColors]);
+
+  // Sync default bundle color when selectedColors changes
+  useEffect(() => {
+    if (selectedColors.length > 0) {
+      if (!selectedColors.includes(newBundleColor)) {
+        setNewBundleColor(selectedColors[0]);
+      }
+    } else {
+      setNewBundleColor('');
+    }
+  }, [selectedColors, newBundleColor]);
+
+  // Sync newCategory when categories updates
+  useEffect(() => {
+    if (categories && categories.length > 0) {
+      if (!newCategory || !categories.includes(newCategory)) {
+        setNewCategory(categories[0]);
+      }
+    }
+  }, [categories, newCategory]);
 
   // Edit Product / Bundle State
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -126,6 +156,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
   const [editFullBundlePrice, setEditFullBundlePrice] = useState<number | ''>('');
   const [editSizesText, setEditSizesText] = useState('');
   const [editColorsText, setEditColorsText] = useState('');
+  const [editSelectedColors, setEditSelectedColors] = useState<string[]>([]);
   const [editSuccessMsg, setEditSuccessMsg] = useState<string | null>(null);
 
   const startEditingProduct = (prod: Product) => {
@@ -146,7 +177,10 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
     setEditGroupPrice(prod.groupPrice);
     setEditFullBundlePrice(prod.fullBundlePricePerPiece || prod.groupPrice);
     setEditSizesText((prod.availableSizes || []).join(', '));
-    setEditColorsText((prod.availableColors && prod.availableColors.length > 0 ? prod.availableColors : ['কালো', 'সাদা', 'ব্রাউন', 'নীল']).join(', '));
+    
+    const initialColorsList = prod.availableColors && prod.availableColors.length > 0 ? prod.availableColors : ['কালো', 'সাদা', 'ব্রাউন'];
+    setEditSelectedColors(initialColorsList);
+    setEditColorsText(initialColorsList.join(', '));
     setEditSuccessMsg(null);
   };
 
@@ -159,10 +193,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
       .map(s => s.trim())
       .filter(Boolean);
 
-    const finalColors = editColorsText
-      .split(',')
-      .map(c => c.trim())
-      .filter(Boolean);
+    const finalColors = editSelectedColors.length > 0 ? editSelectedColors : ['কালো', 'সাদা', 'ব্রাউন'];
 
     const updatedProd: Product = {
       ...editingProduct,
@@ -176,7 +207,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
       groupPrice: Number(editGroupPrice) || editingProduct.groupPrice,
       fullBundlePricePerPiece: Number(editFullBundlePrice) || Number(editGroupPrice) || editingProduct.fullBundlePricePerPiece,
       availableSizes: finalSizes.length > 0 ? finalSizes : editingProduct.availableSizes,
-      availableColors: finalColors.length > 0 ? finalColors : ['কালো', 'সাদা', 'ব্রাউন'],
+      availableColors: finalColors,
       bundleSize: finalSizes.length > 0 ? finalSizes.length : editingProduct.bundleSize,
     };
 
@@ -376,10 +407,12 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
 
     const autoWholesalePrice = Math.round(Number(newGroupPrice) * 0.75);
 
-    const finalColors = newColorsText
-      .split(',')
-      .map(c => c.trim())
-      .filter(Boolean);
+    const finalColors = selectedColors;
+
+    if (finalColors.length === 0) {
+      setPostError('দয়া করে কমপক্ষে একটি কালার সিলেক্ট করুন');
+      return;
+    }
 
     try {
       const res = await addProduct({
@@ -395,7 +428,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
         fullBundlePricePerPiece: calculatedFullBundlePrice,
         bundleSize: finalSizes.length,
         availableSizes: finalSizes,
-        availableColors: finalColors.length > 0 ? finalColors : ['কালো', 'সাদা', 'ব্রাউন'],
+        availableColors: finalColors,
       }, newBundleColor.trim());
 
       if (res && res.success) {
@@ -409,6 +442,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
         setNewGroupPrice('');
         setNewFullBundlePrice('');
         setNewDescription('');
+        // Reset selected colors to all db colors
+        setSelectedColors(colors);
 
         setTimeout(() => {
           setPostSuccess(false);
@@ -1086,36 +1121,78 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                      {/* Available Colors Option */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-bold text-stone-700 mb-1">
-                          উপলব্ধ কালারসমূহ (Available Colors - কমা দিয়ে লিখুন) *
+                        <label className="block text-xs font-bold text-stone-700 mb-2">
+                          উপলব্ধ কালারসমূহ (Available Colors) *
                         </label>
-                        <input
-                          type="text"
-                          placeholder="যেমন: কালো, সাদা, লাল, নীল, ব্রাউন"
-                          value={newColorsText}
-                          onChange={(e) => setNewColorsText(e.target.value)}
-                          className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                        />
+                        <div className="flex flex-wrap gap-1.5 p-3 bg-white border border-stone-200 rounded-2xl min-h-[90px] max-h-[160px] overflow-y-auto">
+                          {colors.map((col) => {
+                            const isSelected = selectedColors.includes(col);
+                            return (
+                              <button
+                                key={col}
+                                type="button"
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setSelectedColors(prev => prev.filter(c => c !== col));
+                                  } else {
+                                    setSelectedColors(prev => [...prev, col]);
+                                  }
+                                }}
+                                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border ${
+                                  isSelected
+                                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
+                                    : 'bg-stone-50 border-stone-200 text-stone-600 hover:bg-stone-100'
+                                }`}
+                              >
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                                  style={{
+                                    backgroundColor:
+                                      col === 'সাদা' ? '#ffffff' :
+                                      col === 'কালো' ? '#000000' :
+                                      col === 'লাল' ? '#ef4444' :
+                                      col === 'নীল' ? '#3b82f6' :
+                                      col === 'হলুদ' ? '#eab308' :
+                                      col === 'সবুজ' ? '#22c55e' :
+                                      col === 'গ্রে' ? '#6b7280' :
+                                      col === 'ব্রাউন' ? '#854d0e' :
+                                      undefined,
+                                    border: '1px solid #d1d5db'
+                                  }}
+                                />
+                                <span>{col}</span>
+                              </button>
+                            );
+                          })}
+                          {colors.length === 0 && (
+                            <p className="text-[11px] text-stone-400 font-semibold italic">কোনো কালার পাওয়া যায়নি। অনুগ্রহ করে কালার ম্যানেজমেন্টে যুক্ত করুন।</p>
+                          )}
+                        </div>
                         <p className="text-[10px] text-stone-400 mt-1">
-                          কাস্টমাররা অর্ডার করার সময় এর থেকে কালার বেছে নিতে পারবেন।
+                          কালারগুলোতে ক্লিক করে সিলেক্ট/ডিসেলেক্ট করুন। কাস্টমাররা শুধু এই নির্বাচিত কালারগুলো থেকে বেছে নিতে পারবেন।
                         </p>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-emerald-800 mb-1">
+                        <label className="block text-xs font-bold text-emerald-800 mb-2">
                           ১ম ব্যাচের কালার (Default Bundle Color) *
                         </label>
                         <select
                           value={newBundleColor}
                           onChange={(e) => setNewBundleColor(e.target.value)}
-                          className="w-full px-3 py-2 bg-emerald-50 border border-emerald-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-emerald-900"
+                          className="w-full px-3 py-3 bg-emerald-50 border border-emerald-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-emerald-900 cursor-pointer"
                         >
-                          {newColorsText.split(',').map(c => c.trim()).filter(Boolean).map(color => (
-                            <option key={color} value={color}>{color}</option>
+                          {selectedColors.map((color) => (
+                            <option key={color} value={color}>
+                              {color}
+                            </option>
                           ))}
+                          {selectedColors.length === 0 && (
+                            <option value="">কোনো কালার সিলেক্ট করা হয়নি</option>
+                          )}
                         </select>
-                        <p className="text-[10px] text-stone-400 mt-1">
-                          ১ম ব্যাচটির সব কয়টি পণ্য সম্পূর্ণ এই কালারের হবে।
+                        <p className="text-[10px] text-stone-400 mt-1.5">
+                          ১ম ব্যাচটির সব কয়টি পণ্য সম্পূর্ণ এই কালারের হবে। (শুধু বাম পাশে নির্বাচিত কালারগুলো এখানে অপশন হিসেবে দেখাবে)
                         </p>
                       </div>
                     </div>
@@ -2182,8 +2259,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                   </div>
                 </div>
 
-                {/* Sizes and Colors Text Inputs */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                 {/* Sizes and Colors Selection */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-stone-700 mb-1">উপলব্ধ সাইজসমূহ (কমা দিয়ে পৃথক করুন) *</label>
                     <input
@@ -2196,15 +2273,54 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">উপলব্ধ কালারসমূহ (কমা দিয়ে পৃথক করুন) *</label>
-                    <input
-                      type="text"
-                      value={editColorsText}
-                      onChange={(e) => setEditColorsText(e.target.value)}
-                      placeholder="কালো, সাদা, লাল, নীল, ব্রাউন"
-                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                      required
-                    />
+                    <label className="block text-xs font-bold text-stone-700 mb-2">উপলব্ধ কালারসমূহ (Available Colors) *</label>
+                    <div className="flex flex-wrap gap-1.5 p-3 bg-stone-50 border border-stone-200 rounded-2xl min-h-[90px] max-h-[160px] overflow-y-auto">
+                      {colors.map((col) => {
+                        const isSelected = editSelectedColors.includes(col);
+                        return (
+                          <button
+                            key={col}
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                setEditSelectedColors(prev => prev.filter(c => c !== col));
+                              } else {
+                                setEditSelectedColors(prev => [...prev, col]);
+                              }
+                            }}
+                            className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border ${
+                              isSelected
+                                ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
+                                : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50'
+                            }`}
+                          >
+                            <span
+                              className="w-2.5 h-2.5 rounded-full shrink-0"
+                              style={{
+                                backgroundColor:
+                                  col === 'সাদা' ? '#ffffff' :
+                                  col === 'কালো' ? '#000000' :
+                                  col === 'লাল' ? '#ef4444' :
+                                  col === 'নীল' ? '#3b82f6' :
+                                  col === 'হলুদ' ? '#eab308' :
+                                  col === 'সবুজ' ? '#22c55e' :
+                                  col === 'গ্রে' ? '#6b7280' :
+                                  col === 'ব্রাউন' ? '#854d0e' :
+                                  undefined,
+                                border: '1px solid #d1d5db'
+                              }}
+                            />
+                            <span>{col}</span>
+                          </button>
+                        );
+                      })}
+                      {colors.length === 0 && (
+                        <p className="text-[11px] text-stone-400 font-semibold italic">কোনো কালার পাওয়া যায়নি। অনুগ্রহ করে অ্যাডমিন প্যানেলে কালার যুক্ত করুন।</p>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-stone-400 mt-1">
+                      কালারগুলোতে ক্লিক করে সিলেক্ট/ডিসেলেক্ট করুন।
+                    </p>
                   </div>
                 </div>
 

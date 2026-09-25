@@ -36,10 +36,10 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
   const [selectedColor, setSelectedColor] = useState<string>(() => {
     if (initialBundleId) {
       const found = productBundles.find(b => b.id === initialBundleId);
-      if (found && found.color) return found.color;
+      if (found && found.color && defaultColors.includes(found.color)) return found.color;
     }
     const firstOpen = productBundles.find(b => b.status === 'open');
-    if (firstOpen && firstOpen.color) return firstOpen.color;
+    if (firstOpen && firstOpen.color && defaultColors.includes(firstOpen.color)) return firstOpen.color;
     return defaultColors[0] || 'কালো';
   });
 

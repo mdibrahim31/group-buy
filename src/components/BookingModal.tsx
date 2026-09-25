@@ -27,9 +27,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     ? product.availableColors
     : ['কালো', 'সাদা', 'ব্রাউন', 'নীল', 'লাল'];
 
-  const [selectedColor, setSelectedColor] = useState<string>(
-    slot.color || defaultColors[0] || 'কালো'
-  );
+  const [selectedColor, setSelectedColor] = useState<string>(() => {
+    if (slot.color && defaultColors.includes(slot.color)) {
+      return slot.color;
+    }
+    return defaultColors[0] || 'কালো';
+  });
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [address, setAddress] = useState(user?.deliveryAddress || '');
