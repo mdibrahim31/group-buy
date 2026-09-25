@@ -14,7 +14,6 @@ import { ProfileModal } from './components/ProfileModal';
 import { Product, Bundle, BundleSlot } from './types';
 import { Sparkles, CheckCircle2, Bell, ChevronRight, Flame, SlidersHorizontal, X, Tag } from 'lucide-react';
 import { WhatsAppSupport, WhatsAppIcon } from './components/WhatsAppSupport';
-import { SubAdminPanelModal } from './components/SubAdminPanelModal';
 
 const MainContent: React.FC = () => {
   const {
@@ -58,9 +57,6 @@ const MainContent: React.FC = () => {
   // Bundle Detail Modal State
   const [selectedProductForBundle, setSelectedProductForBundle] = useState<Product | null>(null);
   const [selectedBundleIdForDetail, setSelectedBundleIdForDetail] = useState<string | undefined>(undefined);
-
-  // Sub Admin Portal Modal State
-  const [subAdminPortalOpen, setSubAdminPortalOpen] = useState(false);
 
   // Toast notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -327,15 +323,7 @@ const MainContent: React.FC = () => {
       {/* Footer */}
       <footer className="bg-stone-900 text-stone-400 py-6 border-t border-stone-800 text-xs mt-12">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
-          <p>
-            © 2026 GroupBuy Wholesale. সরাসরি কারখানা ও পাইকারি বাজার থেকে গ্রাহকের কাছে।{' '}
-            <button
-              onClick={() => setSubAdminPortalOpen(true)}
-              className="text-stone-500 hover:text-emerald-400 font-bold ml-2 underline cursor-pointer inline-block"
-            >
-              সাব-অ্যাডমিন পোর্টাল
-            </button>
-          </p>
+          <p>© 2026 GroupBuy Wholesale. সরাসরি কারখানা ও পাইকারি বাজার থেকে গ্রাহকের কাছে।</p>
           <div className="flex flex-wrap items-center justify-center gap-4 text-stone-400">
             <a
               href="https://wa.me/8801882208531"
@@ -433,10 +421,6 @@ const MainContent: React.FC = () => {
       )}
 
       <AuthModal />
-      <SubAdminPanelModal
-        isOpen={subAdminPortalOpen}
-        onClose={() => setSubAdminPortalOpen(false)}
-      />
       <MyBookingsModal
         onViewBundle={(product, bundleId) => {
           setSelectedBundleIdForDetail(bundleId);
