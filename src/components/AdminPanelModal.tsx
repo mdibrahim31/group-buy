@@ -1639,6 +1639,11 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                                 <span>হোলসেল রেট: <strong className="text-stone-800">৳{product.wholesalePrice}</strong></span>
                                 <span>খুচরা বাজার মূল্য: <span className="line-through text-stone-400">৳{product.retailPrice}</span></span>
                                 <span>বান্ডিল সাইজ: <strong>{product.bundleSize} পিস</strong></span>
+                                {product.createdBySubAdminName && (
+                                  <span className="bg-purple-100 text-purple-800 font-extrabold px-2 py-0.5 rounded-md text-[10px]">
+                                    👤 আপলোডার: {product.createdBySubAdminName}
+                                  </span>
+                                )}
                               </div>
                             </div>
 
@@ -2152,9 +2157,14 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                                             </h4>
 
                                             {/* Pricing */}
-                                            <div className="text-[11px] text-stone-600 mt-0.5 flex flex-wrap gap-x-2">
+                                            <div className="text-[11px] text-stone-600 mt-0.5 flex flex-wrap gap-x-2 gap-y-1 items-center">
                                               <span>গ্রুপ রেট: <strong className="text-emerald-700 font-bold">৳{prod.groupPrice}</strong></span>
                                               <span>হোলসেল: ৳{prod.wholesalePrice}</span>
+                                              {prod.createdBySubAdminName && (
+                                                <span className="bg-purple-50 text-purple-700 text-[9px] font-bold px-1.5 py-0.5 rounded border border-purple-200">
+                                                  👤 আপলোডার: {prod.createdBySubAdminName}
+                                                </span>
+                                              )}
                                             </div>
                                           </div>
 

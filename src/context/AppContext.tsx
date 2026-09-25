@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { User, Product, Bundle, Order, BundleSlot, Customer, AppNotification } from '../types';
+import { User, Product, Bundle, Order, BundleSlot, Customer, AppNotification, SubAdmin } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_BUNDLES, INITIAL_NOTIFICATIONS } from '../data/initialData';
 import {
   dbGetCustomerByPhone,
@@ -26,6 +26,9 @@ import {
   supabase,
   dbDeleteProduct,
   dbDeleteBundle,
+  dbGetSubAdminByPhone,
+  dbSaveSubAdmin,
+  dbGetAllSubAdmins,
 } from '../lib/supabase';
 
 interface AppContextType {
@@ -117,11 +120,16 @@ interface AppContextType {
   deleteProduct: (productId: string) => Promise<{ success: boolean; message: string }>;
   deleteBundle: (bundleId: string) => Promise<{ success: boolean; message: string }>;
   findOrderByIdOrCustomer: (query: string) => Promise<Order[]>;
+  currentSubAdmin: SubAdmin | null;
+  subAdminLogin: (phone: string, pass: string) => Promise<{ success: boolean; message: string }>;
+  subAdminRegister: (phone: string, pass: string, name: string) => Promise<{ success: boolean; message: string }>;
+  subAdminLogout: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const LOCAL_STORAGE_KEY_USER = 'groupbuy_user_session';
+const LOCAL_STORAGE_KEY_SUB_ADMIN = 'groupbuy_sub_admin_session';
 const LOCAL_STORAGE_KEY_BUNDLES = 'groupbuy_bundles_data_v2';
 const LOCAL_STORAGE_KEY_ORDERS = 'groupbuy_user_orders_v2';
 const LOCAL_STORAGE_KEY_PRODUCTS = 'groupbuy_products_data_v2';
@@ -152,6 +160,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [user, setUser] = useState<User | null>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY_USER);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [currentSubAdmin, setCurrentSubAdmin] = useState<SubAdmin | null>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY_SUB_ADMIN);
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
@@ -528,6 +545,69 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setOrders([]);
     localStorage.removeItem(LOCAL_STORAGE_KEY_USER);
     localStorage.removeItem(LOCAL_STORAGE_KEY_ORDERS);
+  };
+
+  // Sub Admin authentication functions
+  const subAdminLogin = async (phone: string, pass: string): Promise<{ success: boolean; message: string }> => {
+    const cleanPhone = phone.trim();
+    if (!cleanPhone || !pass) {
+      return { success: false, message: 'ফোন নম্বর ও পাসওয়ার্ড প্রদান করুন।' };
+    }
+
+    try {
+      const remoteSub = await dbGetSubAdminByPhone(cleanPhone);
+      if (!remoteSub) {
+        return { success: false, message: 'এই ফোন নম্বরে কোনো সাব-অ্যাডমিন অ্যাকাউন্ট পাওয়া যায়নি।' };
+      }
+
+      if (remoteSub.password && remoteSub.password !== pass) {
+        return { success: false, message: 'ভুল পাসওয়ার্ড। আবার চেষ্টা করুন।' };
+      }
+
+      setCurrentSubAdmin(remoteSub);
+      localStorage.setItem(LOCAL_STORAGE_KEY_SUB_ADMIN, JSON.stringify(remoteSub));
+      return { success: true, message: 'সাব-অ্যাডমিন হিসেবে সফলভাবে লগইন হয়েছে।' };
+    } catch (err) {
+      return { success: false, message: 'লগইনে সমস্যা হয়েছে।' };
+    }
+  };
+
+  const subAdminRegister = async (phone: string, pass: string, name: string): Promise<{ success: boolean; message: string }> => {
+    const cleanPhone = phone.trim();
+    if (!cleanPhone || !pass || !name) {
+      return { success: false, message: 'সব প্রয়োজনীয় তথ্য পূরণ করুন।' };
+    }
+
+    try {
+      const existingSub = await dbGetSubAdminByPhone(cleanPhone);
+      if (existingSub) {
+        return { success: false, message: 'এই ফোন নম্বরে ইতোমধ্যে সাব-অ্যাডমিন অ্যাকাউন্ট রয়েছে।' };
+      }
+
+      const newSub: SubAdmin = {
+        id: 'sub-' + Date.now(),
+        phone: cleanPhone,
+        password: pass,
+        fullName: name.trim(),
+        createdAt: new Date().toISOString(),
+      };
+
+      const dbResult = await dbSaveSubAdmin(newSub);
+      if (!dbResult.success) {
+        return { success: false, message: dbResult.error || 'ডাটাবেজে সাব-অ্যাডমিন তথ্য সেভ করা যায়নি।' };
+      }
+
+      setCurrentSubAdmin(newSub);
+      localStorage.setItem(LOCAL_STORAGE_KEY_SUB_ADMIN, JSON.stringify(newSub));
+      return { success: true, message: 'সাব-অ্যাডমিন অ্যাকাউন্ট সফলভাবে তৈরি ও লগইন হয়েছে!' };
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'রেজিস্ট্রেশনে সমস্যা হয়েছে।' };
+    }
+  };
+
+  const subAdminLogout = () => {
+    setCurrentSubAdmin(null);
+    localStorage.removeItem(LOCAL_STORAGE_KEY_SUB_ADMIN);
   };
 
   // Mask phone number for public slot visibility (e.g. 0171****82)
@@ -996,6 +1076,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const product: Product = {
       ...newProdData,
       id: newId,
+      createdBySubAdminId: currentSubAdmin?.id || undefined,
+      createdBySubAdminName: currentSubAdmin?.fullName || undefined,
     };
     setProducts(prev => [product, ...prev]);
 
@@ -1027,6 +1109,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       slots,
       color: activeBundleColor,
       availableColors: product.availableColors,
+      createdBySubAdminId: currentSubAdmin?.id || undefined,
+      createdBySubAdminName: currentSubAdmin?.fullName || undefined,
     };
 
     setBundles(prev => [firstBundle, ...prev]);
@@ -1327,6 +1411,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteProduct,
         deleteBundle,
         findOrderByIdOrCustomer,
+        currentSubAdmin,
+        subAdminLogin,
+        subAdminRegister,
+        subAdminLogout,
       }}
     >
       {children}

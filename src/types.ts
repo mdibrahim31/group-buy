@@ -10,6 +10,14 @@ export interface Customer {
 
 export type User = Customer;
 
+export interface SubAdmin {
+  id: string;
+  phone: string;
+  password?: string;
+  fullName: string;
+  createdAt?: string;
+}
+
 export interface Product {
   id: string;
   title: string;
@@ -25,6 +33,8 @@ export interface Product {
   bundleSize: number;
   availableSizes: string[];
   availableColors?: string[];
+  createdBySubAdminId?: string;
+  createdBySubAdminName?: string;
 }
 
 export interface BundleSlot {
@@ -51,6 +61,8 @@ export interface Bundle {
   slots: BundleSlot[];
   color?: string;
   availableColors?: string[];
+  createdBySubAdminId?: string;
+  createdBySubAdminName?: string;
 }
 
 export interface Order {

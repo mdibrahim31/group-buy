@@ -395,6 +395,8 @@ export async function dbGetAllProducts(): Promise<Product[]> {
         bundleSize: Number(p.bundle_size || 6),
         availableSizes: Array.isArray(p.available_sizes) ? p.available_sizes : [],
         availableColors: colors,
+        createdBySubAdminId: p.created_by_sub_admin_id || undefined,
+        createdBySubAdminName: p.created_by_sub_admin_name || undefined,
       };
     });
   } catch (err) {
@@ -429,6 +431,8 @@ export async function dbSaveProduct(product: Product): Promise<boolean> {
       color: colorsJoined || null,
       colors: colorsList,
       status: 'active',
+      created_by_sub_admin_id: product.createdBySubAdminId || null,
+      created_by_sub_admin_name: product.createdBySubAdminName || null,
       updated_at: new Date().toISOString(),
     };
 
@@ -570,6 +574,8 @@ export async function dbGetAllBundles(): Promise<Bundle[]> {
         slots: bundleSlots,
         color: b.color || (bundleSlots.length > 0 ? bundleSlots[0].color : undefined),
         availableColors: b.available_colors || undefined,
+        createdBySubAdminId: b.created_by_sub_admin_id || undefined,
+        createdBySubAdminName: b.created_by_sub_admin_name || undefined,
       };
     });
   } catch (err) {
@@ -589,6 +595,8 @@ export async function dbSaveBundle(bundle: Bundle): Promise<boolean> {
       filled_slots: bundle.filledSlots,
       status: bundle.status,
       expires_at: bundle.expiresAt,
+      created_by_sub_admin_id: bundle.createdBySubAdminId || null,
+      created_by_sub_admin_name: bundle.createdBySubAdminName || null,
       updated_at: new Date().toISOString(),
     };
 
@@ -802,6 +810,91 @@ export async function dbDeleteColor(name: string): Promise<boolean> {
   } catch (err) {
     console.warn('Supabase dbDeleteColor exception:', err);
     return false;
+  }
+}
+
+// ======================= SUB-ADMINS DB =======================
+
+export async function dbGetSubAdminByPhone(phone: string): Promise<any | null> {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('sub_admins')
+      .select('*')
+      .eq('phone', phone.trim())
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Supabase dbGetSubAdminByPhone notice:', error.message);
+      return null;
+    }
+    if (!data) return null;
+
+    return {
+      id: data.id,
+      phone: data.phone,
+      password: data.password,
+      fullName: data.full_name || data.fullName,
+      createdAt: data.created_at,
+    };
+  } catch (err) {
+    console.warn('Supabase sub_admins query notice:', err);
+    return null;
+  }
+}
+
+export async function dbSaveSubAdmin(subAdmin: any): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) {
+    return {
+      success: false,
+      error: 'ডাটাবেজ কানেক্টেড নেই।',
+    };
+  }
+  try {
+    const payload = {
+      id: subAdmin.id,
+      phone: subAdmin.phone.trim(),
+      password: subAdmin.password,
+      full_name: subAdmin.fullName.trim(),
+      created_at: subAdmin.createdAt || new Date().toISOString(),
+    };
+
+    const { error: insertError } = await supabase.from('sub_admins').insert(payload);
+    if (!insertError) {
+      return { success: true };
+    }
+
+    // fallback upsert
+    const { error: upsertError } = await supabase.from('sub_admins').upsert(payload, { onConflict: 'id' });
+    if (upsertError) {
+      console.warn('Supabase sub_admins upsert notice:', upsertError.message);
+      return { success: false, error: upsertError.message };
+    }
+    return { success: true };
+  } catch (err: any) {
+    console.warn('Supabase sub_admins save exception:', err);
+    return { success: false, error: err.message || 'ব্যতিক্রমী ভুল ঘটেছে' };
+  }
+}
+
+export async function dbGetAllSubAdmins(): Promise<any[]> {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('sub_admins')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+    return data.map((d: any) => ({
+      id: d.id,
+      phone: d.phone,
+      password: d.password,
+      fullName: d.full_name || d.fullName || '',
+      createdAt: d.created_at,
+    }));
+  } catch {
+    return [];
   }
 }
 
