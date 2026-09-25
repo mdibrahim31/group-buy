@@ -12,11 +12,18 @@ export default defineConfig(() => {
     ''
   ).trim();
 
+  const subAdminKey = (
+    process.env.VITE_SUB_ADMIN_ACCESS_KEY ||
+    process.env.SUB_ADMIN_ACCESS_KEY ||
+    ''
+  ).trim();
+
   return {
     base: './',
     plugins: [react(), tailwindcss()],
     define: {
       __APP_ADMIN_PASSWORD__: JSON.stringify(adminPassword),
+      __APP_SUB_ADMIN_ACCESS_KEY__: JSON.stringify(subAdminKey),
     },
     resolve: {
       alias: {

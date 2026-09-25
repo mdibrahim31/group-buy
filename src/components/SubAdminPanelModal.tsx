@@ -96,7 +96,12 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
   // Handle access code verify
   const handleVerifyAccessCode = (e: React.FormEvent) => {
     e.preventDefault();
-    const serverKey = (import.meta.env.VITE_SUB_ADMIN_ACCESS_KEY || 'subadmin123').trim();
+    const serverKey = (
+      // @ts-ignore
+      (typeof __APP_SUB_ADMIN_ACCESS_KEY__ !== 'undefined' ? __APP_SUB_ADMIN_ACCESS_KEY__ : '') ||
+      import.meta.env.VITE_SUB_ADMIN_ACCESS_KEY ||
+      'subadmin123'
+    ).trim();
     if (accessCode.trim() === serverKey) {
       setIsAccessGranted(true);
       localStorage.setItem('groupbuy_subadmin_access_granted', 'true');
