@@ -34,11 +34,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [phone, setPhone] = useState(user?.phone || '');
   const [address, setAddress] = useState(user?.deliveryAddress || '');
   const [district, setDistrict] = useState(user?.district || 'ঢাকা');
-  const [paymentMethod, setPaymentMethod] = useState<'bKash' | 'Nagad' | 'Rocket'>('bKash');
-  const [transactionId, setTransactionId] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -63,12 +60,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       const result = bookSlot(
         bundle.id,
         slot.id,
-        tokenAmount,
-        paymentMethod,
+        0,
+        'COD',
         fullDeliveryAddress,
         phone.trim(),
         fullName.trim(),
-        transactionId.trim(),
+        '',
         selectedColor
       );
 
@@ -161,20 +158,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
           {/* Price Breakdown */}
           <div className="bg-emerald-50/50 rounded-xl p-3 border border-emerald-100 text-xs space-y-1.5">
-            <div className="flex justify-between text-stone-600">
+            <div className="flex justify-between items-center text-stone-700 font-bold">
               <span>গ্রুপ বাই মোট মূল্য:</span>
-              <span className="font-semibold text-stone-900">৳{product.groupPrice}</span>
-            </div>
-            <div className="flex justify-between text-emerald-800 font-medium">
-              <span>টোকেন অগ্রিম (এখন প্রদেয়):</span>
-              <span className="font-bold text-emerald-700">৳{tokenAmount}</span>
-            </div>
-            <div className="flex justify-between text-stone-600 pt-1.5 border-t border-emerald-200/60 font-semibold">
-              <span>ডেলিভারির সময় প্রদেয় (COD):</span>
-              <span className="text-stone-900">৳{dueAmount}</span>
+              <span className="text-sm font-black text-emerald-800">৳{product.groupPrice}</span>
             </div>
             <p className="text-[11px] text-stone-500 pt-1">
-              * বান্ডিলের সবকটি সাইজ বুকড হওয়া মাত্র হোলসেলার থেকে মাল সরবরাহ হবে। সময়মতো বান্ডিল না হলে অগ্রিম টাকা সম্পূর্ণ রিফান্ড হবে।
+              * বান্ডিলের সবকটি সাইজ বুকড হওয়া মাত্র হোলসেলার থেকে মাল সরবরাহ প্রক্রিয়া শুরু হবে।
             </p>
           </div>
 
@@ -232,55 +221,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             </div>
           </div>
 
-          {/* Payment Method for Token 150 Tk */}
-          <div className="space-y-2 pt-2">
-            <label className="block text-xs font-bold text-stone-800 uppercase tracking-wider">
-              টোকেন পেমেন্ট মাধ্যম (৳{tokenAmount})
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { id: 'bKash', name: 'বিকাশ', number: '01700-112233' },
-                { id: 'Nagad', name: 'নগদ', number: '01800-445566' },
-                { id: 'Rocket', name: 'রকেট', number: '01900-778899' }
-              ].map(method => (
-                <button
-                  key={method.id}
-                  type="button"
-                  onClick={() => setPaymentMethod(method.id as any)}
-                  className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
-                    paymentMethod === method.id
-                      ? 'border-emerald-600 bg-emerald-50 font-bold text-emerald-900 shadow-xs'
-                      : 'border-stone-200 text-stone-700 hover:bg-stone-50'
-                  }`}
-                >
-                  <div className="text-xs font-bold">{method.name}</div>
-                  <div className="text-[10px] text-stone-500 mt-0.5">{method.number}</div>
-                </button>
-              ))}
-            </div>
-
-            <div className="bg-stone-50 p-3 rounded-xl border border-stone-200 text-xs text-stone-600 space-y-2">
-              <div className="flex items-center justify-between">
-                <span>
-                  আমাদের <strong>{paymentMethod === 'bKash' ? 'বিকাশ' : paymentMethod === 'Nagad' ? 'নগদ' : 'রকেট'}</strong> পার্সোনাল নম্বর:
-                </span>
-                <span className="font-mono font-bold text-stone-900 bg-white px-2 py-0.5 rounded border border-stone-200">
-                  {paymentMethod === 'bKash' ? '01700-112233' : paymentMethod === 'Nagad' ? '01800-445566' : '01900-778899'}
-                </span>
-              </div>
-              <p className="text-[11px] text-stone-500">
-                উপরের নম্বরে ৳{tokenAmount} সেন্ড মানি করে নিচের বক্সে ট্রানজেকশন আইডি দিন (অথবা বুকিং শেষে পাঠান):
-              </p>
-              <input
-                type="text"
-                placeholder="ট্রানজেকশন আইডি (TrxID) ঐচ্ছিক"
-                value={transactionId}
-                onChange={(e) => setTransactionId(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-          </div>
-
           {/* Submit Button */}
           <div className="pt-2">
             <button
@@ -289,7 +229,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               <CheckCircle className="w-4 h-4" />
-              <span>{loading ? 'প্রসেসিং হচ্ছে...' : `৳${tokenAmount} টোকেন দিয়ে স্লট কনফার্ম করুন`}</span>
+              <span>{loading ? 'প্রসেসিং হচ্ছে...' : 'স্লট বুকিং কনফার্ম করুন'}</span>
             </button>
           </div>
         </form>

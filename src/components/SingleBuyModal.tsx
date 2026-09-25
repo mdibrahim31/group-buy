@@ -234,55 +234,11 @@ export const SingleBuyModal: React.FC<SingleBuyModalProps> = ({
             </div>
           </div>
 
-          {/* Pricing & Advance Token Breakdown */}
+          {/* Pricing Breakdown */}
           <div className="bg-stone-50 rounded-xl p-3.5 border border-stone-200 text-xs space-y-2">
-            <div className="flex justify-between text-stone-700 font-medium">
+            <div className="flex justify-between items-center text-stone-700 font-bold">
               <span>মোট মূল্য ({quantity} পিস × ৳{product.retailPrice}):</span>
-              <span className="font-bold text-stone-900 text-sm">৳{totalPrice.toLocaleString()}</span>
-            </div>
-
-            {/* Payment Choice */}
-            <div className="pt-2 border-t border-stone-200">
-              <label className="block text-xs font-bold text-stone-800 mb-1.5">
-                পেমেন্ট অপশন বেছে নিন:
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPaymentOption('token')}
-                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                    paymentOption === 'token'
-                      ? 'border-blue-600 bg-blue-50/80 font-bold text-blue-900 ring-1 ring-blue-500'
-                      : 'border-stone-200 bg-white text-stone-700'
-                  }`}
-                >
-                  <div className="text-xs font-bold">টোকেন অগ্রিম (৳১৫০)</div>
-                  <div className="text-[10px] text-stone-500">বাকি টাকা ক্যাশ অন ডেলিভারি</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPaymentOption('full')}
-                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                    paymentOption === 'full'
-                      ? 'border-blue-600 bg-blue-50/80 font-bold text-blue-900 ring-1 ring-blue-500'
-                      : 'border-stone-200 bg-white text-stone-700'
-                  }`}
-                >
-                  <div className="text-xs font-bold">সম্পূর্ণ মূল্য (৳{totalPrice})</div>
-                  <div className="text-[10px] text-stone-500">একবারে পরিশোধ</div>
-                </button>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-stone-200 flex justify-between items-center">
-              <div>
-                <div className="font-semibold text-stone-700">এখন পরিশোধযোগ্য:</div>
-                <div className="text-[11px] text-stone-500">
-                  বাকি ৳{dueAmount.toLocaleString()} ক্যাশ অন ডেলিভারিতে
-                </div>
-              </div>
-              <div className="text-base font-extrabold text-blue-700">৳{advanceToPay.toLocaleString()}</div>
+              <span className="font-extrabold text-blue-700 text-sm">৳{totalPrice.toLocaleString()}</span>
             </div>
           </div>
 
@@ -340,65 +296,6 @@ export const SingleBuyModal: React.FC<SingleBuyModalProps> = ({
             </div>
           </div>
 
-          {/* Payment Method Details if Advance > 0 */}
-          {advanceToPay > 0 && (
-            <div className="space-y-2 pt-1">
-              <label className="block text-xs font-bold text-stone-800 uppercase tracking-wider">
-                পেমেন্ট মাধ্যম নির্বাচন (৳{advanceToPay})
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { id: 'bKash', name: 'বিকাশ', number: '01700-112233' },
-                  { id: 'Nagad', name: 'নগদ', number: '01800-445566' },
-                  { id: 'Rocket', name: 'রকেট', number: '01900-778899' },
-                ].map((method) => (
-                  <button
-                    key={method.id}
-                    type="button"
-                    onClick={() => setPaymentMethod(method.id as any)}
-                    className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
-                      paymentMethod === method.id
-                        ? 'border-blue-600 bg-blue-50 font-bold text-blue-900 shadow-xs ring-1 ring-blue-500'
-                        : 'border-stone-200 text-stone-700 hover:bg-stone-50'
-                    }`}
-                  >
-                    <div className="text-xs font-bold">{method.name}</div>
-                    <div className="text-[10px] text-stone-500 mt-0.5">{method.number}</div>
-                  </button>
-                ))}
-              </div>
-
-              <div className="bg-stone-50 p-3 rounded-xl border border-stone-200 text-xs text-stone-600 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span>
-                    আমাদের{' '}
-                    <strong>
-                      {paymentMethod === 'bKash' ? 'বিকাশ' : paymentMethod === 'Nagad' ? 'নগদ' : 'রকেট'}
-                    </strong>{' '}
-                    পার্সোনাল নম্বর:
-                  </span>
-                  <span className="font-mono font-bold text-stone-900 bg-white px-2 py-0.5 rounded border border-stone-200">
-                    {paymentMethod === 'bKash'
-                      ? '01700-112233'
-                      : paymentMethod === 'Nagad'
-                      ? '01800-445566'
-                      : '01900-778899'}
-                  </span>
-                </div>
-                <p className="text-[11px] text-stone-500">
-                  উপরের নম্বরে ৳{advanceToPay} সেন্ড মানি করে নিচের বক্সে ট্রানজেকশন আইডি দিন (ঐচ্ছিক):
-                </p>
-                <input
-                  type="text"
-                  placeholder="ট্রানজেকশন আইডি (TrxID) ঐচ্ছিক"
-                  value={transactionId}
-                  onChange={(e) => setTransactionId(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-          )}
-
           {/* Submit */}
           <div className="pt-2">
             <button
@@ -410,7 +307,7 @@ export const SingleBuyModal: React.FC<SingleBuyModalProps> = ({
               <span>
                 {loading
                   ? 'অর্ডার নেওয়া হচ্ছে...'
-                  : `৳${advanceToPay} অগ্রিম দিয়ে একক অর্ডার (সাইজ ${selectedSize}) কনফার্ম করুন`}
+                  : `একক অর্ডার (সাইজ ${selectedSize}) কনফার্ম করুন`}
               </span>
             </button>
           </div>

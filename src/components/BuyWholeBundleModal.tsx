@@ -190,14 +190,6 @@ export const BuyWholeBundleModal: React.FC<BuyWholeBundleModalProps> = ({
               <span>খুচরা বাজার দরের চেয়ে মোট সাশ্রয়:</span>
               <span>৳{totalSavings.toLocaleString()} টাকা!</span>
             </div>
-
-            <div className="pt-2 border-t border-stone-200 flex justify-between items-center">
-              <div>
-                <div className="font-semibold text-stone-700">বুকিং টোকেন অগ্রিম:</div>
-                <div className="text-[11px] text-stone-500">বাকি ৳{dueAmount.toLocaleString()} ক্যাশ অন ডেলিভারি</div>
-              </div>
-              <div className="text-base font-extrabold text-emerald-700">৳{tokenAmount}</div>
-            </div>
           </div>
 
           {/* Customer Info */}
@@ -254,55 +246,6 @@ export const BuyWholeBundleModal: React.FC<BuyWholeBundleModalProps> = ({
             </div>
           </div>
 
-          {/* Payment Selection */}
-          <div className="space-y-2 pt-1">
-            <label className="block text-xs font-bold text-stone-800 uppercase tracking-wider">
-              টোকেন পেমেন্ট (৳{tokenAmount})
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { id: 'bKash', name: 'বিকাশ', number: '01700-112233' },
-                { id: 'Nagad', name: 'নগদ', number: '01800-445566' },
-                { id: 'Rocket', name: 'রকেট', number: '01900-778899' }
-              ].map(method => (
-                <button
-                  key={method.id}
-                  type="button"
-                  onClick={() => setPaymentMethod(method.id as any)}
-                  className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
-                    paymentMethod === method.id
-                      ? 'border-emerald-600 bg-emerald-50 font-bold text-emerald-900 shadow-xs'
-                      : 'border-stone-200 text-stone-700 hover:bg-stone-50'
-                  }`}
-                >
-                  <div className="text-xs font-bold">{method.name}</div>
-                  <div className="text-[10px] text-stone-500 mt-0.5">{method.number}</div>
-                </button>
-              ))}
-            </div>
-
-            <div className="bg-stone-50 p-3 rounded-xl border border-stone-200 text-xs text-stone-600 space-y-2">
-              <div className="flex items-center justify-between">
-                <span>
-                  আমাদের <strong>{paymentMethod === 'bKash' ? 'বিকাশ' : paymentMethod === 'Nagad' ? 'নগদ' : 'রকেট'}</strong> পার্সোনাল নম্বর:
-                </span>
-                <span className="font-mono font-bold text-stone-900 bg-white px-2 py-0.5 rounded border border-stone-200">
-                  {paymentMethod === 'bKash' ? '01700-112233' : paymentMethod === 'Nagad' ? '01800-445566' : '01900-778899'}
-                </span>
-              </div>
-              <p className="text-[11px] text-stone-500">
-                উপরের নম্বরে ৳{tokenAmount} সেন্ড মানি করে নিচের বক্সে ট্রানজেকশন আইডি দিন (ঐচ্ছিক):
-              </p>
-              <input
-                type="text"
-                placeholder="ট্রানজেকশন আইডি (TrxID) ঐচ্ছিক"
-                value={transactionId}
-                onChange={(e) => setTransactionId(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-          </div>
-
           {/* Submit */}
           <div className="pt-2">
             <button
@@ -314,7 +257,7 @@ export const BuyWholeBundleModal: React.FC<BuyWholeBundleModalProps> = ({
               <span>
                 {loading
                   ? 'অর্ডার নেওয়া হচ্ছে...'
-                  : `৳${tokenAmount} টোকেন দিয়ে পুরো বান্ডিল (৳${totalBundlePrice.toLocaleString()}) নিশ্চিত করুন`}
+                  : `সম্পূর্ণ বান্ডিল (৳${totalBundlePrice.toLocaleString()}) নিশ্চিত করুন`}
               </span>
             </button>
           </div>

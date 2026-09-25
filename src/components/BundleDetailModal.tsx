@@ -187,7 +187,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                 <Users className="w-5 h-5 text-emerald-700" />
                 <div>
                   <h4 className="text-sm font-black text-stone-900">অপশন ১: গ্রুপ বাই ব্যাচ ও সাইজ স্লট</h4>
-                  <p className="text-[11px] text-stone-600">টোকেন অগ্রিম ৳১৫০ দিয়ে আপনার সাইজটি কনফার্ম করুন</p>
+                  <p className="text-[11px] text-stone-600">আপনার প্রয়োজনীয় সাইজ স্লটটি সরাসরি বুক করুন</p>
                 </div>
               </div>
               <button
@@ -294,7 +294,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                       <div className="mt-2 text-[11px]">
                         {isAvailable ? (
                           <span className="text-emerald-700 font-bold group-hover/slot:underline flex items-center gap-1">
-                            বুক করুন ৳১৫০ <ArrowRight className="w-3 h-3" />
+                            স্লট বুক করুন <ArrowRight className="w-3 h-3" />
                           </span>
                         ) : (
                           <span className="text-stone-600 block truncate font-medium">

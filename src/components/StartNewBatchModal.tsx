@@ -224,52 +224,6 @@ export const StartNewBatchModal: React.FC<StartNewBatchModalProps> = ({
             </div>
           </div>
 
-          {/* Payment Selection */}
-          <div className="space-y-2 pt-1">
-            <label className="block text-xs font-bold text-stone-800 uppercase tracking-wider">
-              টোকেন পেমেন্ট (৳{tokenAmount})
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { id: 'bKash', name: 'বিকাশ', number: '01700-112233' },
-                { id: 'Nagad', name: 'নগদ', number: '01800-445566' },
-                { id: 'Rocket', name: 'রকেট', number: '01900-778899' }
-              ].map(method => (
-                <button
-                  key={method.id}
-                  type="button"
-                  onClick={() => setPaymentMethod(method.id as any)}
-                  className={`p-2 rounded-xl border text-center transition-all cursor-pointer ${
-                    paymentMethod === method.id
-                      ? 'border-emerald-600 bg-emerald-50 text-emerald-900 font-bold shadow-xs'
-                      : 'border-stone-200 text-stone-700 hover:bg-stone-50'
-                  }`}
-                >
-                  <div className="text-xs font-bold">{method.name}</div>
-                  <div className="text-[10px] text-stone-500 mt-0.5">{method.number}</div>
-                </button>
-              ))}
-            </div>
-
-            <div className="bg-stone-50 p-2.5 rounded-lg border border-stone-200 text-xs text-stone-600 space-y-1">
-              <div className="flex justify-between items-center text-[11px]">
-                <span>
-                  {paymentMethod === 'bKash' ? 'বিকাশ' : paymentMethod === 'Nagad' ? 'নগদ' : 'রকেট'} পার্সোনাল:
-                </span>
-                <span className="font-mono font-bold text-stone-900">
-                  {paymentMethod === 'bKash' ? '01700-112233' : paymentMethod === 'Nagad' ? '01800-445566' : '01900-778899'}
-                </span>
-              </div>
-              <input
-                type="text"
-                placeholder="ট্রানজেকশন আইডি (TrxID) ঐচ্ছিক"
-                value={transactionId}
-                onChange={(e) => setTransactionId(e.target.value)}
-                className="w-full px-2.5 py-1.5 bg-white border border-stone-300 rounded text-xs font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500 mt-1"
-              />
-            </div>
-          </div>
-
           {/* Submit */}
           <div className="pt-2">
             <button

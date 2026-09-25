@@ -185,7 +185,7 @@ export const MyBookingsModal: React.FC<MyBookingsModalProps> = ({ onViewBundle }
               </div>
               <h3 className="text-base font-bold text-stone-800">এখনো কোনো স্লট বুক করা হয়নি</h3>
               <p className="text-xs text-stone-500 max-w-sm mx-auto mt-1 mb-5">
-                যেকোনো পণ্যের সাইজ স্লটে ক্লিক করে মাত্র ১৫০ টাকা অগ্রিম দিয়ে হোলসেলার বান্ডিলে যুক্ত হন।
+                যেকোনো পণ্যের সাইজ স্লটে ক্লিক করে হোলসেলার বান্ডিলে যুক্ত হন।
               </p>
               <button
                 onClick={() => setMyBookingsOpen(false)}
@@ -265,26 +265,11 @@ export const MyBookingsModal: React.FC<MyBookingsModalProps> = ({ onViewBundle }
                               </span>
                             )}
                             <span className="text-emerald-700 font-bold">
-                              মোট: ৳{order.groupPrice} (পেইড ৳{Math.min(order.advanceAmount, order.groupPrice)})
+                              মোট: ৳{order.groupPrice}
                             </span>
                           </div>
                         </div>
                       </div>
-
-                      {matchedProduct && onViewBundle && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleNavigateToBundle();
-                          }}
-                          className="bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-black px-3 py-2 rounded-xl flex items-center gap-1 shadow-xs transition-all cursor-pointer shrink-0"
-                          title="সরাসরি এই বান্ডিলে প্রবেশ করুন"
-                        >
-                          <span>বান্ডিলে যান</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
-                      )}
                     </div>
 
                     {/* Progress / Status Block */}
