@@ -29,6 +29,7 @@ import {
   Trash2,
   FolderPlus,
   Folder,
+  Palette,
 } from 'lucide-react';
 import { Order, Product, Bundle } from '../types';
 import { dbGetAllOrders, isSupabaseConfigured } from '../lib/supabase';
@@ -57,13 +58,16 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
     categories,
     addCategory,
     deleteCategory,
+    colors,
+    addColor,
+    deleteColor,
   } = useApp();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [adminPin, setAdminPin] = useState('');
   const [pinError, setPinError] = useState('');
 
-  // Tabs: 'orders' | 'new-bundle' | 'bundles' | 'categories' | 'supabase-settings'
-  const [activeTab, setActiveTab] = useState<'orders' | 'new-bundle' | 'bundles' | 'categories' | 'supabase-settings'>('bundles');
+  // Tabs: 'orders' | 'new-bundle' | 'bundles' | 'categories' | 'colors' | 'supabase-settings'
+  const [activeTab, setActiveTab] = useState<'orders' | 'new-bundle' | 'bundles' | 'categories' | 'colors' | 'supabase-settings'>('bundles');
   const [supabaseUrlInput, setSupabaseUrlInput] = useState(() => localStorage.getItem('custom_supabase_url') || '');
   const [supabaseKeyInput, setSupabaseKeyInput] = useState(() => localStorage.getItem('custom_supabase_key') || '');
   const [supabaseSaveMsg, setSupabaseSaveMsg] = useState<string | null>(null);
@@ -86,6 +90,11 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
   const [categoryMsg, setCategoryMsg] = useState<{ text: string; isError: boolean } | null>(null);
   const [inlineCategoryInput, setInlineCategoryInput] = useState('');
   const [showInlineCatAdd, setShowInlineCatAdd] = useState(false);
+
+  // Color management state
+  const [colorInput, setColorInput] = useState('');
+  const [colorMsg, setColorMsg] = useState<{ text: string; isError: boolean } | null>(null);
+
 
   // Selected Bundle for drill-down details view
   const [selectedBundleId, setSelectedBundleId] = useState<string | null>(null);
@@ -543,6 +552,18 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                   >
                     <FolderPlus className="w-4 h-4" />
                     <span>ক্যাটাগরি ম্যানেজমেন্ট ({categories.length})</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('colors')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                      activeTab === 'colors'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'bg-stone-100 text-stone-700 border border-stone-200 hover:bg-stone-200'
+                    }`}
+                  >
+                    <Palette className="w-4 h-4" />
+                    <span>কালার ম্যানেজমেন্ট ({colors.length})</span>
                   </button>
 
                   <button
@@ -1227,6 +1248,107 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                               title="ক্যাটাগরি মুছে ফেলুন"
                             >
                               <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: COLOR MANAGEMENT */}
+              {activeTab === 'colors' && (
+                <div className="max-w-3xl mx-auto space-y-6">
+                  {/* Add New Color Card */}
+                  <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-xs">
+                    <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-stone-200">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                        <Palette className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-stone-900">ম্যানুয়ালি নতুন কালার তৈরি করুন</h3>
+                        <p className="text-xs text-stone-500">
+                          বান্ডিল ও পণ্য সাজাতে নতুন কালার যুক্ত করুন (যেমন: কালো, সাদা, লাল, ব্রাউন, অফ-হোয়াইট ইত্যাদি)।
+                        </p>
+                      </div>
+                    </div>
+
+                    {colorMsg && (
+                      <div className={`mb-4 p-3 rounded-xl text-xs font-bold flex items-center gap-2 animate-in fade-in ${
+                        colorMsg.isError ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                      }`}>
+                        {colorMsg.isError ? <AlertCircle className="w-4 h-4 shrink-0" /> : <Check className="w-4 h-4 text-emerald-600 shrink-0" />}
+                        <span>{colorMsg.text}</span>
+                      </div>
+                    )}
+
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (!colorInput.trim()) return;
+                        const res = addColor(colorInput);
+                        setColorMsg({ text: res.message, isError: !res.success });
+                        if (res.success) {
+                          setColorInput('');
+                          setTimeout(() => setColorMsg(null), 3500);
+                        }
+                      }}
+                      className="flex flex-col sm:flex-row gap-2.5"
+                    >
+                      <div className="relative flex-1">
+                        <Tag className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="নতুন কালারের নাম লিখুন (যেমন: গোল্ডেন, অলিভ, মেজেন্টা, অফ-হোয়াইট)..."
+                          value={colorInput}
+                          onChange={(e) => setColorInput(e.target.value)}
+                          className="w-full pl-9 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none font-semibold text-stone-900"
+                          required
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm shrink-0"
+                      >
+                        <PlusCircle className="w-4 h-4" />
+                        <span>কালার যুক্ত করুন</span>
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Existing Colors List */}
+                  <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-xs">
+                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-stone-200">
+                      <div>
+                        <h3 className="text-sm font-bold text-stone-900">বর্তমান সক্রিয় কালারসমূহ ({colors.length})</h3>
+                        <p className="text-xs text-stone-500">প্রোডাক্ট ও ব্যাচ তৈরির সময় এই কালারগুলো অপশন হিসেবে দেখাবে।</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {colors.map((col) => {
+                        return (
+                          <div
+                            key={col}
+                            className="p-3 bg-stone-50 hover:bg-stone-100/80 border border-stone-200 rounded-xl flex items-center justify-between transition-colors"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="w-3 h-3 rounded-full bg-stone-400 shrink-0" style={{ backgroundColor: col === 'সাদা' ? '#ffffff' : col === 'কালো' ? '#000000' : col === 'লাল' ? '#ef4444' : col === 'নীল' ? '#3b82f6' : col === 'হলুদ' ? '#eab308' : col === 'সবুজ' ? '#22c55e' : col === 'গ্রে' ? '#8b5cf6' : undefined, border: '1px solid #d1d5db' }}></span>
+                              <p className="text-xs font-bold text-stone-900 truncate">{col}</p>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const res = deleteColor(col);
+                                setColorMsg({ text: res.message, isError: !res.success });
+                                setTimeout(() => setColorMsg(null), 3500);
+                              }}
+                              className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              title="কালার মুছে ফেলুন"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         );

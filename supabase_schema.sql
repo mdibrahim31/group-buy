@@ -326,3 +326,39 @@ VALUES
 ('b1-s5', 'bundle-prod-1-batch-1', 'prod-1', 5, '43', 'available', null, null, null, null),
 ('b1-s6', 'bundle-prod-1-batch-1', 'prod-1', 6, '44', 'available', null, null, null, null)
 ON CONFLICT (id) DO NOTHING;
+
+-- ==============================================================================
+-- ১৩. ক্যাটাগরি ও কালার টেবিল (Categories & Colors Table)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.categories (
+    name TEXT PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.colors (
+    name TEXT PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- RLS সচল করা
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.colors ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public read categories" ON public.categories;
+CREATE POLICY "Public read categories" ON public.categories FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public insert categories" ON public.categories;
+CREATE POLICY "Public insert categories" ON public.categories FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Public delete categories" ON public.categories;
+CREATE POLICY "Public delete categories" ON public.categories FOR DELETE USING (true);
+
+DROP POLICY IF EXISTS "Public read colors" ON public.colors;
+CREATE POLICY "Public read colors" ON public.colors FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public insert colors" ON public.colors;
+CREATE POLICY "Public insert colors" ON public.colors FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Public delete colors" ON public.colors;
+CREATE POLICY "Public delete colors" ON public.colors FOR DELETE USING (true);
+
+-- প্রাথমিক ক্যাটাগরি ও কালার সিড করা
+INSERT INTO public.categories (name) VALUES ('জুতা'), ('কাপড়') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.colors (name) VALUES ('কালো'), ('সাদা'), ('ব্রাউন'), ('নীল'), ('লাল'), ('হলুদ'), ('সবুজ'), ('গ্রে') ON CONFLICT (name) DO NOTHING;
+

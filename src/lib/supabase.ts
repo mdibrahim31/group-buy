@@ -707,3 +707,61 @@ export async function dbDeleteCategory(name: string): Promise<boolean> {
   }
 }
 
+// ======================= COLORS DB =======================
+
+export async function dbGetAllColors(): Promise<string[]> {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('colors')
+      .select('name')
+      .order('name', { ascending: true });
+
+    if (error || !data) return [];
+    return data.map((d: any) => d.name).filter(Boolean);
+  } catch (err) {
+    console.warn('Supabase colors fetch notice:', err);
+    return [];
+  }
+}
+
+export async function dbSaveColor(name: string): Promise<boolean> {
+  if (!supabase || !name.trim()) return false;
+  try {
+    const cleanName = name.trim();
+    const { error } = await supabase
+      .from('colors')
+      .upsert({ name: cleanName }, { onConflict: 'name' });
+
+    if (error) {
+      console.warn('Supabase dbSaveColor error:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('Supabase dbSaveColor exception:', err);
+    return false;
+  }
+}
+
+export async function dbDeleteColor(name: string): Promise<boolean> {
+  if (!supabase || !name.trim()) return false;
+  try {
+    const cleanName = name.trim();
+    const { error } = await supabase
+      .from('colors')
+      .delete()
+      .eq('name', cleanName);
+
+    if (error) {
+      console.warn('Supabase dbDeleteColor error:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('Supabase dbDeleteColor exception:', err);
+    return false;
+  }
+}
+
+

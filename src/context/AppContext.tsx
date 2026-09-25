@@ -19,6 +19,9 @@ import {
   dbGetAllCategories,
   dbSaveCategory,
   dbDeleteCategory,
+  dbGetAllColors,
+  dbSaveColor,
+  dbDeleteColor,
   isSupabaseConfigured,
   supabase,
 } from '../lib/supabase';
@@ -42,6 +45,9 @@ interface AppContextType {
   categories: string[];
   addCategory: (name: string) => { success: boolean; message: string };
   deleteCategory: (name: string) => { success: boolean; message: string };
+  colors: string[];
+  addColor: (name: string) => { success: boolean; message: string };
+  deleteColor: (name: string) => { success: boolean; message: string };
   selectedCategory: string;
   setSelectedCategory: (cat: string) => void;
   searchQuery: string;
@@ -118,6 +124,7 @@ const LOCAL_STORAGE_KEY_PRODUCTS = 'groupbuy_products_data_v2';
 const LOCAL_STORAGE_KEY_USERS_DB = 'groupbuy_registered_customers_db';
 const LOCAL_STORAGE_KEY_NOTIFICATIONS = 'groupbuy_notifications_data_v2';
 const LOCAL_STORAGE_KEY_CATEGORIES = 'groupbuy_categories_v2';
+const LOCAL_STORAGE_KEY_COLORS = 'groupbuy_colors_v2';
 const LOCAL_STORAGE_KEY_GUEST_ID = 'groupbuy_guest_customer_id';
 
 export const getOrCreateGuestCustomerId = (): string => {
@@ -134,6 +141,8 @@ export const getOrCreateGuestCustomerId = (): string => {
 };
 
 const DEFAULT_CATEGORIES = ['জুতা', 'কাপড়'];
+const DEFAULT_COLORS = ['কালো', 'সাদা', 'ব্রাউন', 'নীল', 'লাল', 'হলুদ', 'সবুজ', 'গ্রে'];
+
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
@@ -153,6 +162,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_CATEGORIES;
     } catch {
       return DEFAULT_CATEGORIES;
+    }
+  });
+
+  const [colors, setColors] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY_COLORS);
+      if (!saved) return DEFAULT_COLORS;
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_COLORS;
+    } catch {
+      return DEFAULT_COLORS;
     }
   });
 
@@ -299,16 +319,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const loadSupabaseCatalog = async () => {
       if (!isSupabaseConfigured()) return;
       try {
-        const [remoteProducts, remoteBundles, remoteCategories, remoteOrders] = await Promise.all([
+        const [remoteProducts, remoteBundles, remoteCategories, remoteColors, remoteOrders] = await Promise.all([
           dbGetAllProducts(),
           dbGetAllBundles(),
           dbGetAllCategories(),
+          dbGetAllColors(),
           dbGetAllOrders(),
         ]);
 
         setProducts(remoteProducts);
         setBundles(remoteBundles);
         if (remoteCategories.length > 0) setCategories(remoteCategories);
+        if (remoteColors.length > 0) setColors(remoteColors);
         setOrders(remoteOrders);
 
         // Verify logged-in user still exists in database (Desktop Monitor rule)
@@ -370,6 +392,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         async () => {
           const remoteCategories = await dbGetAllCategories();
           if (remoteCategories.length > 0) setCategories(remoteCategories);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'colors' },
+        async () => {
+          const remoteColors = await dbGetAllColors();
+          if (remoteColors.length > 0) setColors(remoteColors);
         }
       )
       .on(
@@ -1130,6 +1160,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { success: true, message: `"${clean}" ক্যাটাগরি মুছে ফেলা হয়েছে` };
   };
 
+  // Add new color
+  const addColor = (name: string): { success: boolean; message: string } => {
+    const clean = name.trim();
+    if (!clean) return { success: false, message: 'কালারের নাম লিখুন' };
+    if (colors.includes(clean)) {
+      return { success: false, message: 'এই কালার ইতিমধ্যে বিদ্যমান আছে' };
+    }
+    const updated = [...colors, clean];
+    setColors(updated);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY_COLORS, JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+    // Save to Supabase Database
+    dbSaveColor(clean);
+
+    return { success: true, message: `"${clean}" কালার সফলভাবে যুক্ত ও সেভ হয়েছে` };
+  };
+
+  // Delete color
+  const deleteColor = (name: string): { success: boolean; message: string } => {
+    const clean = name.trim();
+    if (!clean) return { success: false, message: 'কালারের নাম পাওয়া যায়নি' };
+    const updated = colors.filter(c => c !== clean);
+    setColors(updated);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY_COLORS, JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+    // Delete from Supabase Database
+    dbDeleteColor(clean);
+
+    return { success: true, message: `"${clean}" কালার মুছে ফেলা হয়েছে` };
+  };
+
   // Find order by Order ID or Customer ID
   const findOrderByIdOrCustomer = async (query: string): Promise<Order[]> => {
     const clean = query.trim();
@@ -1205,6 +1272,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         categories,
         addCategory,
         deleteCategory,
+        colors,
+        addColor,
+        deleteColor,
         selectedCategory,
         setSelectedCategory,
         searchQuery,
