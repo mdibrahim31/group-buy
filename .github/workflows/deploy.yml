@@ -34,6 +34,7 @@ jobs:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_ADMIN_PASSWORD: ${{ vars.VITE_ADMIN_PASSWORD || secrets.VITE_ADMIN_PASSWORD || vars.ADMIN_PASSWORD || secrets.ADMIN_PASSWORD || vars.PASSWORD || secrets.PASSWORD }}
+          VITE_SUB_ADMIN_ACCESS_KEY: ${{ vars.VITE_SUB_ADMIN_ACCESS_KEY || secrets.VITE_SUB_ADMIN_ACCESS_KEY }}
         run: |
           echo "Setting up environment variables for build..."
           touch .env
@@ -49,6 +50,12 @@ jobs:
             echo "Successfully injected VITE_ADMIN_PASSWORD into .env"
           else
             echo "NOTICE: VITE_ADMIN_PASSWORD is not set in GitHub Actions variables/secrets."
+          fi
+          if [ -n "${VITE_SUB_ADMIN_ACCESS_KEY}" ]; then
+            echo "VITE_SUB_ADMIN_ACCESS_KEY=${VITE_SUB_ADMIN_ACCESS_KEY}" >> .env
+            echo "Successfully injected VITE_SUB_ADMIN_ACCESS_KEY into .env"
+          else
+            echo "NOTICE: VITE_SUB_ADMIN_ACCESS_KEY is not set in GitHub Actions variables/secrets."
           fi
           npm run build
 
