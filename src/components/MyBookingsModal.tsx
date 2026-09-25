@@ -29,14 +29,9 @@ export const MyBookingsModal: React.FC<MyBookingsModalProps> = ({ onViewBundle }
     myOrders,
     products,
     bundles,
-    notifications,
-    unreadNotificationsCount,
-    markNotificationAsRead,
-    markAllNotificationsAsRead,
     cancelOrder,
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'bookings' | 'notifications'>('bookings');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   if (!myBookingsOpen) return null;
@@ -64,16 +59,14 @@ export const MyBookingsModal: React.FC<MyBookingsModalProps> = ({ onViewBundle }
         <div className="p-4 sm:p-5 border-b border-stone-100 flex items-center justify-between sticky top-0 bg-white z-10">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
-              {activeTab === 'bookings' ? <Package className="w-5 h-5" /> : <Bell className="w-5 h-5 text-emerald-700" />}
+              <Package className="w-5 h-5" />
             </div>
             <div>
               <h2 className="text-base font-bold text-stone-900">
-                {activeTab === 'bookings' ? 'আমার স্লট ও বুকিং' : 'গ্রাহক নোটিফিকেশন ও অ্যালার্ট'}
+                আমার স্লট ও বুকিং ({myOrders.length})
               </h2>
               <p className="text-xs text-stone-500">
-                {activeTab === 'bookings'
-                  ? 'আপনার বুক করা সাইজ স্লট ও ব্যাচের বর্তমান অবস্থা'
-                  : 'স্লট সম্পূর্ণ হওয়া, বুকিং ও কুরিয়ার ট্র্যাকিংয়ের তথ্য'}
+                আপনার বুক করা সাইজ স্লট ও ব্যাচের বর্তমান অবস্থা
               </p>
             </div>
           </div>
@@ -85,100 +78,9 @@ export const MyBookingsModal: React.FC<MyBookingsModalProps> = ({ onViewBundle }
           </button>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="px-4 pt-2 bg-stone-50 border-b border-stone-200 flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => setActiveTab('bookings')}
-            className={`px-4 py-2 text-xs font-bold border-b-2 flex items-center gap-1.5 transition-all cursor-pointer ${
-              activeTab === 'bookings'
-                ? 'border-emerald-600 text-emerald-800 bg-white rounded-t-lg shadow-xs'
-                : 'border-transparent text-stone-600 hover:text-stone-900'
-            }`}
-          >
-            <Package className="w-3.5 h-3.5" />
-            <span>আমার স্লট ({myOrders.length})</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('notifications')}
-            className={`px-4 py-2 text-xs font-bold border-b-2 flex items-center gap-1.5 transition-all cursor-pointer relative ${
-              activeTab === 'notifications'
-                ? 'border-emerald-600 text-emerald-800 bg-white rounded-t-lg shadow-xs'
-                : 'border-transparent text-stone-600 hover:text-stone-900'
-            }`}
-          >
-            <Bell className="w-3.5 h-3.5" />
-            <span>নোটিফিকেশন ও আপডেট</span>
-            {unreadNotificationsCount > 0 && (
-              <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full">
-                {unreadNotificationsCount}
-              </span>
-            )}
-          </button>
-        </div>
-
         {/* Content */}
         <div className="p-4 sm:p-6 space-y-4 flex-1">
-          {activeTab === 'notifications' ? (
-            /* Customer Notification Tab Content */
-            <div className="space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-stone-100">
-                <span className="text-xs font-bold text-stone-700">সর্বশেষ গ্রাহক নোটিফিকেশন:</span>
-                {unreadNotificationsCount > 0 && (
-                  <button
-                    onClick={markAllNotificationsAsRead}
-                    className="text-xs font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 cursor-pointer"
-                  >
-                    <CheckCheck className="w-3.5 h-3.5" />
-                    <span>সব পঠিত চিহ্নিত করুন</span>
-                  </button>
-                )}
-              </div>
-
-              {notifications.length === 0 ? (
-                <div className="text-center py-10 text-stone-400 text-xs">
-                  <Bell className="w-8 h-8 mx-auto mb-2 text-stone-300" />
-                  <p>আপনার কোনো নোটিফিকেশন নেই।</p>
-                </div>
-              ) : (
-                notifications.map((notif) => (
-                  <div
-                    key={notif.id}
-                    onClick={() => markNotificationAsRead(notif.id)}
-                    className={`p-3.5 rounded-xl border transition-all cursor-pointer flex gap-3 items-start ${
-                      notif.read
-                        ? 'bg-stone-50/70 border-stone-200 text-stone-700'
-                        : 'bg-emerald-50/70 border-emerald-300 ring-1 ring-emerald-400/20 shadow-xs'
-                    }`}
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 mt-0.5">
-                      {notif.type === 'bundle_complete' ? (
-                        <Sparkles className="w-4 h-4 text-emerald-600" />
-                      ) : (
-                        <Bell className="w-4 h-4 text-emerald-600" />
-                      )}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-1">
-                        <h4 className={`text-xs ${notif.read ? 'font-bold text-stone-900' : 'font-black text-emerald-950'}`}>
-                          {notif.title}
-                        </h4>
-                        <span className="text-[10px] text-stone-400 font-mono shrink-0">
-                          {new Date(notif.createdAt).toLocaleDateString('bn-BD', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                      </div>
-                      <p className="text-xs text-stone-600 mt-1 leading-relaxed">{notif.message}</p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          ) : myOrders.length === 0 ? (
+          {myOrders.length === 0 ? (
             <div className="text-center py-12 px-4">
               <div className="w-14 h-14 rounded-full bg-stone-100 text-stone-400 flex items-center justify-center mx-auto mb-3">
                 <Package className="w-7 h-7" />

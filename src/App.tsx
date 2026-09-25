@@ -11,7 +11,6 @@ import { AuthModal } from './components/AuthModal';
 import { AuthScreen } from './components/AuthScreen';
 import { MyBookingsModal } from './components/MyBookingsModal';
 import { ProfileModal } from './components/ProfileModal';
-import { NotificationModal } from './components/NotificationModal';
 import { Product, Bundle, BundleSlot } from './types';
 import { Sparkles, CheckCircle2, Bell, ChevronRight, Flame, SlidersHorizontal, X, Tag } from 'lucide-react';
 import { WhatsAppSupport, WhatsAppIcon } from './components/WhatsAppSupport';
@@ -30,10 +29,6 @@ const MainContent: React.FC = () => {
     onlyLastSlotFilter,
     setOnlyLastSlotFilter,
     setMyBookingsOpen,
-    notificationModalOpen,
-    setNotificationModalOpen,
-    notifications,
-    unreadNotificationsCount,
   } = useApp();
 
   // Booking Modal State
@@ -431,10 +426,6 @@ const MainContent: React.FC = () => {
         }}
       />
       <ProfileModal />
-      <NotificationModal
-        isOpen={notificationModalOpen}
-        onClose={() => setNotificationModalOpen(false)}
-      />
     </div>
   );
 };
