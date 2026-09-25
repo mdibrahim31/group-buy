@@ -12,6 +12,7 @@ import {
   dbSaveProduct,
   dbGetAllBundles,
   dbSaveBundle,
+  dbGetAllOrders,
   dbUpdateBundleSlot,
   dbUpdateBundleStatus,
   dbGetAllCategories,
@@ -96,7 +97,7 @@ interface AppContextType {
   ) => { success: boolean; order?: Order; message: string };
   updateBatchStatus: (bundleId: string, status: Bundle['status']) => void;
   removeCustomerSlot: (bundleId: string, slotId: string, reason?: string) => { success: boolean; message: string };
-  addProduct: (product: Omit<Product, 'id'>) => void;
+  addProduct: (product: Omit<Product, 'id'>) => Promise<{ success: boolean; message: string }>;
   findOrderByIdOrCustomer: (query: string) => Promise<Order[]>;
 }
 
@@ -369,7 +370,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, 5000);
 
     return () => {
-      supabase.removeChannel(channel);
+      if (supabase) {
+        supabase.removeChannel(channel);
+      }
       clearInterval(syncInterval);
     };
   }, [user]);

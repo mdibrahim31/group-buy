@@ -12,6 +12,7 @@ import { AuthScreen } from './components/AuthScreen';
 import { MyBookingsModal } from './components/MyBookingsModal';
 import { ProfileModal } from './components/ProfileModal';
 import { NotificationModal } from './components/NotificationModal';
+import { AdminPanelModal } from './components/AdminPanelModal';
 import { Product, Bundle, BundleSlot } from './types';
 import { Sparkles, CheckCircle2, Bell, ChevronRight, Flame, SlidersHorizontal, X, Tag } from 'lucide-react';
 import { WhatsAppSupport, WhatsAppIcon } from './components/WhatsAppSupport';
@@ -60,6 +61,9 @@ const MainContent: React.FC = () => {
 
   // Bundle Detail Modal State
   const [selectedProductForBundle, setSelectedProductForBundle] = useState<Product | null>(null);
+
+  // Admin Panel Modal State
+  const [adminModalOpen, setAdminModalOpen] = useState(false);
 
   // Toast notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -438,6 +442,10 @@ const MainContent: React.FC = () => {
       <NotificationModal
         isOpen={notificationModalOpen}
         onClose={() => setNotificationModalOpen(false)}
+      />
+      <AdminPanelModal
+        isOpen={adminModalOpen}
+        onClose={() => setAdminModalOpen(false)}
       />
     </div>
   );
