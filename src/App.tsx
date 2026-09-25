@@ -12,7 +12,6 @@ import { AuthScreen } from './components/AuthScreen';
 import { MyBookingsModal } from './components/MyBookingsModal';
 import { ProfileModal } from './components/ProfileModal';
 import { NotificationModal } from './components/NotificationModal';
-import { AdminPanelModal } from './components/AdminPanelModal';
 import { Product, Bundle, BundleSlot } from './types';
 import { Sparkles, CheckCircle2, Bell, ChevronRight, Flame, SlidersHorizontal, X, Tag } from 'lucide-react';
 import { WhatsAppSupport, WhatsAppIcon } from './components/WhatsAppSupport';
@@ -61,9 +60,6 @@ const MainContent: React.FC = () => {
 
   // Bundle Detail Modal State
   const [selectedProductForBundle, setSelectedProductForBundle] = useState<Product | null>(null);
-
-  // Admin Panel Modal State
-  const [adminModalOpen, setAdminModalOpen] = useState(false);
 
   // Toast notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -301,21 +297,14 @@ const MainContent: React.FC = () => {
             <p className="text-xs text-stone-500 mb-5 max-w-md mx-auto">
               {hasActiveFilters
                 ? 'আপনার দেওয়া ফিল্টার বা সার্চ অনুযায়ী কোনো পণ্য মেলেনি। ফিল্টার রিসেট করে আবার চেষ্টা করুন।'
-                : 'বর্তমানে কোনো সক্রিয় বান্ডিল নেই। নতুন বান্ডিল যুক্ত করতে অ্যাডমিন প্যানেল ব্যবহার করুন।'}
+                : 'বর্তমানে কোনো সক্রিয় পণ্য নেই। নতুন পণ্যের জন্য শীঘ্রই আবার ভিজিট করুন।'}
             </p>
-            {hasActiveFilters ? (
+            {hasActiveFilters && (
               <button
                 onClick={resetFilters}
                 className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
               >
                 সব ফিল্টার মুছে ফেলুন
-              </button>
-            ) : (
-              <button
-                onClick={() => setAdminModalOpen(true)}
-                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
-              >
-                অ্যাডমিন প্যানেলে যান
               </button>
             )}
           </div>
@@ -350,13 +339,6 @@ const MainContent: React.FC = () => {
             </a>
             <span>•</span>
             <span>ক্যাশ অন ডেলিভারি</span>
-            <span>•</span>
-            <button
-              onClick={() => setAdminModalOpen(true)}
-              className="text-stone-500 hover:text-stone-300 hover:underline transition-colors cursor-pointer"
-            >
-              🔒 অ্যাডমিন প্যানেল
-            </button>
           </div>
         </div>
       </footer>
@@ -442,10 +424,6 @@ const MainContent: React.FC = () => {
       <NotificationModal
         isOpen={notificationModalOpen}
         onClose={() => setNotificationModalOpen(false)}
-      />
-      <AdminPanelModal
-        isOpen={adminModalOpen}
-        onClose={() => setAdminModalOpen(false)}
       />
     </div>
   );
