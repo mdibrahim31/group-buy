@@ -460,18 +460,40 @@ export async function dbSaveProduct(product: Product): Promise<boolean> {
 export async function dbDeleteProduct(productId: string): Promise<boolean> {
   if (!supabase) return false;
   try {
-    // 1. Delete slots belonging to bundles of this product
+    // 1. Delete orders associated with this product
+    await supabase.from('orders').delete().eq('product_id', productId);
+
+    // 2. Delete slots belonging to bundles of this product
     await supabase.from('bundle_slots').delete().eq('product_id', productId);
     
-    // 2. Delete bundles belonging to this product
+    // 3. Delete bundles belonging to this product
     await supabase.from('bundles').delete().eq('product_id', productId);
 
-    // 3. Delete the product itself
+    // 4. Delete the product itself
     const { error } = await supabase.from('products').delete().eq('id', productId);
     
     return !error;
   } catch (err) {
     console.warn('Supabase dbDeleteProduct exception:', err);
+    return false;
+  }
+}
+
+export async function dbDeleteBundle(bundleId: string): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    // 1. Delete orders associated with this bundle
+    await supabase.from('orders').delete().eq('bundle_id', bundleId);
+
+    // 2. Delete slots belonging to this bundle
+    await supabase.from('bundle_slots').delete().eq('bundle_id', bundleId);
+
+    // 3. Delete the bundle itself
+    const { error } = await supabase.from('bundles').delete().eq('id', bundleId);
+
+    return !error;
+  } catch (err) {
+    console.warn('Supabase dbDeleteBundle exception:', err);
     return false;
   }
 }
