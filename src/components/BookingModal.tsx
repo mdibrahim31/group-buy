@@ -27,12 +27,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     ? product.availableColors
     : ['কালো', 'সাদা', 'ব্রাউন', 'নীল', 'লাল'];
 
-  const [selectedColor, setSelectedColor] = useState<string>(() => {
-    if (slot.color && defaultColors.includes(slot.color)) {
-      return slot.color;
-    }
-    return defaultColors[0] || 'কালো';
-  });
+  const [selectedColor] = useState<string>(
+    bundle.color || slot.color || (product.availableColors && product.availableColors[0]) || 'কালো'
+  );
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [address, setAddress] = useState(user?.deliveryAddress || '');
@@ -133,29 +130,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 গ্রুপ বাই মূল্য: <strong className="text-emerald-700 font-bold">৳{product.groupPrice}</strong>
                 <span className="text-stone-400 line-through ml-2">৳{product.retailPrice}</span>
               </div>
-            </div>
-          </div>
-
-          {/* Color Selection Selector */}
-          <div>
-            <label className="block text-xs font-bold text-stone-700 mb-1.5 uppercase tracking-wider">
-              আপনার পছন্দের কালার নির্বাচন করুন *
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {defaultColors.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  onClick={() => setSelectedColor(color)}
-                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                    selectedColor === color
-                      ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm'
-                      : 'border-stone-200 bg-stone-50 text-stone-700 hover:bg-stone-100'
-                  }`}
-                >
-                  {color}
-                </button>
-              ))}
             </div>
           </div>
 

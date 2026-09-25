@@ -24,6 +24,7 @@ import {
   dbDeleteColor,
   isSupabaseConfigured,
   supabase,
+  dbDeleteProduct,
 } from '../lib/supabase';
 
 interface AppContextType {
@@ -112,6 +113,7 @@ interface AppContextType {
   cancelOrder: (orderId: string) => Promise<{ success: boolean; message: string }>;
   addProduct: (product: Omit<Product, 'id'>, bundleColor?: string) => Promise<{ success: boolean; message: string }>;
   updateProduct: (product: Product) => Promise<{ success: boolean; message: string }>;
+  deleteProduct: (productId: string) => Promise<{ success: boolean; message: string }>;
   findOrderByIdOrCustomer: (query: string) => Promise<Order[]>;
 }
 
@@ -1234,6 +1236,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { success: true, message: 'বান্ডিলটি সফলভাবে আপডেট করা হয়েছে!' };
   };
 
+  const deleteProduct = async (productId: string): Promise<{ success: boolean; message: string }> => {
+    setProducts(prev => prev.filter(p => p.id !== productId));
+    setBundles(prev => prev.filter(b => b.productId !== productId));
+    setOrders(prev => prev.filter(o => o.productId !== productId));
+    const deleted = await dbDeleteProduct(productId);
+    if (!deleted) {
+      console.warn('Warning: Product deleted locally but Supabase returned false.');
+    }
+    return { success: true, message: 'বান্ডিল ও তার সকল ব্যাচ সফলভাবে মুছে ফেলা হয়েছে!' };
+  };
+
   const cancelOrder = async (orderId: string): Promise<{ success: boolean; message: string }> => {
     const targetOrder = orders.find(o => o.id === orderId);
     if (!targetOrder) {
@@ -1299,6 +1312,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         cancelOrder,
         addProduct,
         updateProduct,
+        deleteProduct,
         findOrderByIdOrCustomer,
       }}
     >

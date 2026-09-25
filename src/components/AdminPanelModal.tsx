@@ -52,6 +52,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
     bundles,
     addProduct,
     updateProduct,
+    deleteProduct,
     cancelOrder,
     updateBatchStatus,
     removeCustomerSlot,
@@ -62,7 +63,9 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
     addColor,
     deleteColor,
   } = useApp();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('admin_authenticated') === 'true';
+  });
   const [adminPin, setAdminPin] = useState('');
   const [pinError, setPinError] = useState('');
 
@@ -346,6 +349,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
 
     if (entered === envAdminPassword) {
       setIsAuthenticated(true);
+      localStorage.setItem('admin_authenticated', 'true');
       setPinError('');
     } else {
       setPinError('ভুল পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিন (ডিফল্ট: admin123)');
@@ -602,27 +606,15 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                   </button>
 
                   <button
-                    onClick={() => setActiveTab('orders')}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                      activeTab === 'orders'
-                        ? 'bg-stone-900 text-white shadow-sm'
-                        : 'bg-stone-100 text-stone-700 border border-stone-200 hover:bg-stone-200'
-                    }`}
+                    type="button"
+                    onClick={() => {
+                      setIsAuthenticated(false);
+                      localStorage.removeItem('admin_authenticated');
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition-all cursor-pointer flex items-center gap-2"
                   >
-                    <Package className="w-4 h-4" />
-                    <span>সকল অর্ডার তালিকা ({allOrders.length})</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('supabase-settings')}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                      activeTab === 'supabase-settings'
-                        ? 'bg-amber-600 text-white shadow-sm'
-                        : 'bg-stone-100 text-stone-700 border border-stone-200 hover:bg-stone-200'
-                    }`}
-                  >
-                    <ShieldCheck className="w-4 h-4" />
-                    <span>সুপাবেস সেটিংস</span>
+                    <X className="w-4 h-4" />
+                    <span>লগআউট</span>
                   </button>
 
                   <button
@@ -1667,6 +1659,46 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                             </div>
                           </div>
 
+                          {/* Sibling Batches Tab Selection List */}
+                          {(() => {
+                            const siblingBundles = bundles.filter((b) => b.productId === product.id);
+                            if (siblingBundles.length <= 1) return null;
+                            return (
+                              <div className="bg-white border border-stone-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+                                <div className="shrink-0">
+                                  <span className="text-xs font-bold text-stone-800 flex items-center gap-1.5">
+                                    <span className="w-1.5 h-3.5 bg-emerald-600 rounded-full inline-block"></span>
+                                    <span>এই বান্ডিলের অন্য সক্রিয় ব্যাচসমূহ (Batch List):</span>
+                                  </span>
+                                  <p className="text-[10px] text-stone-500 font-medium mt-0.5">ব্যাচে ক্লিক করে অন্য ব্যাচের কাস্টমার লিস্ট ও বুকিং দেখতে পারেন</p>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {siblingBundles.map((sib) => {
+                                    const isCurrent = sib.id === selectedBundle.id;
+                                    const sibIsFull = sib.filledSlots >= sib.totalSlots || sib.status === 'completed' || sib.status === 'ordered';
+                                    return (
+                                      <button
+                                        key={sib.id}
+                                        type="button"
+                                        onClick={() => setSelectedBundleId(sib.id)}
+                                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border ${
+                                          isCurrent
+                                            ? 'bg-stone-900 border-stone-900 text-white shadow-xs'
+                                            : sibIsFull
+                                            ? 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100'
+                                            : 'bg-stone-100 border-stone-200 text-stone-700 hover:bg-stone-200'
+                                        }`}
+                                      >
+                                        <span>ব্যাচ #{sib.batchNumber}</span>
+                                        <span className="text-[10px] opacity-80">({sib.filledSlots}/{sib.totalSlots} স্লট বুকড)</span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })()}
+
                           {/* Financial & Progress Statistics Bar */}
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                             <div className="bg-stone-50 border border-stone-200 rounded-xl p-3">
@@ -2031,7 +2063,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                                       {/* Top Badge Row */}
                                       <div className="flex items-center justify-between gap-1 mb-1">
                                         <div className="flex items-center gap-1.5">
-                                          <span className="text-[11px] font-black bg-stone-900 text-white px-2 py-0.5 rounded">
+                                           <span className="text-[11px] font-black bg-stone-900 text-white px-2 py-0.5 rounded">
                                             ব্যাচ #{b.batchNumber}
                                           </span>
                                           <button
@@ -2045,6 +2077,22 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                                           >
                                             <Sparkles className="w-3 h-3 text-emerald-600" />
                                             <span>এডিট</span>
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={async (e) => {
+                                              e.stopPropagation();
+                                              if (confirm(`আপনি কি আসলেই "${prod.title}" বান্ডিলটি এবং এর সমস্ত চলমান ব্যাচ ডাটাবেজ থেকে সম্পূর্ণ মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না!`)) {
+                                                const res = await deleteProduct(prod.id);
+                                                setCopiedNotification(res.message);
+                                                setTimeout(() => setCopiedNotification(null), 3000);
+                                              }
+                                            }}
+                                            className="px-2 py-0.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                                            title="বান্ডিলটি মুছে ফেলুন"
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                            <span>মুছে ফেলুন</span>
                                           </button>
                                         </div>
 

@@ -457,6 +457,25 @@ export async function dbSaveProduct(product: Product): Promise<boolean> {
   }
 }
 
+export async function dbDeleteProduct(productId: string): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    // 1. Delete slots belonging to bundles of this product
+    await supabase.from('bundle_slots').delete().eq('product_id', productId);
+    
+    // 2. Delete bundles belonging to this product
+    await supabase.from('bundles').delete().eq('product_id', productId);
+
+    // 3. Delete the product itself
+    const { error } = await supabase.from('products').delete().eq('id', productId);
+    
+    return !error;
+  } catch (err) {
+    console.warn('Supabase dbDeleteProduct exception:', err);
+    return false;
+  }
+}
+
 export async function dbGetAllBundles(): Promise<Bundle[]> {
   if (!supabase) return [];
   try {
