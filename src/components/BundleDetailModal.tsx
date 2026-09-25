@@ -94,7 +94,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
               <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-stone-200 text-center">
                 <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-1.5">
                   <span className="text-[10px] text-emerald-800 font-bold block">গ্রুপ বাই</span>
-                  <span className="text-xs font-black text-emerald-700">৳{product.groupPrice}</span>
+                  <span className="text-xs font-black text-emerald-700">৳{product.groupPrice}<span className="text-[9px]">/পিস</span></span>
                 </div>
                 <div className="bg-amber-50 border border-amber-300 rounded-xl p-1.5">
                   <span className="text-[10px] text-amber-800 font-bold block">পুরো বান্ডিল</span>
@@ -102,7 +102,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                 </div>
                 <div className="bg-blue-50 border border-blue-300 rounded-xl p-1.5">
                   <span className="text-[10px] text-blue-800 font-bold block">একক ক্রয়</span>
-                  <span className="text-xs font-black text-blue-700">৳{product.retailPrice}</span>
+                  <span className="text-xs font-black text-blue-700">৳{product.retailPrice}<span className="text-[9px]">/পিস</span></span>
                 </div>
               </div>
             </div>

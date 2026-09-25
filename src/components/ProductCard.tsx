@@ -63,7 +63,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {/* Option 1: Group Buy */}
             <div className="bg-emerald-950/70 border border-emerald-500/40 rounded-lg p-1.5">
               <span className="text-[9px] text-emerald-300 font-bold block">১. গ্রুপ বাই</span>
-              <span className="text-xs font-extrabold text-emerald-400">৳{product.groupPrice}</span>
+              <span className="text-xs font-extrabold text-emerald-400">৳{product.groupPrice}<span className="text-[9px] font-normal">/পিস</span></span>
             </div>
 
             {/* Option 2: Full Bundle */}
@@ -75,7 +75,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {/* Option 3: Single Buy */}
             <div className="bg-blue-950/70 border border-blue-500/40 rounded-lg p-1.5">
               <span className="text-[9px] text-blue-300 font-bold block">৩. একক ক্রয়</span>
-              <span className="text-xs font-extrabold text-blue-300">৳{product.retailPrice}</span>
+              <span className="text-xs font-extrabold text-blue-300">৳{product.retailPrice}<span className="text-[9px] font-normal">/পিস</span></span>
             </div>
           </div>
         </div>
