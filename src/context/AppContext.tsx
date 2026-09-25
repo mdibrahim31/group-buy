@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { User, Product, Bundle, Order, BundleSlot, Customer, AppNotification } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_BUNDLES, INITIAL_NOTIFICATIONS } from '../data/initialData';
 import {
@@ -27,6 +27,7 @@ interface AppContextType {
   products: Product[];
   bundles: Bundle[];
   orders: Order[];
+  myOrders: Order[];
   notifications: AppNotification[];
   unreadNotificationsCount: number;
   notificationModalOpen: boolean;
@@ -110,6 +111,20 @@ const LOCAL_STORAGE_KEY_PRODUCTS = 'groupbuy_products_data_v2';
 const LOCAL_STORAGE_KEY_USERS_DB = 'groupbuy_registered_customers_db';
 const LOCAL_STORAGE_KEY_NOTIFICATIONS = 'groupbuy_notifications_data_v2';
 const LOCAL_STORAGE_KEY_CATEGORIES = 'groupbuy_categories_v2';
+const LOCAL_STORAGE_KEY_GUEST_ID = 'groupbuy_guest_customer_id';
+
+export const getOrCreateGuestCustomerId = (): string => {
+  try {
+    let guestId = localStorage.getItem(LOCAL_STORAGE_KEY_GUEST_ID);
+    if (!guestId) {
+      guestId = `guest-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      localStorage.setItem(LOCAL_STORAGE_KEY_GUEST_ID, guestId);
+    }
+    return guestId;
+  } catch {
+    return `guest-${Date.now()}`;
+  }
+};
 
 const DEFAULT_CATEGORIES = ['জুতা', 'কাপড়'];
 
@@ -206,6 +221,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [notifications]);
 
   const unreadNotificationsCount = notifications.filter(n => !n.read).length;
+
+  // Private customer orders filtered specifically for the current logged-in or guest customer
+  const myOrders = useMemo(() => {
+    const guestId = getOrCreateGuestCustomerId();
+    const currentUserId = user?.id;
+    const currentPhone = user?.phone?.trim() || '';
+
+    return orders.filter(o => {
+      // 1. Match by logged-in user ID
+      if (currentUserId && o.customerId === currentUserId) return true;
+      // 2. Match by persistent guest device ID
+      if (o.customerId === guestId) return true;
+      // 3. Match by phone number
+      if (currentPhone) {
+        if (o.customerPhone && o.customerPhone.trim() === currentPhone) return true;
+        if (o.contactPhone && o.contactPhone.trim() === currentPhone) return true;
+      }
+      return false;
+    });
+  }, [orders, user]);
 
   const markNotificationAsRead = (id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
@@ -486,7 +521,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, message: 'পণ্য খুঁজে পাওয়া যায়নি।' };
     }
 
-    const currentCustomerId = user?.id || (user?.phone ? `cust-${user.phone}` : `cust-${Date.now()}`);
+    const currentCustomerId = user?.id || (user?.phone ? `cust-${user.phone}` : getOrCreateGuestCustomerId());
     const currentCustomerName = buyerName || user?.fullName || 'গ্রাহক';
     const currentPhone = contactPhone || user?.phone || '01700000000';
 
@@ -616,7 +651,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, newBatchNumber: 0, message: 'পণ্য খুঁজে পাওয়া যায়নি।' };
     }
 
-    const currentCustomerId = user?.id || `guest-${Date.now()}`;
+    const currentCustomerId = user?.id || (user?.phone ? `cust-${user.phone}` : getOrCreateGuestCustomerId());
     const currentCustomerName = buyerName || user?.fullName || 'গ্রাহক';
     const currentPhone = contactPhone || user?.phone || '01700000000';
 
@@ -727,7 +762,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, message: 'পণ্য খুঁজে পাওয়া যায়নি।' };
     }
 
-    const currentCustomerId = user?.id || `guest-${Date.now()}`;
+    const currentCustomerId = user?.id || (user?.phone ? `cust-${user.phone}` : getOrCreateGuestCustomerId());
     const currentCustomerName = buyerName || user?.fullName || 'সম্পূর্ণ বান্ডিল ক্রেতা';
     const currentPhone = contactPhone || user?.phone || '01700000000';
 
@@ -824,7 +859,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, message: 'পণ্য খুঁজে পাওয়া যায়নি।' };
     }
 
-    const currentCustomerId = user?.id || `guest-${Date.now()}`;
+    const currentCustomerId = user?.id || (user?.phone ? `cust-${user.phone}` : getOrCreateGuestCustomerId());
     const currentCustomerName = buyerName || user?.fullName || 'একক ক্রেতা';
     const currentPhone = contactPhone || user?.phone || '01700000000';
     const qty = Math.max(1, quantity);
@@ -1093,6 +1128,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         products,
         bundles,
         orders,
+        myOrders,
         notifications,
         unreadNotificationsCount,
         notificationModalOpen,

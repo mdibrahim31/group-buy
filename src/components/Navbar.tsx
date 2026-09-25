@@ -7,7 +7,7 @@ export const Navbar: React.FC = () => {
     user,
     setAuthModalOpen,
     setProfileModalOpen,
-    orders,
+    myOrders,
     setMyBookingsOpen,
     selectedCategory,
     setSelectedCategory,
@@ -74,9 +74,9 @@ export const Navbar: React.FC = () => {
           >
             <ShoppingBag className="w-4 h-4 text-stone-700" />
             <span className="hidden sm:inline">আমার স্লট</span>
-            {orders.length > 0 && (
+            {myOrders.length > 0 && (
               <span className="bg-emerald-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                {orders.length}
+                {myOrders.length}
               </span>
             )}
           </button>

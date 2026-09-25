@@ -19,7 +19,7 @@ export const MyBookingsModal: React.FC = () => {
   const {
     myBookingsOpen,
     setMyBookingsOpen,
-    orders,
+    myOrders,
     bundles,
     notifications,
     unreadNotificationsCount,
@@ -78,7 +78,7 @@ export const MyBookingsModal: React.FC = () => {
             }`}
           >
             <Package className="w-3.5 h-3.5" />
-            <span>আমার স্লট ({orders.length})</span>
+            <span>আমার স্লট ({myOrders.length})</span>
           </button>
           <button
             onClick={() => setActiveTab('notifications')}
@@ -160,7 +160,7 @@ export const MyBookingsModal: React.FC = () => {
                 ))
               )}
             </div>
-          ) : orders.length === 0 ? (
+          ) : myOrders.length === 0 ? (
             <div className="text-center py-12 px-4">
               <div className="w-14 h-14 rounded-full bg-stone-100 text-stone-400 flex items-center justify-center mx-auto mb-3">
                 <Package className="w-7 h-7" />
@@ -178,7 +178,7 @@ export const MyBookingsModal: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {orders.map((order) => {
+              {myOrders.map((order) => {
                 const isSingleBuy = order.isSingleBuy || order.orderType === 'single_buy' || order.bundleId === 'single-buy';
                 const isFullBundle = order.isFullBundle || order.orderType === 'full_bundle';
 
