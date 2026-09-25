@@ -104,6 +104,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
   const [selectedBundleId, setSelectedBundleId] = useState<string | null>(null);
   const [copiedNotification, setCopiedNotification] = useState<string | null>(null);
   const [bundleFilter, setBundleFilter] = useState<'all' | 'completed' | 'ongoing'>('all');
+  const [ownerFilter, setOwnerFilter] = useState<'all' | 'my'>('all');
 
   // New Bundle Form State
   const [newTitle, setNewTitle] = useState('');
@@ -1981,7 +1982,11 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                             groupedBundlesMap[b.productId] = b;
                           }
                         }
-                        const uniqueLatestBundles = Object.values(groupedBundlesMap);
+                        let uniqueLatestBundles = Object.values(groupedBundlesMap);
+
+                        if (ownerFilter === 'my') {
+                          uniqueLatestBundles = uniqueLatestBundles.filter(b => !b.createdBySubAdminId);
+                        }
 
                         const totalUnique = uniqueLatestBundles.length;
                         const completedUnique = uniqueLatestBundles.filter(b => b.filledSlots >= b.totalSlots || b.status === 'completed' || b.status === 'ordered').length;
@@ -1989,7 +1994,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
 
                         return (
                           <>
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-stone-50 p-3 rounded-xl border border-stone-200">
+                            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 bg-stone-50 p-3.5 rounded-xl border border-stone-200">
                               <div>
                                 <h3 className="text-xs font-bold text-stone-900 flex items-center gap-1.5">
                                   <Layers className="w-4 h-4 text-emerald-700" />
@@ -2000,38 +2005,67 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                                 </p>
                               </div>
 
-                              <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
-                                <button
-                                  onClick={() => setBundleFilter('all')}
-                                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                    bundleFilter === 'all'
-                                      ? 'bg-stone-900 text-white'
-                                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
-                                  }`}
-                                >
-                                  সকল ({totalUnique})
-                                </button>
-                                <button
-                                  onClick={() => setBundleFilter('completed')}
-                                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                                    bundleFilter === 'completed'
-                                      ? 'bg-emerald-600 text-white'
-                                      : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
-                                  }`}
-                                >
-                                  <Check className="w-3 h-3" />
-                                  <span>স্লট পূরণ হয়েছে ({completedUnique})</span>
-                                </button>
-                                <button
-                                  onClick={() => setBundleFilter('ongoing')}
-                                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                    bundleFilter === 'ongoing'
-                                      ? 'bg-amber-600 text-white'
-                                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
-                                  }`}
-                                >
-                                  চলমান বুকিং ({ongoingUnique})
-                                </button>
+                              <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+                                {/* Owner Filter (My Bundles vs All Bundles) */}
+                                <div className="flex bg-stone-200/60 p-1 rounded-lg items-center gap-1">
+                                  <button
+                                    onClick={() => setOwnerFilter('all')}
+                                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                                      ownerFilter === 'all'
+                                        ? 'bg-stone-900 text-white shadow-xs'
+                                        : 'text-stone-600 hover:text-stone-900'
+                                    }`}
+                                  >
+                                    সব বান্ডিল
+                                  </button>
+                                  <button
+                                    onClick={() => setOwnerFilter('my')}
+                                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                                      ownerFilter === 'my'
+                                        ? 'bg-stone-900 text-white shadow-xs'
+                                        : 'text-stone-600 hover:text-stone-900'
+                                    }`}
+                                  >
+                                    আমার আপলোডকৃত
+                                  </button>
+                                </div>
+
+                                <div className="h-4 w-[1px] bg-stone-300 hidden lg:block"></div>
+
+                                {/* Status Filters */}
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <button
+                                    onClick={() => setBundleFilter('all')}
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                      bundleFilter === 'all'
+                                        ? 'bg-stone-900 text-white'
+                                        : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
+                                    }`}
+                                  >
+                                    সকল ({totalUnique})
+                                  </button>
+                                  <button
+                                    onClick={() => setBundleFilter('completed')}
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                                      bundleFilter === 'completed'
+                                        ? 'bg-emerald-600 text-white'
+                                        : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+                                    }`}
+                                  >
+                                    <Check className="w-3 h-3" />
+                                    <span>স্লট পূরণ হয়েছে ({completedUnique})</span>
+                                  </button>
+                                  <button
+                                    onClick={() => setBundleFilter('ongoing')}
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                      bundleFilter === 'ongoing'
+                                        ? 'bg-amber-600 text-white'
+                                        : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
+                                    }`}
+                                  >
+                                    চলমান বুকিং ({ongoingUnique})
+                                  </button>
+                                </div>
                               </div>
                             </div>
 
