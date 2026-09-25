@@ -1007,7 +1007,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { success: true, message: 'বান্ডিল সফলভাবে পোস্ট হয়েছে!' };
   };
 
-  // Admin remove customer from a slot
+  // Admin/Customer remove customer from a slot
   const removeCustomerSlot = (
     bundleId: string,
     slotId: string,
@@ -1050,7 +1050,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setBundles(prev => prev.map(b => (b.id === bundleId ? updatedBundle : b)));
 
-    // Remove or cancel the order associated with this slot
+    // Find affected orders to delete from database
+    const matchingOrders = orders.filter(
+      o => o.bundleId === bundleId && (o.slotId === slotId || (o.size === removedSize && o.customerId === targetSlot.userId))
+    );
+
+    // Remove from local orders state
     setOrders(prev => prev.filter(o => !(o.bundleId === bundleId && (o.slotId === slotId || (o.size === removedSize && o.customerId === targetSlot.userId)))));
 
     // Send notification about slot cancellation
@@ -1063,14 +1068,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       productId: product?.id,
     });
 
-    // Update Supabase (including deleting order from database)
+    // Update Supabase (delete order record from orders table and reset slot)
     dbUpdateBundleSlot(clearedSlot);
     dbUpdateBundleStatus(updatedBundle.id, updatedBundle.status, updatedBundle.filledSlots);
     dbDeleteOrderBySlot(bundleId, slotId);
+    matchingOrders.forEach(o => dbDeleteOrder(o.id));
 
     return {
       success: true,
-      message: `সাইজ ${removedSize} এর স্লটটি সফলভাবে খালি করা হয়েছে এবং কাস্টমারকে রিমুভ করা হয়েছে।`
+      message: `সাইজ ${removedSize} এর স্লটটি সফলভাবে খালি করা হয়েছে এবং কাস্টমারকে ডাটাবেজ থেকে রিমুভ করা হয়েছে।`
     };
   };
 
@@ -1153,13 +1159,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const cancelOrder = async (orderId: string): Promise<{ success: boolean; message: string }> => {
     const targetOrder = orders.find(o => o.id === orderId);
-    if (targetOrder && targetOrder.bundleId && targetOrder.slotId) {
-      removeCustomerSlot(targetOrder.bundleId, targetOrder.slotId, 'অ্যাডমিন কর্তৃক অর্ডার বাতিল');
+    if (!targetOrder) {
+      await dbDeleteOrder(orderId);
+      return { success: false, message: 'অর্ডারটি খুঁজে পাওয়া যায়নি।' };
+    }
+
+    if (targetOrder.bundleId && targetOrder.slotId) {
+      removeCustomerSlot(targetOrder.bundleId, targetOrder.slotId, 'কাস্টমার নিজে বা এডমিন কর্তৃক স্লট রিমুভ');
+      await dbDeleteOrder(orderId);
     } else {
       setOrders(prev => prev.filter(o => o.id !== orderId));
-      dbDeleteOrder(orderId);
+      await dbDeleteOrder(orderId);
     }
-    return { success: true, message: 'অর্ডারটি সফলভাবে বাতিল করা হয়েছে।' };
+    return { success: true, message: 'স্লট থেকে রিমুভ হওয়া সম্পন্ন হয়েছে এবং ডাটাবেজের orders টেবিল থেকে অর্ডারটি মুছে ফেলা হয়েছে।' };
   };
 
   return (

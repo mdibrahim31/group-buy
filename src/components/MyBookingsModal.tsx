@@ -13,6 +13,7 @@ import {
   Sparkles,
   ShoppingBag,
   CheckCheck,
+  Trash2,
 } from 'lucide-react';
 
 export const MyBookingsModal: React.FC = () => {
@@ -25,6 +26,7 @@ export const MyBookingsModal: React.FC = () => {
     unreadNotificationsCount,
     markNotificationAsRead,
     markAllNotificationsAsRead,
+    cancelOrder,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'bookings' | 'notifications'>('bookings');
@@ -37,6 +39,15 @@ export const MyBookingsModal: React.FC = () => {
     navigator.clipboard.writeText(text);
     setCopiedId(orderId);
     setTimeout(() => setCopiedId(null), 2500);
+  };
+
+  const handleRemoveFromSlot = async (orderId: string, productTitle: string, size: string) => {
+    if (window.confirm(`আপনি কি নিশ্চিত যে "${productTitle}" (সাইজ: ${size}) এর স্লট থেকে নিজেকে রিমুভ করতে চান? এর ফলে ডাটাবেজের orders টেবিল থেকে আপনার অর্ডারটি মুছে যাবে।`)) {
+      const res = await cancelOrder(orderId);
+      if (res.success) {
+        alert(res.message || 'আপনাকে সফলভাবে স্লট থেকে রিমুভ করা হয়েছে এবং ডাটাবেজ থেকে অর্ডার মুছে দেওয়া হয়েছে।');
+      }
+    }
   };
 
   return (
@@ -316,23 +327,33 @@ export const MyBookingsModal: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Address & Status row */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-stone-500 pt-1">
+                    {/* Address & Status row & Remove Button */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-stone-500 pt-2 border-t border-stone-200">
                       <div>
                         পার্সেল পাঠানোর ঠিকানা: <span className="text-stone-700 font-medium">{order.deliveryAddress}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>
-                          স্ট্যাটাস:{' '}
-                          {isSingleBuy
-                            ? 'একক অর্ডার কনফার্মড'
-                            : isFullBundle
-                            ? 'বান্ডিল কুরিয়ার প্রসেসিং'
-                            : isCompleted
-                            ? 'হোলসেলার প্রসেসিং'
-                            : 'স্লট নিশ্চিত (দল গঠন চলছে)'}
-                        </span>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>
+                            স্ট্যাটাস:{' '}
+                            {isSingleBuy
+                              ? 'একক অর্ডার কনফার্মড'
+                              : isFullBundle
+                              ? 'বান্ডিল কুরিয়ার প্রসেসিং'
+                              : isCompleted
+                              ? 'হোলসেলার প্রসেসিং'
+                              : 'স্লট নিশ্চিত (দল গঠন চলছে)'}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveFromSlot(order.id, order.productTitle, order.size)}
+                          className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-200 rounded-md font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                          title="স্লট থেকে বের হউন ও অর্ডার বাতিল করুন"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>স্লট থেকে রিমুভ</span>
+                        </button>
                       </div>
                     </div>
                   </div>
