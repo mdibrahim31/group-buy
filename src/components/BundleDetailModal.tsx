@@ -5,6 +5,7 @@ import { Users, Clock, PlusCircle, CheckCircle2, Sparkles, TrendingDown, ArrowRi
 
 interface BundleDetailModalProps {
   product: Product;
+  initialBundleId?: string;
   onClose: () => void;
   onSelectSlot: (bundle: Bundle, slot: BundleSlot) => void;
   onStartNewBatch: (product: Product, desiredSize?: string) => void;
@@ -14,6 +15,7 @@ interface BundleDetailModalProps {
 
 export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
   product,
+  initialBundleId,
   onClose,
   onSelectSlot,
   onStartNewBatch,
@@ -29,6 +31,9 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
 
   // Active selected batch tab
   const [selectedBatchId, setSelectedBatchId] = useState<string>(() => {
+    if (initialBundleId && productBundles.some(b => b.id === initialBundleId)) {
+      return initialBundleId;
+    }
     const firstOpen = productBundles.find(b => b.status === 'open');
     return firstOpen ? firstOpen.id : (productBundles[0]?.id || '');
   });

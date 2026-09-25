@@ -60,6 +60,7 @@ const MainContent: React.FC = () => {
 
   // Bundle Detail Modal State
   const [selectedProductForBundle, setSelectedProductForBundle] = useState<Product | null>(null);
+  const [selectedBundleIdForDetail, setSelectedBundleIdForDetail] = useState<string | undefined>(undefined);
 
   // Toast notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -389,7 +390,11 @@ const MainContent: React.FC = () => {
       {selectedProductForBundle && (
         <BundleDetailModal
           product={selectedProductForBundle}
-          onClose={() => setSelectedProductForBundle(null)}
+          initialBundleId={selectedBundleIdForDetail}
+          onClose={() => {
+            setSelectedProductForBundle(null);
+            setSelectedBundleIdForDetail(undefined);
+          }}
           onSelectSlot={(bundle, slot) => {
             setSelectedBooking({ product: selectedProductForBundle, bundle, slot });
           }}
@@ -419,7 +424,12 @@ const MainContent: React.FC = () => {
       )}
 
       <AuthModal />
-      <MyBookingsModal />
+      <MyBookingsModal
+        onViewBundle={(product, bundleId) => {
+          setSelectedBundleIdForDetail(bundleId);
+          setSelectedProductForBundle(product);
+        }}
+      />
       <ProfileModal />
       <NotificationModal
         isOpen={notificationModalOpen}

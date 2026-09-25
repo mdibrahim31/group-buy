@@ -366,22 +366,37 @@ export async function dbGetAllProducts(): Promise<Product[]> {
       .order('created_at', { ascending: false });
 
     if (error || !data) return [];
-    return data.map((p: any) => ({
-      id: p.id,
-      title: p.title,
-      category: p.category || 'জুতা',
-      description: p.description || '',
-      imageUrl: p.image_url,
-      additionalImageUrls: p.additional_image_urls || p.additionalImageUrls || p.gallery_images || [],
-      youtubeVideoUrl: p.youtube_video_url || p.youtubeVideoUrl || '',
-      retailPrice: Number(p.retail_price),
-      groupPrice: Number(p.group_price),
-      wholesalePrice: Number(p.wholesale_price),
-      fullBundlePricePerPiece: Number(p.full_bundle_price_per_piece || p.group_price),
-      bundleSize: Number(p.bundle_size || 6),
-      availableSizes: Array.isArray(p.available_sizes) ? p.available_sizes : [],
-      availableColors: Array.isArray(p.available_colors) ? p.available_colors : (p.availableColors || []),
-    }));
+    return data.map((p: any) => {
+      let colors: string[] = [];
+      if (Array.isArray(p.available_colors) && p.available_colors.length > 0) {
+        colors = p.available_colors;
+      } else if (Array.isArray(p.colors) && p.colors.length > 0) {
+        colors = p.colors;
+      } else if (Array.isArray(p.availableColors) && p.availableColors.length > 0) {
+        colors = p.availableColors;
+      } else if (typeof p.color === 'string' && p.color.trim()) {
+        colors = p.color.split(',').map((c: string) => c.trim()).filter(Boolean);
+      } else if (typeof p.available_color === 'string' && p.available_color.trim()) {
+        colors = p.available_color.split(',').map((c: string) => c.trim()).filter(Boolean);
+      }
+
+      return {
+        id: p.id,
+        title: p.title,
+        category: p.category || 'জুতা',
+        description: p.description || '',
+        imageUrl: p.image_url,
+        additionalImageUrls: p.additional_image_urls || p.additionalImageUrls || p.gallery_images || [],
+        youtubeVideoUrl: p.youtube_video_url || p.youtubeVideoUrl || '',
+        retailPrice: Number(p.retail_price),
+        groupPrice: Number(p.group_price),
+        wholesalePrice: Number(p.wholesale_price),
+        fullBundlePricePerPiece: Number(p.full_bundle_price_per_piece || p.group_price),
+        bundleSize: Number(p.bundle_size || 6),
+        availableSizes: Array.isArray(p.available_sizes) ? p.available_sizes : [],
+        availableColors: colors,
+      };
+    });
   } catch (err) {
     console.warn('Supabase dbGetAllProducts error:', err);
     return [];
@@ -391,31 +406,49 @@ export async function dbGetAllProducts(): Promise<Product[]> {
 export async function dbSaveProduct(product: Product): Promise<boolean> {
   if (!supabase) return false;
   try {
-    const { error } = await supabase
+    const colorsList = product.availableColors || [];
+    const colorsJoined = colorsList.join(', ');
+
+    const payload: any = {
+      id: product.id,
+      title: product.title,
+      category: product.category,
+      description: product.description,
+      image_url: product.imageUrl,
+      additional_image_urls: product.additionalImageUrls || [],
+      gallery_images: product.additionalImageUrls || [],
+      youtube_video_url: product.youtubeVideoUrl || null,
+      retail_price: product.retailPrice,
+      group_price: product.groupPrice,
+      wholesale_price: product.wholesalePrice,
+      full_bundle_price_per_piece: product.fullBundlePricePerPiece,
+      bundle_size: product.bundleSize,
+      available_sizes: product.availableSizes,
+      available_colors: colorsList,
+      available_color: colorsJoined || null,
+      color: colorsJoined || null,
+      colors: colorsList,
+      status: 'active',
+      updated_at: new Date().toISOString(),
+    };
+
+    let { error } = await supabase
       .from('products')
-      .upsert({
-        id: product.id,
-        title: product.title,
-        category: product.category,
-        description: product.description,
-        image_url: product.imageUrl,
-        additional_image_urls: product.additionalImageUrls || [],
-        gallery_images: product.additionalImageUrls || [],
-        youtube_video_url: product.youtubeVideoUrl || null,
-        retail_price: product.retailPrice,
-        group_price: product.groupPrice,
-        wholesale_price: product.wholesalePrice,
-        full_bundle_price_per_piece: product.fullBundlePricePerPiece,
-        bundle_size: product.bundleSize,
-        available_sizes: product.availableSizes,
-        available_colors: product.availableColors || [],
-        status: 'active',
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'id' });
+      .upsert(payload, { onConflict: 'id' });
 
     if (error) {
-      console.warn('Supabase dbSaveProduct error:', error.message);
-      return false;
+      console.warn('Supabase dbSaveProduct notice:', error.message);
+      delete payload.available_color;
+      delete payload.color;
+      delete payload.colors;
+      const fallbackResult = await supabase
+        .from('products')
+        .upsert(payload, { onConflict: 'id' });
+
+      if (fallbackResult.error) {
+        console.warn('Supabase dbSaveProduct fallback error:', fallbackResult.error.message);
+        return false;
+      }
     }
     return true;
   } catch (err) {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { Product } from '../types';
 import {
   X,
   Package,
@@ -14,13 +15,19 @@ import {
   ShoppingBag,
   CheckCheck,
   Trash2,
+  ArrowRight,
 } from 'lucide-react';
 
-export const MyBookingsModal: React.FC = () => {
+interface MyBookingsModalProps {
+  onViewBundle?: (product: Product, bundleId?: string) => void;
+}
+
+export const MyBookingsModal: React.FC<MyBookingsModalProps> = ({ onViewBundle }) => {
   const {
     myBookingsOpen,
     setMyBookingsOpen,
     myOrders,
+    products,
     bundles,
     notifications,
     unreadNotificationsCount,
@@ -194,60 +201,90 @@ export const MyBookingsModal: React.FC = () => {
                 const isFullBundle = order.isFullBundle || order.orderType === 'full_bundle';
 
                 const targetBundle = bundles.find((b) => b.id === order.bundleId);
+                const matchedProduct = products.find((p) => p.id === order.productId);
                 const totalSlots = targetBundle?.totalSlots || 6;
                 const filledSlots = targetBundle?.filledSlots || 0;
                 const isCompleted = isSingleBuy || isFullBundle || filledSlots >= totalSlots;
                 const progressPercent = Math.min(100, Math.round((filledSlots / totalSlots) * 100));
 
+                const handleNavigateToBundle = () => {
+                  if (matchedProduct && onViewBundle) {
+                    setMyBookingsOpen(false);
+                    onViewBundle(matchedProduct, order.bundleId);
+                  }
+                };
+
                 return (
                   <div
                     key={order.id}
-                    className="border border-stone-200 rounded-xl p-4 bg-stone-50/50 hover:bg-white transition-all space-y-3"
+                    onClick={handleNavigateToBundle}
+                    className={`border border-stone-200 rounded-2xl p-4 bg-stone-50/50 hover:bg-white hover:border-emerald-400 hover:shadow-md transition-all space-y-3 ${
+                      matchedProduct && onViewBundle ? 'cursor-pointer group/card' : ''
+                    }`}
                   >
                     {/* Top Row: Item Details */}
-                    <div className="flex gap-3 items-center">
-                      <img
-                        src={order.productImage}
-                        alt={order.productTitle}
-                        className="w-14 h-14 rounded-lg object-cover border border-stone-200 shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                          <h4 className="font-bold text-stone-900 text-sm truncate">{order.productTitle}</h4>
-                          {isSingleBuy ? (
-                            <span className="bg-blue-100 text-blue-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-blue-200">
-                              একক ক্রয় (Single Buy)
-                            </span>
-                          ) : isFullBundle ? (
-                            <span className="bg-amber-100 text-amber-900 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-amber-200">
-                              সম্পূর্ণ বান্ডিল
-                            </span>
-                          ) : (
-                            <span className="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-200">
-                              গ্রুপ বাই স্লট
-                            </span>
-                          )}
-                        </div>
+                    <div className="flex gap-3 items-center justify-between">
+                      <div className="flex gap-3 items-center min-w-0 flex-1">
+                        <img
+                          src={order.productImage}
+                          alt={order.productTitle}
+                          className="w-14 h-14 rounded-xl object-cover border border-stone-200 shrink-0 group-hover/card:scale-105 transition-transform"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                            <h4 className="font-bold text-stone-900 text-sm truncate group-hover/card:text-emerald-800 transition-colors">
+                              {order.productTitle}
+                            </h4>
+                            {isSingleBuy ? (
+                              <span className="bg-blue-100 text-blue-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-blue-200">
+                                একক ক্রয়
+                              </span>
+                            ) : isFullBundle ? (
+                              <span className="bg-amber-100 text-amber-900 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-amber-200">
+                                সম্পূর্ণ বান্ডিল
+                              </span>
+                            ) : (
+                              <span className="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-200">
+                                গ্রুপ বাই স্লট
+                              </span>
+                            )}
+                          </div>
 
-                        <div className="flex flex-wrap items-center gap-2 text-xs">
-                          <span className="bg-stone-900 text-white px-2 py-0.5 rounded font-bold">
-                            সাইজ: {order.size}
-                          </span>
-                          {order.color && (
-                            <span className="bg-emerald-700 text-white px-2 py-0.5 rounded font-bold">
-                              কালার: {order.color}
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className="bg-stone-900 text-white px-2 py-0.5 rounded font-bold">
+                              সাইজ: {order.size}
                             </span>
-                          )}
-                          {!isSingleBuy && (
-                            <span className="text-stone-600 font-semibold">
-                              ব্যাচ #{order.batchNumber}
+                            {order.color && (
+                              <span className="bg-emerald-700 text-white px-2 py-0.5 rounded font-bold">
+                                কালার: {order.color}
+                              </span>
+                            )}
+                            {!isSingleBuy && (
+                              <span className="text-stone-700 font-bold bg-stone-100 px-2 py-0.5 rounded border border-stone-200">
+                                ব্যাচ #{order.batchNumber}
+                              </span>
+                            )}
+                            <span className="text-emerald-700 font-bold">
+                              মোট: ৳{order.groupPrice} (পেইড ৳{Math.min(order.advanceAmount, order.groupPrice)})
                             </span>
-                          )}
-                          <span className="text-emerald-700 font-bold">
-                            মোট: ৳{order.groupPrice} (পেইড ৳{Math.min(order.advanceAmount, order.groupPrice)}, বাকি ৳{Math.max(0, order.dueAmount)})
-                          </span>
+                          </div>
                         </div>
                       </div>
+
+                      {matchedProduct && onViewBundle && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleNavigateToBundle();
+                          }}
+                          className="bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-black px-3 py-2 rounded-xl flex items-center gap-1 shadow-xs transition-all cursor-pointer shrink-0"
+                          title="সরাসরি এই বান্ডিলে প্রবেশ করুন"
+                        >
+                          <span>বান্ডিলে যান</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
 
                     {/* Progress / Status Block */}
