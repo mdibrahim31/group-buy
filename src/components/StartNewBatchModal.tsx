@@ -6,6 +6,7 @@ import { X, PlusCircle, CheckCircle, Sparkles, Layers, Info } from 'lucide-react
 interface StartNewBatchModalProps {
   product: Product;
   preselectedSize?: string;
+  preselectedColor?: string;
   onClose: () => void;
   onSuccess: (newBatchNumber: number) => void;
 }
@@ -13,6 +14,7 @@ interface StartNewBatchModalProps {
 export const StartNewBatchModal: React.FC<StartNewBatchModalProps> = ({
   product,
   preselectedSize,
+  preselectedColor,
   onClose,
   onSuccess,
 }) => {
@@ -28,7 +30,7 @@ export const StartNewBatchModal: React.FC<StartNewBatchModalProps> = ({
   const [selectedSize, setSelectedSize] = useState<string>(
     preselectedSize || product.availableSizes[0] || '৪০'
   );
-  const [selectedColor, setSelectedColor] = useState<string>(defaultColors[0] || 'কালো');
+  const [selectedColor, setSelectedColor] = useState<string>(preselectedColor || defaultColors[0] || 'কালো');
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [address, setAddress] = useState(user?.deliveryAddress || '');

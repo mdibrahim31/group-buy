@@ -527,6 +527,8 @@ export async function dbGetAllBundles(): Promise<Bundle[]> {
         createdAt: b.created_at,
         expiresAt: b.expires_at || new Date(Date.now() + 3600000 * 48).toISOString(),
         slots: bundleSlots,
+        color: b.color || (bundleSlots.length > 0 ? bundleSlots[0].color : undefined),
+        availableColors: b.available_colors || undefined,
       };
     });
   } catch (err) {
@@ -538,22 +540,44 @@ export async function dbGetAllBundles(): Promise<Bundle[]> {
 export async function dbSaveBundle(bundle: Bundle): Promise<boolean> {
   if (!supabase) return false;
   try {
+    const payload: any = {
+      id: bundle.id,
+      product_id: bundle.productId,
+      batch_number: bundle.batchNumber,
+      total_slots: bundle.totalSlots,
+      filled_slots: bundle.filledSlots,
+      status: bundle.status,
+      expires_at: bundle.expiresAt,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (bundle.color) {
+      payload.color = bundle.color;
+    }
+    if (bundle.availableColors) {
+      payload.available_colors = bundle.availableColors;
+    }
+
     const { error: bundleErr } = await supabase
       .from('bundles')
-      .upsert({
-        id: bundle.id,
-        product_id: bundle.productId,
-        batch_number: bundle.batchNumber,
-        total_slots: bundle.totalSlots,
-        filled_slots: bundle.filledSlots,
-        status: bundle.status,
-        expires_at: bundle.expiresAt,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'id' });
+      .upsert(payload, { onConflict: 'id' });
 
     if (bundleErr) {
-      console.warn('Supabase dbSaveBundle error:', bundleErr.message);
-      return false;
+      console.warn('Supabase dbSaveBundle with color notice, retrying fallback:', bundleErr.message);
+      // Fallback in case columns don't exist yet
+      if (payload.color || payload.available_colors) {
+        delete payload.color;
+        delete payload.available_colors;
+        const { error: retryErr } = await supabase
+          .from('bundles')
+          .upsert(payload, { onConflict: 'id' });
+        if (retryErr) {
+          console.error('Supabase dbSaveBundle retry error:', retryErr.message);
+          return false;
+        }
+      } else {
+        return false;
+      }
     }
 
     if (bundle.slots && bundle.slots.length > 0) {
@@ -563,7 +587,7 @@ export async function dbSaveBundle(bundle: Bundle): Promise<boolean> {
         product_id: bundle.productId,
         slot_number: index + 1,
         size: s.size,
-        color: s.color || null,
+        color: s.color || bundle.color || null,
         status: s.status,
         user_id: s.userId || null,
         user_name: s.userName || null,

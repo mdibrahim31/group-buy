@@ -42,6 +42,7 @@ const MainContent: React.FC = () => {
   const [newBatchTarget, setNewBatchTarget] = useState<{
     product: Product;
     preselectedSize?: string;
+    preselectedColor?: string;
   } | null>(null);
 
   // Buy Whole Bundle Modal State
@@ -361,6 +362,7 @@ const MainContent: React.FC = () => {
         <StartNewBatchModal
           product={newBatchTarget.product}
           preselectedSize={newBatchTarget.preselectedSize}
+          preselectedColor={newBatchTarget.preselectedColor}
           onClose={() => setNewBatchTarget(null)}
           onSuccess={(newBatchNum) => {
             setNewBatchTarget(null);
@@ -393,8 +395,8 @@ const MainContent: React.FC = () => {
           onSelectSlot={(bundle, slot) => {
             setSelectedBooking({ product: selectedProductForBundle, bundle, slot });
           }}
-          onStartNewBatch={(prod, size) => {
-            setNewBatchTarget({ product: prod, preselectedSize: size });
+          onStartNewBatch={(prod, size, color) => {
+            setNewBatchTarget({ product: prod, preselectedSize: size, preselectedColor: color });
           }}
           onBuyWholeBundle={(prod) => {
             setWholeBundleTarget(prod);

@@ -6,6 +6,7 @@ import {
   dbSaveCustomer,
   dbSaveOrder,
   dbDeleteOrderBySlot,
+  dbDeleteOrder,
   dbGetOrdersByCustomerId,
   dbFindOrderById,
   dbGetAllProducts,
@@ -103,7 +104,7 @@ interface AppContextType {
   updateBatchStatus: (bundleId: string, status: Bundle['status']) => void;
   removeCustomerSlot: (bundleId: string, slotId: string, reason?: string) => { success: boolean; message: string };
   cancelOrder: (orderId: string) => Promise<{ success: boolean; message: string }>;
-  addProduct: (product: Omit<Product, 'id'>) => Promise<{ success: boolean; message: string }>;
+  addProduct: (product: Omit<Product, 'id'>, bundleColor?: string) => Promise<{ success: boolean; message: string }>;
   updateProduct: (product: Product) => Promise<{ success: boolean; message: string }>;
   findOrderByIdOrCustomer: (query: string) => Promise<Order[]>;
 }
@@ -744,6 +745,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + 3600000 * 48).toISOString(),
       slots,
+      color: chosenColor,
+      availableColors: product.availableColors,
     };
 
     setBundles(prev => [newBundle, ...prev]);
@@ -819,6 +822,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + 3600000 * 48).toISOString(),
       slots,
+      color: chosenColor,
+      availableColors: product.availableColors,
     };
 
     const newOrder: Order = {
@@ -952,13 +957,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     dbUpdateBundleStatus(bundleId, status);
   };
 
-  const addProduct = async (newProdData: Omit<Product, 'id'>) => {
+  const addProduct = async (newProdData: Omit<Product, 'id'>, bundleColor?: string) => {
     const newId = 'prod-' + Date.now();
     const product: Product = {
       ...newProdData,
       id: newId,
     };
     setProducts(prev => [product, ...prev]);
+
+    const activeBundleColor = bundleColor || (product.availableColors && product.availableColors[0]) || 'কালো';
 
     // Automatically create Batch 1 for this new product
     const newBundleId = `bundle-${newId}-batch-1`;
@@ -970,6 +977,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         bundleId: newBundleId,
         size: product.availableSizes[sizeIndex],
         status: 'available',
+        color: activeBundleColor,
       });
     }
 
@@ -983,6 +991,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + 3600000 * 48).toISOString(),
       slots,
+      color: activeBundleColor,
+      availableColors: product.availableColors,
     };
 
     setBundles(prev => [firstBundle, ...prev]);

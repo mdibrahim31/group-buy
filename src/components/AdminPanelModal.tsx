@@ -102,6 +102,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
   const [newGroupPrice, setNewGroupPrice] = useState<number | ''>('');
   const [newFullBundlePrice, setNewFullBundlePrice] = useState<number | ''>('');
   const [newColorsText, setNewColorsText] = useState('কালো, সাদা, ব্রাউন, নীল, লাল');
+  const [newBundleColor, setNewBundleColor] = useState('কালো');
 
   // Edit Product / Bundle State
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -386,7 +387,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
         bundleSize: finalSizes.length,
         availableSizes: finalSizes,
         availableColors: finalColors.length > 0 ? finalColors : ['কালো', 'সাদা', 'ব্রাউন'],
-      });
+      }, newBundleColor.trim());
 
       if (res && res.success) {
         setPostSuccess(true);
@@ -1061,21 +1062,41 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                       </button>
                     </div>
 
-                    {/* Available Colors Option */}
-                    <div>
-                      <label className="block text-xs font-bold text-stone-700 mb-1">
-                        উপলব্ধ কালারসমূহ (Available Colors - কমা দিয়ে লিখুন) *
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="যেমন: কালো, সাদা, লাল, নীল, ব্রাউন"
-                        value={newColorsText}
-                        onChange={(e) => setNewColorsText(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                      />
-                      <p className="text-[10px] text-stone-400 mt-1">
-                        কাস্টমাররা অর্ডার করার সময় এর থেকে কালার বেছে নিতে পারবেন।
-                      </p>
+                     {/* Available Colors Option */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-stone-700 mb-1">
+                          উপলব্ধ কালারসমূহ (Available Colors - কমা দিয়ে লিখুন) *
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="যেমন: কালো, সাদা, লাল, নীল, ব্রাউন"
+                          value={newColorsText}
+                          onChange={(e) => setNewColorsText(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        />
+                        <p className="text-[10px] text-stone-400 mt-1">
+                          কাস্টমাররা অর্ডার করার সময় এর থেকে কালার বেছে নিতে পারবেন।
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-emerald-800 mb-1">
+                          ১ম ব্যাচের কালার (Default Bundle Color) *
+                        </label>
+                        <select
+                          value={newBundleColor}
+                          onChange={(e) => setNewBundleColor(e.target.value)}
+                          className="w-full px-3 py-2 bg-emerald-50 border border-emerald-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-emerald-900"
+                        >
+                          {newColorsText.split(',').map(c => c.trim()).filter(Boolean).map(color => (
+                            <option key={color} value={color}>{color}</option>
+                          ))}
+                        </select>
+                        <p className="text-[10px] text-stone-400 mt-1">
+                          ১ম ব্যাচটির সব কয়টি পণ্য সম্পূর্ণ এই কালারের হবে।
+                        </p>
+                      </div>
                     </div>
 
                     {/* Description */}

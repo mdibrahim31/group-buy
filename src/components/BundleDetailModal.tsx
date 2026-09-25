@@ -8,7 +8,7 @@ interface BundleDetailModalProps {
   initialBundleId?: string;
   onClose: () => void;
   onSelectSlot: (bundle: Bundle, slot: BundleSlot) => void;
-  onStartNewBatch: (product: Product, desiredSize?: string) => void;
+  onStartNewBatch: (product: Product, desiredSize?: string, desiredColor?: string) => void;
   onBuyWholeBundle: (product: Product) => void;
   onSingleBuy: (product: Product, desiredSize?: string) => void;
 }
@@ -29,16 +29,46 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
     .filter(b => b.productId === product.id)
     .sort((a, b) => a.batchNumber - b.batchNumber);
 
-  // Active selected batch tab
-  const [selectedBatchId, setSelectedBatchId] = useState<string>(() => {
-    if (initialBundleId && productBundles.some(b => b.id === initialBundleId)) {
-      return initialBundleId;
+  const defaultColors = product.availableColors && product.availableColors.length > 0
+    ? product.availableColors
+    : ['কালো', 'সাদা', 'ব্রাউন', 'নীল', 'লাল'];
+
+  const [selectedColor, setSelectedColor] = useState<string>(() => {
+    if (initialBundleId) {
+      const found = productBundles.find(b => b.id === initialBundleId);
+      if (found && found.color) return found.color;
     }
     const firstOpen = productBundles.find(b => b.status === 'open');
-    return firstOpen ? firstOpen.id : (productBundles[0]?.id || '');
+    if (firstOpen && firstOpen.color) return firstOpen.color;
+    return defaultColors[0] || 'কালো';
   });
 
-  const activeBundle = productBundles.find(b => b.id === selectedBatchId) || productBundles[0];
+  const colorBundles = productBundles.filter(b => b.color === selectedColor);
+
+  // Active selected batch tab
+  const [selectedBatchId, setSelectedBatchId] = useState<string>(() => {
+    if (initialBundleId) {
+      const found = productBundles.find(b => b.id === initialBundleId);
+      if (found && found.color === selectedColor) return initialBundleId;
+    }
+    const firstOpen = colorBundles.find(b => b.status === 'open');
+    return firstOpen ? firstOpen.id : (colorBundles[0]?.id || '');
+  });
+
+  const handleColorChange = (color: string) => {
+    setSelectedColor(color);
+    const matchingBundles = productBundles.filter(b => b.color === color);
+    const firstOpen = matchingBundles.find(b => b.status === 'open');
+    if (firstOpen) {
+      setSelectedBatchId(firstOpen.id);
+    } else if (matchingBundles.length > 0) {
+      setSelectedBatchId(matchingBundles[0].id);
+    } else {
+      setSelectedBatchId('');
+    }
+  };
+
+  const activeBundle = colorBundles.find(b => b.id === selectedBatchId) || colorBundles[0];
 
   const savingsAmount = product.retailPrice - product.groupPrice;
   const savingsPercent = Math.round((savingsAmount / product.retailPrice) * 100);
@@ -182,17 +212,17 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
 
           {/* Option 1: Group Buy Batches & Slots Section */}
           <div className="bg-emerald-50/50 border border-emerald-200 rounded-2xl p-4 sm:p-5 space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center justify-between flex-wrap gap-2 border-b border-stone-200/60 pb-3">
               <div className="flex items-center gap-2">
                 <Users className="w-5 h-5 text-emerald-700" />
                 <div>
                   <h4 className="text-sm font-black text-stone-900">অপশন ১: গ্রুপ বাই ব্যাচ ও সাইজ স্লট</h4>
-                  <p className="text-[11px] text-stone-600">আপনার প্রয়োজনীয় সাইজ স্লটটি সরাসরি বুক করুন</p>
+                  <p className="text-[11px] text-stone-600">১টি ব্যাচের সব কয়টি পণ্য সম্পূর্ণ একই কালারের হবে</p>
                 </div>
               </div>
               <button
                 onClick={() => {
-                  onStartNewBatch(product);
+                  onStartNewBatch(product, undefined, selectedColor);
                   onClose();
                 }}
                 className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-xs cursor-pointer"
@@ -202,112 +232,181 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
               </button>
             </div>
 
-            {/* Batch Tabs */}
-            <div className="flex flex-wrap gap-2 pt-2">
-              {productBundles.map(bundle => {
-                const isSelected = bundle.id === activeBundle?.id;
-                const isCompleted = bundle.filledSlots >= bundle.totalSlots;
-                return (
-                  <button
-                    key={bundle.id}
-                    onClick={() => setSelectedBatchId(bundle.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-stone-900 text-white shadow-md ring-2 ring-stone-900'
-                        : isCompleted
-                        ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                        : 'bg-white text-stone-700 hover:bg-stone-100 border border-stone-200'
-                    }`}
-                  >
-                    <span>ব্যাচ #{bundle.batchNumber}</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                      isSelected ? 'bg-stone-700 text-white' : 'bg-emerald-200 text-emerald-900'
-                    }`}>
-                      {bundle.filledSlots}/{bundle.totalSlots} পূর্ণ
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Active Batch Progress Tracker */}
-            {activeBundle && (
-              <div className="bg-white rounded-xl p-3.5 border border-emerald-200 shadow-xs space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <span className="text-stone-700">ব্যাচ #{activeBundle.batchNumber} প্রগ্রেস ({progressPercent}%)</span>
-                  <span className="text-emerald-800">{filledSlots} / {totalSlots} স্লট পূর্ণ</span>
-                </div>
-                <div className="w-full h-2.5 bg-stone-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-emerald-600 rounded-full transition-all duration-500"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-                <div className="text-[11px] text-stone-600 flex items-center gap-1.5">
-                  {filledSlots >= totalSlots ? (
-                    <span className="text-emerald-800 font-bold flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      স্লট সম্পূর্ণ হয়েছে! হোলসেলার অর্ডার প্রক্রিয়াজাত হচ্ছে।
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-amber-600" />
-                      আর মাত্র <strong className="text-stone-900">{remainingSlots} জন</strong> যুক্ত হলেই ব্যাচ কনফার্ম হবে!
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Slots Grid */}
-            <div className="space-y-2 pt-1">
-              <span className="text-xs font-bold text-stone-700 block">আপনার সাইজ নির্বাচন করুন ও বুক করুন:</span>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                {(activeBundle?.slots || []).map(slot => {
-                  const isAvailable = slot.status === 'available';
+            {/* Step 1: Color Selection Filter */}
+            <div className="space-y-2">
+              <label className="text-xs font-extrabold text-stone-800 flex items-center gap-1">
+                <span className="w-1.5 h-3 bg-emerald-600 rounded-full inline-block"></span>
+                <span>১. কালার সিলেক্ট করুন (যে কালারের ব্যাচে জয়েন করতে চান):</span>
+              </label>
+              <div className="flex flex-wrap gap-2 bg-white p-2.5 rounded-xl border border-stone-200">
+                {defaultColors.map((col) => {
+                  const isActive = selectedColor === col;
+                  const matchingCount = productBundles.filter(b => b.color === col).length;
                   return (
                     <button
-                      key={slot.id}
-                      disabled={!isAvailable}
-                      onClick={() => {
-                        if (isAvailable) {
-                          onSelectSlot(activeBundle, slot);
-                          onClose();
-                        }
-                      }}
-                      className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                        isAvailable
-                          ? 'border-emerald-300 bg-white hover:bg-emerald-50 hover:border-emerald-500 shadow-xs cursor-pointer group/slot'
-                          : 'border-stone-200 bg-stone-100 text-stone-700 cursor-not-allowed opacity-90'
+                      key={col}
+                      type="button"
+                      onClick={() => handleColorChange(col)}
+                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        isActive
+                          ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-500'
+                          : 'border-stone-200 bg-stone-50 text-stone-700 hover:bg-stone-100'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className={`text-sm font-bold ${isAvailable ? 'text-stone-900' : 'text-stone-800'}`}>
-                          সাইজ {slot.size}
+                      <span>{col}</span>
+                      {matchingCount > 0 ? (
+                        <span className={`text-[9px] px-1.5 py-0.2 rounded-md ${
+                          isActive ? 'bg-emerald-800 text-emerald-100' : 'bg-emerald-100 text-emerald-800 font-bold'
+                        }`}>
+                          {matchingCount} ব্যাচ
                         </span>
-                        {isAvailable ? (
-                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        ) : (
-                          <span className="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded font-bold">বুকড</span>
-                        )}
-                      </div>
-                      <div className="mt-2 text-[11px]">
-                        {isAvailable ? (
-                          <span className="text-emerald-700 font-bold group-hover/slot:underline flex items-center gap-1">
-                            স্লট বুক করুন <ArrowRight className="w-3 h-3" />
-                          </span>
-                        ) : (
-                          <span className="text-stone-600 block truncate font-medium">
-                            {slot.userPhoneMasked || 'সংরক্ষিত'} • বুকড
-                          </span>
-                        )}
-                      </div>
+                      ) : (
+                        <span className="text-[8px] px-1 bg-stone-200 text-stone-500 rounded font-normal">নতুন</span>
+                      )}
                     </button>
                   );
                 })}
               </div>
             </div>
+
+            {/* Step 2: Show Batch list & Slots */}
+            {colorBundles.length > 0 ? (
+              <div className="space-y-4 pt-1">
+                {/* Batch Tabs */}
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-bold text-stone-500 block">২. ব্যাচ নির্বাচন করুন:</span>
+                  <div className="flex flex-wrap gap-2">
+                    {colorBundles.map(bundle => {
+                      const isSelected = bundle.id === activeBundle?.id;
+                      const isCompleted = bundle.filledSlots >= bundle.totalSlots;
+                      return (
+                        <button
+                          key={bundle.id}
+                          onClick={() => setSelectedBatchId(bundle.id)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-stone-900 text-white shadow-md ring-2 ring-stone-900'
+                              : isCompleted
+                              ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                              : 'bg-white text-stone-700 hover:bg-stone-100 border border-stone-200'
+                          }`}
+                        >
+                          <span>ব্যাচ #{bundle.batchNumber}</span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                            isSelected ? 'bg-stone-700 text-white' : 'bg-emerald-200 text-emerald-900'
+                          }`}>
+                            {bundle.filledSlots}/{bundle.totalSlots} পূর্ণ
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Active Batch Progress Tracker */}
+                {activeBundle && (
+                  <div className="bg-white rounded-xl p-3.5 border border-emerald-200 shadow-xs space-y-2 animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between text-xs font-bold">
+                      <span className="text-stone-700">ব্যাচ #{activeBundle.batchNumber} প্রগ্রেস ({progressPercent}%)</span>
+                      <span className="text-emerald-800">{filledSlots} / {totalSlots} স্লট পূর্ণ</span>
+                    </div>
+                    <div className="w-full h-2.5 bg-stone-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-600 rounded-full transition-all duration-500"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    <div className="text-[11px] text-stone-600 flex items-center gap-1.5">
+                      {filledSlots >= totalSlots ? (
+                        <span className="text-emerald-800 font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          স্লট সম্পূর্ণ হয়েছে! হোলসেলার অর্ডার প্রক্রিয়াজাত হচ্ছে।
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-amber-600" />
+                          আর মাত্র <strong className="text-stone-900">{remainingSlots} জন</strong> যুক্ত হলেই ব্যাচ কনফার্ম হবে!
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Slots Grid */}
+                <div className="space-y-2 pt-1 animate-in fade-in duration-200">
+                  <span className="text-xs font-bold text-stone-700 block">৩. আপনার সাইজ নির্বাচন করুন ও বুক করুন:</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    {(activeBundle?.slots || []).map(slot => {
+                      const isAvailable = slot.status === 'available';
+                      return (
+                        <button
+                          key={slot.id}
+                          disabled={!isAvailable}
+                          onClick={() => {
+                            if (isAvailable) {
+                              onSelectSlot(activeBundle, slot);
+                              onClose();
+                            }
+                          }}
+                          className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                            isAvailable
+                              ? 'border-emerald-300 bg-white hover:bg-emerald-50 hover:border-emerald-500 shadow-xs cursor-pointer group/slot'
+                              : 'border-stone-200 bg-stone-100 text-stone-700 cursor-not-allowed opacity-90'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className={`text-sm font-bold ${isAvailable ? 'text-stone-900' : 'text-stone-800'}`}>
+                              সাইজ {slot.size}
+                            </span>
+                            {isAvailable ? (
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            ) : (
+                              <span className="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded font-bold">বুকড</span>
+                            )}
+                          </div>
+                          <div className="mt-2 text-[11px]">
+                            {isAvailable ? (
+                              <span className="text-emerald-700 font-bold group-hover/slot:underline flex items-center gap-1">
+                                স্লট বুক করুন <ArrowRight className="w-3 h-3" />
+                              </span>
+                            ) : (
+                              <span className="text-stone-600 block truncate font-medium">
+                                {slot.userPhoneMasked || 'সংরক্ষিত'} • বুকড
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
+          ) : (
+            <div className="text-center py-10 px-4 bg-white rounded-2xl border border-dashed border-stone-300 space-y-3.5 animate-in fade-in duration-200">
+              <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto">
+                <Users className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-stone-800">
+                  "{selectedColor}" কালারের কোনো সক্রিয় গ্রুপ-বাই ব্যাচ এখনো শুরু হয়নি।
+                </p>
+                <p className="text-[11px] text-stone-500 mt-1">
+                  আপনিই প্রথম বুকিং করে "{selectedColor}" কালারের ১ নম্বর ব্যাচটি শুরু করতে পারেন!
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  onStartNewBatch(product, undefined, selectedColor);
+                  onClose();
+                }}
+                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>"{selectedColor}" কালারের ১ম ব্যাচ শুরু করুন</span>
+              </button>
+            </div>
+          )}
+        </div>
 
           {/* Option 2 & Option 3 Direct Purchase Actions */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-stone-200">

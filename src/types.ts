@@ -49,6 +49,8 @@ export interface Bundle {
   createdAt: string;
   expiresAt: string;
   slots: BundleSlot[];
+  color?: string;
+  availableColors?: string[];
 }
 
 export interface Order {

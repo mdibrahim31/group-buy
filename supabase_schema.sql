@@ -62,6 +62,8 @@ CREATE TABLE public.bundles (
     total_slots INTEGER NOT NULL DEFAULT 6,
     filled_slots INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'completed', 'ordered', 'shipped', 'cancelled')),
+    color TEXT,
+    available_colors TEXT[] DEFAULT '{}',
     expires_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
