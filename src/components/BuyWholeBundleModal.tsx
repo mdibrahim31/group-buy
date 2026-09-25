@@ -25,6 +25,11 @@ export const BuyWholeBundleModal: React.FC<BuyWholeBundleModalProps> = ({
   const tokenAmount = 500; // token advance for whole bundle
   const dueAmount = totalBundlePrice - tokenAmount;
 
+  const defaultColors = product.availableColors && product.availableColors.length > 0
+    ? product.availableColors
+    : ['কালো', 'সাদা', 'ব্রাউন', 'নীল', 'লাল'];
+
+  const [selectedColor, setSelectedColor] = useState<string>(defaultColors[0] || 'কালো');
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [address, setAddress] = useState(user?.deliveryAddress || '');
@@ -62,7 +67,8 @@ export const BuyWholeBundleModal: React.FC<BuyWholeBundleModalProps> = ({
         fullDeliveryAddress,
         phone.trim(),
         fullName.trim(),
-        transactionId.trim()
+        transactionId.trim(),
+        selectedColor
       );
 
       setLoading(false);
@@ -130,7 +136,28 @@ export const BuyWholeBundleModal: React.FC<BuyWholeBundleModalProps> = ({
             </div>
           </div>
 
-          {/* Instant Dispatch Guarantee Badge */}
+          {/* Color Selector */}
+          <div>
+            <label className="block text-xs font-bold text-stone-700 mb-1.5 uppercase tracking-wider">
+              বান্ডিলের কালার / শেইড নির্বাচন করুন *
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {defaultColors.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => setSelectedColor(color)}
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                    selectedColor === color
+                      ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm'
+                      : 'border-stone-200 bg-stone-50 text-stone-800 hover:bg-stone-100'
+                  }`}
+                >
+                  {color}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-950 flex items-start gap-2.5">
             <Truck className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
             <div>

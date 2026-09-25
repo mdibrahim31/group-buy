@@ -19,9 +19,14 @@ export const SingleBuyModal: React.FC<SingleBuyModalProps> = ({
   const { user, singleBuyProduct } = useApp();
 
   const uniqueSizes = Array.from(new Set(product.availableSizes));
+  const defaultColors = product.availableColors && product.availableColors.length > 0
+    ? product.availableColors
+    : ['কালো', 'সাদা', 'ব্রাউন', 'নীল', 'লাল'];
+
   const [selectedSize, setSelectedSize] = useState<string>(
     preselectedSize || uniqueSizes[0] || 'Free Size'
   );
+  const [selectedColor, setSelectedColor] = useState<string>(defaultColors[0] || 'কালো');
   const [quantity, setQuantity] = useState<number>(1);
 
   const [paymentOption, setPaymentOption] = useState<'token' | 'full' | 'cod'>('token');
@@ -79,7 +84,8 @@ export const SingleBuyModal: React.FC<SingleBuyModalProps> = ({
         phone.trim(),
         fullName.trim(),
         transactionId.trim(),
-        quantity
+        quantity,
+        selectedColor
       );
 
       setLoading(false);
@@ -153,7 +159,7 @@ export const SingleBuyModal: React.FC<SingleBuyModalProps> = ({
             </div>
           </div>
 
-          {/* Size & Quantity Selection */}
+          {/* Size & Quantity & Color Selection */}
           <div className="space-y-3 p-3.5 bg-stone-50 border border-stone-200 rounded-xl">
             <div>
               <label className="block text-xs font-bold text-stone-800 mb-1.5">
@@ -172,6 +178,29 @@ export const SingleBuyModal: React.FC<SingleBuyModalProps> = ({
                     }`}
                   >
                     সাইজ {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Color selection */}
+            <div>
+              <label className="block text-xs font-bold text-stone-800 mb-1.5">
+                আপনার কালার নির্বাচন করুন *
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {defaultColors.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => setSelectedColor(color)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                      selectedColor === color
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-600/30'
+                        : 'bg-white border-stone-200 text-stone-800 hover:border-stone-300'
+                    }`}
+                  >
+                    {color}
                   </button>
                 ))}
               </div>

@@ -64,7 +64,8 @@ interface AppContextType {
     deliveryAddress: string,
     contactPhone: string,
     buyerName: string,
-    transactionId?: string
+    transactionId?: string,
+    selectedColor?: string
   ) => { success: boolean; order?: Order; message: string };
   createNewBatchForProduct: (
     productId: string,
@@ -74,7 +75,8 @@ interface AppContextType {
     deliveryAddress?: string,
     contactPhone?: string,
     buyerName?: string,
-    transactionId?: string
+    transactionId?: string,
+    desiredColor?: string
   ) => { success: boolean; newBatchNumber: number; message: string };
   buyWholeBundle: (
     productId: string,
@@ -83,7 +85,8 @@ interface AppContextType {
     deliveryAddress: string,
     contactPhone: string,
     buyerName: string,
-    transactionId?: string
+    transactionId?: string,
+    selectedColor?: string
   ) => { success: boolean; order?: Order; message: string };
   singleBuyProduct: (
     productId: string,
@@ -94,11 +97,14 @@ interface AppContextType {
     contactPhone: string,
     buyerName: string,
     transactionId?: string,
-    quantity?: number
+    quantity?: number,
+    selectedColor?: string
   ) => { success: boolean; order?: Order; message: string };
   updateBatchStatus: (bundleId: string, status: Bundle['status']) => void;
   removeCustomerSlot: (bundleId: string, slotId: string, reason?: string) => { success: boolean; message: string };
+  cancelOrder: (orderId: string) => Promise<{ success: boolean; message: string }>;
   addProduct: (product: Omit<Product, 'id'>) => Promise<{ success: boolean; message: string }>;
+  updateProduct: (product: Product) => Promise<{ success: boolean; message: string }>;
   findOrderByIdOrCustomer: (query: string) => Promise<Order[]>;
 }
 
@@ -504,7 +510,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     deliveryAddress: string,
     contactPhone: string,
     buyerName: string,
-    transactionId?: string
+    transactionId?: string,
+    selectedColor?: string
   ) => {
     const targetBundle = bundles.find(b => b.id === bundleId);
     if (!targetBundle) {
@@ -527,6 +534,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const bookedSlot: BundleSlot = {
       ...targetSlot,
+      color: selectedColor || targetSlot.color || (product.availableColors && product.availableColors[0]),
       status: 'booked',
       userId: currentCustomerId,
       userName: currentCustomerName,
@@ -563,6 +571,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       productTitle: product.title,
       productImage: product.imageUrl,
       size: targetSlot.size,
+      color: bookedSlot.color,
       groupPrice: product.groupPrice,
       advanceAmount: effectiveAdvance,
       dueAmount: effectiveDue,
@@ -644,7 +653,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     deliveryAddress = '',
     contactPhone = '',
     buyerName = '',
-    transactionId?: string
+    transactionId?: string,
+    desiredColor?: string
   ) => {
     const product = products.find(p => p.id === productId);
     if (!product) {
@@ -654,6 +664,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const currentCustomerId = user?.id || (user?.phone ? `cust-${user.phone}` : getOrCreateGuestCustomerId());
     const currentCustomerName = buyerName || user?.fullName || 'গ্রাহক';
     const currentPhone = contactPhone || user?.phone || '01700000000';
+    const chosenColor = desiredColor || (product.availableColors && product.availableColors[0]);
 
     // Determine current max batch number for this product
     const existingBatches = bundles.filter(b => b.productId === productId);
@@ -676,6 +687,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         id: slotId,
         bundleId: newBundleId,
         size: size,
+        color: chosenColor,
         status: 'available',
       });
     }
@@ -691,6 +703,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         matchingSlot.userName = currentCustomerName;
         matchingSlot.userPhoneMasked = maskPhone(currentPhone);
         matchingSlot.bookedAt = new Date().toISOString();
+        if (chosenColor) matchingSlot.color = chosenColor;
         initialFilled = 1;
 
         initialOrder = {
@@ -705,6 +718,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           productTitle: product.title,
           productImage: product.imageUrl,
           size: desiredSize,
+          color: chosenColor,
           groupPrice: product.groupPrice,
           advanceAmount: advanceAmount,
           dueAmount: product.groupPrice - advanceAmount,
@@ -755,7 +769,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     deliveryAddress: string,
     contactPhone: string,
     buyerName: string,
-    transactionId?: string
+    transactionId?: string,
+    selectedColor?: string
   ) => {
     const product = products.find(p => p.id === productId);
     if (!product) {
@@ -765,6 +780,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const currentCustomerId = user?.id || (user?.phone ? `cust-${user.phone}` : getOrCreateGuestCustomerId());
     const currentCustomerName = buyerName || user?.fullName || 'সম্পূর্ণ বান্ডিল ক্রেতা';
     const currentPhone = contactPhone || user?.phone || '01700000000';
+    const chosenColor = selectedColor || (product.availableColors && product.availableColors[0]);
 
     const existingBatches = bundles.filter(b => b.productId === productId);
     const nextBatchNumber = existingBatches.length > 0
@@ -784,6 +800,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         id: `${newBundleId}-slot-${i + 1}`,
         bundleId: newBundleId,
         size: size,
+        color: chosenColor,
         status: 'booked',
         userId: currentCustomerId,
         userName: currentCustomerName,
@@ -815,6 +832,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       productTitle: `${product.title} (সম্পূর্ণ বান্ডিল - ${product.bundleSize} পিস)`,
       productImage: product.imageUrl,
       size: `সমস্ত সাইজ (${product.availableSizes.join(', ')})`,
+      color: chosenColor,
       isFullBundle: true,
       totalPieces: product.bundleSize,
       groupPrice: totalAmount,
@@ -852,7 +870,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     contactPhone: string,
     buyerName: string,
     transactionId?: string,
-    quantity = 1
+    quantity = 1,
+    selectedColor?: string
   ) => {
     const product = products.find(p => p.id === productId);
     if (!product) {
@@ -862,6 +881,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const currentCustomerId = user?.id || (user?.phone ? `cust-${user.phone}` : getOrCreateGuestCustomerId());
     const currentCustomerName = buyerName || user?.fullName || 'একক ক্রেতা';
     const currentPhone = contactPhone || user?.phone || '01700000000';
+    const chosenColor = selectedColor || (product.availableColors && product.availableColors[0]);
     const qty = Math.max(1, quantity);
     const totalAmount = product.retailPrice * qty;
     const effectiveAdvance = Math.min(advanceAmount, totalAmount);
@@ -878,6 +898,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       productTitle: `${product.title} (একক ক্রয় - ${qty} পিস)`,
       productImage: product.imageUrl,
       size: selectedSize,
+      color: chosenColor,
       isSingleBuy: true,
       orderType: 'single_buy',
       totalPieces: qty,
@@ -1121,6 +1142,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const updateProduct = async (updatedProd: Product): Promise<{ success: boolean; message: string }> => {
+    setProducts(prev => prev.map(p => p.id === updatedProd.id ? updatedProd : p));
+    const saved = await dbSaveProduct(updatedProd);
+    if (!saved) {
+      console.warn('Warning: Product updated locally but Supabase sync returned false.');
+    }
+    return { success: true, message: 'বান্ডিলটি সফলভাবে আপডেট করা হয়েছে!' };
+  };
+
+  const cancelOrder = async (orderId: string): Promise<{ success: boolean; message: string }> => {
+    const targetOrder = orders.find(o => o.id === orderId);
+    if (targetOrder && targetOrder.bundleId && targetOrder.slotId) {
+      removeCustomerSlot(targetOrder.bundleId, targetOrder.slotId, 'অ্যাডমিন কর্তৃক অর্ডার বাতিল');
+    } else {
+      setOrders(prev => prev.filter(o => o.id !== orderId));
+      dbDeleteOrder(orderId);
+    }
+    return { success: true, message: 'অর্ডারটি সফলভাবে বাতিল করা হয়েছে।' };
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -1163,7 +1204,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         singleBuyProduct,
         updateBatchStatus,
         removeCustomerSlot,
+        cancelOrder,
         addProduct,
+        updateProduct,
         findOrderByIdOrCustomer,
       }}
     >

@@ -50,6 +50,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
     products,
     bundles,
     addProduct,
+    updateProduct,
+    cancelOrder,
     updateBatchStatus,
     removeCustomerSlot,
     categories,
@@ -99,6 +101,84 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
   const [newRetailPrice, setNewRetailPrice] = useState<number | ''>('');
   const [newGroupPrice, setNewGroupPrice] = useState<number | ''>('');
   const [newFullBundlePrice, setNewFullBundlePrice] = useState<number | ''>('');
+  const [newColorsText, setNewColorsText] = useState('কালো, সাদা, ব্রাউন, নীল, লাল');
+
+  // Edit Product / Bundle State
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editImageUrl, setEditImageUrl] = useState('');
+  const [editAdditionalImages, setEditAdditionalImages] = useState<string[]>(['', '', '', '', '']);
+  const [editYoutubeVideoUrl, setEditYoutubeVideoUrl] = useState('');
+  const [editRetailPrice, setEditRetailPrice] = useState<number | ''>('');
+  const [editGroupPrice, setEditGroupPrice] = useState<number | ''>('');
+  const [editFullBundlePrice, setEditFullBundlePrice] = useState<number | ''>('');
+  const [editSizesText, setEditSizesText] = useState('');
+  const [editColorsText, setEditColorsText] = useState('');
+  const [editSuccessMsg, setEditSuccessMsg] = useState<string | null>(null);
+
+  const startEditingProduct = (prod: Product) => {
+    setEditingProduct(prod);
+    setEditTitle(prod.title);
+    setEditCategory(prod.category);
+    setEditDescription(prod.description || '');
+    setEditImageUrl(prod.imageUrl);
+    setEditAdditionalImages([
+      prod.additionalImageUrls?.[0] || '',
+      prod.additionalImageUrls?.[1] || '',
+      prod.additionalImageUrls?.[2] || '',
+      prod.additionalImageUrls?.[3] || '',
+      prod.additionalImageUrls?.[4] || '',
+    ]);
+    setEditYoutubeVideoUrl(prod.youtubeVideoUrl || '');
+    setEditRetailPrice(prod.retailPrice);
+    setEditGroupPrice(prod.groupPrice);
+    setEditFullBundlePrice(prod.fullBundlePricePerPiece || prod.groupPrice);
+    setEditSizesText((prod.availableSizes || []).join(', '));
+    setEditColorsText((prod.availableColors && prod.availableColors.length > 0 ? prod.availableColors : ['কালো', 'সাদা', 'ব্রাউন', 'নীল']).join(', '));
+    setEditSuccessMsg(null);
+  };
+
+  const handleSaveEditedProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+
+    const finalSizes = editSizesText
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    const finalColors = editColorsText
+      .split(',')
+      .map(c => c.trim())
+      .filter(Boolean);
+
+    const updatedProd: Product = {
+      ...editingProduct,
+      title: editTitle.trim(),
+      category: editCategory,
+      description: editDescription.trim(),
+      imageUrl: editImageUrl.trim(),
+      additionalImageUrls: editAdditionalImages.filter(u => u.trim().length > 0),
+      youtubeVideoUrl: editYoutubeVideoUrl.trim() || undefined,
+      retailPrice: Number(editRetailPrice) || editingProduct.retailPrice,
+      groupPrice: Number(editGroupPrice) || editingProduct.groupPrice,
+      fullBundlePricePerPiece: Number(editFullBundlePrice) || Number(editGroupPrice) || editingProduct.fullBundlePricePerPiece,
+      availableSizes: finalSizes.length > 0 ? finalSizes : editingProduct.availableSizes,
+      availableColors: finalColors.length > 0 ? finalColors : ['কালো', 'সাদা', 'ব্রাউন'],
+      bundleSize: finalSizes.length > 0 ? finalSizes.length : editingProduct.bundleSize,
+    };
+
+    const res = await updateProduct(updatedProd);
+    if (res.success) {
+      setEditSuccessMsg('বান্ডিল ও পণ্যের তথ্য সফলভাবে আপডেট হয়েছে!');
+      setTimeout(() => {
+        setEditingProduct(null);
+        setEditSuccessMsg(null);
+      }, 1500);
+    }
+  };
 
   // Size breakdown list with quantity per size
   const [sizeConfigs, setSizeConfigs] = useState<SizeConfigItem[]>([
@@ -286,6 +366,11 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
 
     const autoWholesalePrice = Math.round(Number(newGroupPrice) * 0.75);
 
+    const finalColors = newColorsText
+      .split(',')
+      .map(c => c.trim())
+      .filter(Boolean);
+
     try {
       const res = await addProduct({
         title: newTitle.trim(),
@@ -300,6 +385,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
         fullBundlePricePerPiece: calculatedFullBundlePrice,
         bundleSize: finalSizes.length,
         availableSizes: finalSizes,
+        availableColors: finalColors.length > 0 ? finalColors : ['কালো', 'সাদা', 'ব্রাউন'],
       });
 
       if (res && res.success) {
@@ -975,14 +1061,31 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                       </button>
                     </div>
 
+                    {/* Available Colors Option */}
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">
+                        উপলব্ধ কালারসমূহ (Available Colors - কমা দিয়ে লিখুন) *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="যেমন: কালো, সাদা, লাল, নীল, ব্রাউন"
+                        value={newColorsText}
+                        onChange={(e) => setNewColorsText(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      />
+                      <p className="text-[10px] text-stone-400 mt-1">
+                        কাস্টমাররা অর্ডার করার সময় এর থেকে কালার বেছে নিতে পারবেন।
+                      </p>
+                    </div>
+
                     {/* Description */}
                     <div>
                       <label className="block text-xs font-bold text-stone-700 mb-1">
-                        সংক্ষিপ্ত বিবরণ (Optional)
+                        পণ্যের বিস্তারিত বিবরণ (Description - কাস্টমার সাইটে শো করবে) *
                       </label>
                       <textarea
-                        rows={2}
-                        placeholder="পণ্যের গুণগত মান ও বিস্তারিত..."
+                        rows={3}
+                        placeholder="পণ্যের উপাদান, ফিনিশিং, সাইজ গাইড বা বিস্তারিত বিবরণ লিখুন..."
                         value={newDescription}
                         onChange={(e) => setNewDescription(e.target.value)}
                         className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
@@ -1127,10 +1230,11 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                           <tr>
                             <th className="p-2.5">অর্ডার আইডি</th>
                             <th className="p-2.5">গ্রাহকের নাম ও ফোন</th>
-                            <th className="p-2.5">পণ্য ও সাইজ</th>
+                            <th className="p-2.5">পণ্য, সাইজ ও কালার</th>
                             <th className="p-2.5">মূল্য ও অগ্রিম</th>
                             <th className="p-2.5">ঠিকানা</th>
                             <th className="p-2.5">স্ট্যাটাস</th>
+                            <th className="p-2.5 text-right">অ্যাকশন</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-stone-200">
@@ -1158,8 +1262,10 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                               </td>
                               <td className="p-2.5">
                                 <div className="font-medium text-stone-900 truncate max-w-[150px]">{ord.productTitle}</div>
-                                <div className="text-stone-500 text-[11px]">
-                                  সাইজ: <span className="font-bold text-stone-800">{ord.size}</span> {!ord.isSingleBuy && `(ব্যাচ #${ord.batchNumber})`}
+                                <div className="text-stone-600 text-[11px] flex flex-wrap gap-1 mt-0.5">
+                                  <span className="bg-stone-100 font-bold px-1.5 py-0.2 rounded border border-stone-200">সাইজ: {ord.size}</span>
+                                  {ord.color && <span className="bg-emerald-50 text-emerald-800 font-bold px-1.5 py-0.2 rounded border border-emerald-200">কালার: {ord.color}</span>}
+                                  {!ord.isSingleBuy && <span className="text-stone-500 font-medium">ব্যাচ #{ord.batchNumber}</span>}
                                 </div>
                               </td>
                               <td className="p-2.5 whitespace-nowrap">
@@ -1181,6 +1287,25 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                                 }`}>
                                   {ord.status === 'in_transit' ? 'ডেলিভারিতে আছে' : ord.status === 'delivered' ? 'সম্পন্ন' : 'বুকড / কনফার্মড'}
                                 </span>
+                              </td>
+                              <td className="p-2.5 text-right whitespace-nowrap">
+                                <button
+                                  onClick={async () => {
+                                    if (confirm(`আপনি কি "${ord.customerName || 'গ্রাহক'}" এর অর্ডারটি (আইডি: #${ord.id}) বাতিল করতে চান?`)) {
+                                      const res = await cancelOrder(ord.id);
+                                      if (res.success) {
+                                        setCopiedNotification(res.message);
+                                        refreshAdminData();
+                                        setTimeout(() => setCopiedNotification(null), 2500);
+                                      }
+                                    }
+                                  }}
+                                  className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                                  title="অর্ডার বাতিল ও কাস্টমার রিমুভ করুন"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  <span>বাতিল</span>
+                                </button>
                               </td>
                             </tr>
                           ))}
@@ -1689,6 +1814,18 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                                           <span className="text-[11px] font-black bg-stone-900 text-white px-2 py-0.5 rounded">
                                             ব্যাচ #{b.batchNumber}
                                           </span>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              startEditingProduct(prod);
+                                            }}
+                                            className="px-2 py-0.5 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded text-[10px] font-bold text-stone-800 flex items-center gap-1 cursor-pointer transition-colors"
+                                            title="বান্ডিল ও পণ্য এডিট করুন"
+                                          >
+                                            <Sparkles className="w-3 h-3 text-emerald-600" />
+                                            <span>এডিট</span>
+                                          </button>
                                         </div>
 
                                         {/* Prominent Slot Completed Status Badge */}
@@ -1750,6 +1887,203 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
               </div>
             </div>
           </>
+        )}
+
+        {/* EDIT PRODUCT / BUNDLE MODAL OVERLAY */}
+        {editingProduct && (
+          <div className="fixed inset-0 z-50 bg-stone-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-stone-200 p-6 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-stone-200">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-stone-900">বান্ডিল ও পণ্য এডিট করুন</h3>
+                    <p className="text-xs text-stone-500">আইডি: {editingProduct.id}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingProduct(null)}
+                  className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {editSuccessMsg && (
+                <div className="p-3 bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs font-bold rounded-xl text-center">
+                  {editSuccessMsg}
+                </div>
+              )}
+
+              <form onSubmit={handleSaveEditedProduct} className="space-y-4">
+                {/* Title */}
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 mb-1">পণ্যের নাম *</label>
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    required
+                  />
+                </div>
+
+                {/* Category */}
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 mb-1">ক্যাটাগরি *</label>
+                  <select
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                    className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
+                  >
+                    {categories.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 mb-1">পণ্যের বিস্তারিত বিবরণ (Description) *</label>
+                  <textarea
+                    rows={3}
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    placeholder="পণ্যের উপাদান, ফিনিশিং, সাইজ গাইড বা বিস্তারিত বিবরণ লিখুন..."
+                    className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-medium text-stone-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                {/* Main Image URL */}
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 mb-1">প্রধান ছবির লিংক (Main Image URL) *</label>
+                  <input
+                    type="url"
+                    value={editImageUrl}
+                    onChange={(e) => setEditImageUrl(e.target.value)}
+                    className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-mono focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    required
+                  />
+                </div>
+
+                {/* Additional Images */}
+                <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200 space-y-2">
+                  <label className="block text-xs font-bold text-stone-800">অতিরিক্ত ৫টি ছবির লিংক (Optional)</label>
+                  <div className="space-y-1.5">
+                    {editAdditionalImages.map((img, i) => (
+                      <input
+                        key={i}
+                        type="url"
+                        placeholder={`ছবি ${i + 1} এর লিংক...`}
+                        value={img}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditAdditionalImages((prev) => {
+                            const updated = [...prev];
+                            updated[i] = val;
+                            return updated;
+                          });
+                        }}
+                        className="w-full px-3 py-1.5 bg-white border border-stone-200 rounded-lg text-xs font-mono focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* YouTube Video URL */}
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 mb-1">ইউটিউব ভিডিও লিংক (Optional)</label>
+                  <input
+                    type="url"
+                    value={editYoutubeVideoUrl}
+                    onChange={(e) => setEditYoutubeVideoUrl(e.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-mono focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                {/* Prices Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">খুচরা মূল্য (৳) *</label>
+                    <input
+                      type="number"
+                      value={editRetailPrice}
+                      onChange={(e) => setEditRetailPrice(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-emerald-800 mb-1">গ্রুপ বাই মূল্য/পিস (৳) *</label>
+                    <input
+                      type="number"
+                      value={editGroupPrice}
+                      onChange={(e) => setEditGroupPrice(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="w-full px-3 py-2 bg-emerald-50 border border-emerald-300 rounded-xl text-xs font-bold text-emerald-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">পুরো বান্ডিল মূল্য/পিস (৳) *</label>
+                    <input
+                      type="number"
+                      value={editFullBundlePrice}
+                      onChange={(e) => setEditFullBundlePrice(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Sizes and Colors Text Inputs */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">উপলব্ধ সাইজসমূহ (কমা দিয়ে পৃথক করুন) *</label>
+                    <input
+                      type="text"
+                      value={editSizesText}
+                      onChange={(e) => setEditSizesText(e.target.value)}
+                      placeholder="39, 40, 41, 42, 43, 44"
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">উপলব্ধ কালারসমূহ (কমা দিয়ে পৃথক করুন) *</label>
+                    <input
+                      type="text"
+                      value={editColorsText}
+                      onChange={(e) => setEditColorsText(e.target.value)}
+                      placeholder="কালো, সাদা, লাল, নীল, ব্রাউন"
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-3 flex items-center justify-end gap-2 border-t border-stone-200">
+                  <button
+                    type="button"
+                    onClick={() => setEditingProduct(null)}
+                    className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                  >
+                    বাতিল
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>পরিবর্তন সেভ করুন</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         )}
       </div>
     </div>

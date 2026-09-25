@@ -174,6 +174,7 @@ export async function dbSaveOrder(order: Order): Promise<{ success: boolean; err
       product_title: order.productTitle,
       product_image: order.productImage,
       size: order.size,
+      color: order.color || null,
       is_full_bundle: Boolean(order.isFullBundle),
       total_pieces: order.totalPieces || 1,
       group_price: order.groupPrice,
@@ -274,6 +275,7 @@ export async function dbFindOrderById(orderId: string): Promise<Order | null> {
       productTitle: data.product_title,
       productImage: data.product_image,
       size: data.size,
+      color: data.color || undefined,
       isFullBundle: data.is_full_bundle,
       totalPieces: data.total_pieces,
       groupPrice: Number(data.group_price),
@@ -335,6 +337,7 @@ export async function dbGetAllOrders(): Promise<Order[]> {
       productTitle: d.product_title,
       productImage: d.product_image,
       size: d.size,
+      color: d.color || undefined,
       isFullBundle: d.is_full_bundle,
       totalPieces: d.total_pieces,
       groupPrice: Number(d.group_price),
@@ -377,6 +380,7 @@ export async function dbGetAllProducts(): Promise<Product[]> {
       fullBundlePricePerPiece: Number(p.full_bundle_price_per_piece || p.group_price),
       bundleSize: Number(p.bundle_size || 6),
       availableSizes: Array.isArray(p.available_sizes) ? p.available_sizes : [],
+      availableColors: Array.isArray(p.available_colors) ? p.available_colors : (p.availableColors || []),
     }));
   } catch (err) {
     console.warn('Supabase dbGetAllProducts error:', err);
@@ -404,6 +408,7 @@ export async function dbSaveProduct(product: Product): Promise<boolean> {
         full_bundle_price_per_piece: product.fullBundlePricePerPiece,
         bundle_size: product.bundleSize,
         available_sizes: product.availableSizes,
+        available_colors: product.availableColors || [],
         status: 'active',
         updated_at: new Date().toISOString(),
       }, { onConflict: 'id' });
@@ -466,6 +471,7 @@ export async function dbGetAllBundles(): Promise<Bundle[]> {
           id: s.id,
           bundleId: s.bundle_id,
           size: s.size,
+          color: s.color || undefined,
           status: s.status,
           userId: s.user_id,
           userName: s.user_name,
@@ -524,6 +530,7 @@ export async function dbSaveBundle(bundle: Bundle): Promise<boolean> {
         product_id: bundle.productId,
         slot_number: index + 1,
         size: s.size,
+        color: s.color || null,
         status: s.status,
         user_id: s.userId || null,
         user_name: s.userName || null,
@@ -550,6 +557,7 @@ export async function dbUpdateBundleSlot(slot: BundleSlot): Promise<boolean> {
         id: slot.id,
         bundle_id: slot.bundleId,
         size: slot.size,
+        color: slot.color || null,
         status: slot.status,
         user_id: slot.userId || null,
         user_name: slot.userName || null,

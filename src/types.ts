@@ -24,12 +24,14 @@ export interface Product {
   retailPrice: number;
   bundleSize: number;
   availableSizes: string[];
+  availableColors?: string[];
 }
 
 export interface BundleSlot {
   id: string;
   bundleId: string;
   size: string;
+  color?: string;
   userId?: string;
   userName?: string;
   userPhoneMasked?: string;
@@ -61,6 +63,7 @@ export interface Order {
   productTitle: string;
   productImage: string;
   size: string;
+  color?: string;
   isFullBundle?: boolean;
   isSingleBuy?: boolean;
   orderType?: 'group_slot' | 'full_bundle' | 'single_buy';

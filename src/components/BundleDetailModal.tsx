@@ -85,9 +85,26 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                 <h3 className="text-base sm:text-lg font-bold text-stone-900 leading-snug">
                   {product.title}
                 </h3>
-                <p className="text-xs text-stone-500 mt-1 line-clamp-2">
-                  {product.description}
-                </p>
+                
+                {/* Available Colors list */}
+                {product.availableColors && product.availableColors.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                    <span className="text-[11px] font-bold text-stone-600">উপলব্ধ কালার:</span>
+                    {product.availableColors.map((col) => (
+                      <span key={col} className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                        {col}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Product Description */}
+                <div className="mt-2 text-xs text-stone-700 bg-white p-2.5 rounded-xl border border-stone-200 space-y-1">
+                  <span className="font-bold text-stone-900 block text-[11px] uppercase tracking-wider text-emerald-800">পণ্যের বিবরণ (Description):</span>
+                  <p className="leading-relaxed whitespace-pre-line text-xs font-medium text-stone-800">
+                    {product.description || 'পণ্যের বিস্তারিত বিবরণ পেতে সহায়তা প্রয়োজন হলে মেসেজ দিন।'}
+                  </p>
+                </div>
               </div>
 
               {/* 3 Price Options Mini Bar */}

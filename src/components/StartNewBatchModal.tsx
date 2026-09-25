@@ -21,9 +21,14 @@ export const StartNewBatchModal: React.FC<StartNewBatchModalProps> = ({
   const existingBatchesCount = bundles.filter(b => b.productId === product.id).length;
   const nextBatchNumber = existingBatchesCount + 1;
 
+  const defaultColors = product.availableColors && product.availableColors.length > 0
+    ? product.availableColors
+    : ['কালো', 'সাদা', 'ব্রাউন', 'নীল', 'লাল'];
+
   const [selectedSize, setSelectedSize] = useState<string>(
     preselectedSize || product.availableSizes[0] || '৪০'
   );
+  const [selectedColor, setSelectedColor] = useState<string>(defaultColors[0] || 'কালো');
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [address, setAddress] = useState(user?.deliveryAddress || '');
@@ -62,7 +67,8 @@ export const StartNewBatchModal: React.FC<StartNewBatchModalProps> = ({
         address,
         phone,
         fullName,
-        transactionId.trim()
+        transactionId.trim(),
+        selectedColor
       );
 
       setLoading(false);
@@ -142,13 +148,36 @@ export const StartNewBatchModal: React.FC<StartNewBatchModalProps> = ({
                   key={size}
                   type="button"
                   onClick={() => setSelectedSize(size)}
-                  className={`py-2 px-3 rounded-xl border text-center font-bold text-xs transition-all ${
+                  className={`py-2 px-3 rounded-xl border text-center font-bold text-xs transition-all cursor-pointer ${
                     selectedSize === size
                       ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm'
                       : 'border-stone-200 bg-stone-50 text-stone-800 hover:bg-stone-100'
                   }`}
                 >
                   সাইজ {size}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Select Color */}
+          <div>
+            <label className="block text-xs font-bold text-stone-700 mb-1.5 uppercase tracking-wider">
+              আপনার পছন্দের কালার নির্বাচন করুন *
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {defaultColors.map(color => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => setSelectedColor(color)}
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                    selectedColor === color
+                      ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm'
+                      : 'border-stone-200 bg-stone-50 text-stone-800 hover:bg-stone-100'
+                  }`}
+                >
+                  {color}
                 </button>
               ))}
             </div>

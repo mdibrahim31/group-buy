@@ -222,6 +222,11 @@ export const MyBookingsModal: React.FC = () => {
                           <span className="bg-stone-900 text-white px-2 py-0.5 rounded font-bold">
                             সাইজ: {order.size}
                           </span>
+                          {order.color && (
+                            <span className="bg-emerald-700 text-white px-2 py-0.5 rounded font-bold">
+                              কালার: {order.color}
+                            </span>
+                          )}
                           {!isSingleBuy && (
                             <span className="text-stone-600 font-semibold">
                               ব্যাচ #{order.batchNumber}
