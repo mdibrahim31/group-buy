@@ -1967,205 +1967,225 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                     /* SUB-VIEW 2: ALL BUNDLES LIST (FULL / COMPLETED BUNDLES ON TOP IN SERIAL) */
                     <div className="space-y-4">
                       {/* Bundles Header & Filters */}
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-stone-50 p-3 rounded-xl border border-stone-200">
-                        <div>
-                          <h3 className="text-xs font-bold text-stone-900 flex items-center gap-1.5">
-                            <Layers className="w-4 h-4 text-emerald-700" />
-                            <span>বর্তমান সকল বান্ডিল ও ব্যাচসমূহ ({bundles.length}টি ব্যাচ):</span>
-                          </h3>
-                          <p className="text-[11px] text-stone-500 mt-0.5">
-                            বান্ডিলে ক্লিক করে ভেতরের কাস্টমার লিস্ট, TrxID ও সম্পূর্ণ তথ্য দেখুন।
-                          </p>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
-                          <button
-                            onClick={() => setBundleFilter('all')}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                              bundleFilter === 'all'
-                                ? 'bg-stone-900 text-white'
-                                : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
-                            }`}
-                          >
-                            সকল ({bundles.length})
-                          </button>
-                          <button
-                            onClick={() => setBundleFilter('completed')}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                              bundleFilter === 'completed'
-                                ? 'bg-emerald-600 text-white'
-                                : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
-                            }`}
-                          >
-                            <Check className="w-3 h-3" />
-                            <span>স্লট পূরণ হয়েছে ({bundles.filter(b => b.filledSlots >= b.totalSlots || b.status === 'completed' || b.status === 'ordered').length})</span>
-                          </button>
-                          <button
-                            onClick={() => setBundleFilter('ongoing')}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                              bundleFilter === 'ongoing'
-                                ? 'bg-amber-600 text-white'
-                                : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
-                            }`}
-                          >
-                            চলমান বুকিং ({bundles.filter(b => b.filledSlots < b.totalSlots && b.status === 'open').length})
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Batches Grid (Sorted with Completed Batches at Top) */}
                       {(() => {
-                        // Prepare list with product and completion flags
-                        const batchList = bundles.map((b) => {
-                          const prod = products.find((p) => p.id === b.productId);
-                          const isFull = b.filledSlots >= b.totalSlots || b.status === 'completed' || b.status === 'ordered';
-                          return {
-                            bundle: b,
-                            product: prod,
-                            isFull,
-                          };
-                        });
-
-                        // Filter by tab
-                        const filtered = batchList.filter((item) => {
-                          if (bundleFilter === 'completed') return item.isFull;
-                          if (bundleFilter === 'ongoing') return !item.isFull;
-                          return true;
-                        });
-
-                        // Strict Sorting: COMPLETED / FULL BATCHES GO TO THE TOP (Serial a upore)
-                        const sorted = [...filtered].sort((a, b) => {
-                          if (a.isFull && !b.isFull) return -1;
-                          if (!a.isFull && b.isFull) return 1;
-                          return b.bundle.batchNumber - a.bundle.batchNumber;
-                        });
-
-                        if (sorted.length === 0) {
-                          return (
-                            <div className="text-center py-12 text-stone-500 text-xs bg-white rounded-2xl border border-stone-200">
-                              <Layers className="w-8 h-8 text-stone-300 mx-auto mb-2" />
-                              <p>কোনো বান্ডিল ব্যাচ পাওয়া যায়নি।</p>
-                            </div>
-                          );
+                        // Group bundles by productId, keeping only the one with the maximum batchNumber
+                        const groupedBundlesMap: Record<string, typeof bundles[0]> = {};
+                        for (const b of bundles) {
+                          const existing = groupedBundlesMap[b.productId];
+                          if (!existing || b.batchNumber > existing.batchNumber) {
+                            groupedBundlesMap[b.productId] = b;
+                          }
                         }
+                        const uniqueLatestBundles = Object.values(groupedBundlesMap);
+
+                        const totalUnique = uniqueLatestBundles.length;
+                        const completedUnique = uniqueLatestBundles.filter(b => b.filledSlots >= b.totalSlots || b.status === 'completed' || b.status === 'ordered').length;
+                        const ongoingUnique = uniqueLatestBundles.filter(b => b.filledSlots < b.totalSlots && b.status === 'open').length;
 
                         return (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                            {sorted.map(({ bundle: b, product: prod, isFull }) => {
-                              if (!prod) return null;
-                              const progressPercent = Math.min(100, Math.round((b.filledSlots / b.totalSlots) * 100));
+                          <>
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-stone-50 p-3 rounded-xl border border-stone-200">
+                              <div>
+                                <h3 className="text-xs font-bold text-stone-900 flex items-center gap-1.5">
+                                  <Layers className="w-4 h-4 text-emerald-700" />
+                                  <span>বর্তমান সকল বান্ডিলসমূহ ({totalUnique}টি পণ্য):</span>
+                                </h3>
+                                <p className="text-[11px] text-stone-500 mt-0.5">
+                                  বান্ডিলে ক্লিক করে ভেতরের কাস্টমার লিস্ট, ব্যাচসমূহ ও সম্পূর্ণ তথ্য দেখুন।
+                                </p>
+                              </div>
 
-                              return (
-                                <div
-                                  key={b.id}
-                                  onClick={() => setSelectedBundleId(b.id)}
-                                  className={`p-4 rounded-2xl border transition-all cursor-pointer flex gap-3.5 hover:shadow-md hover:border-emerald-500 relative group ${
-                                    isFull
-                                      ? 'bg-emerald-50/40 border-emerald-300 ring-1 ring-emerald-400/30'
-                                      : 'bg-white border-stone-200 hover:bg-stone-50/50'
+                              <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+                                <button
+                                  onClick={() => setBundleFilter('all')}
+                                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                    bundleFilter === 'all'
+                                      ? 'bg-stone-900 text-white'
+                                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
                                   }`}
                                 >
-                                  {/* Product Thumbnail */}
-                                  <div className="relative shrink-0">
-                                    <img
-                                      src={prod.imageUrl}
-                                      alt={prod.title}
-                                      className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-xl border border-stone-200 shadow-xs"
-                                    />
-                                    <span className="absolute bottom-1 right-1 bg-stone-900/80 backdrop-blur-xs text-white text-[9px] font-bold px-1.5 py-0.2 rounded">
-                                      {prod.category}
-                                    </span>
-                                  </div>
+                                  সকল ({totalUnique})
+                                </button>
+                                <button
+                                  onClick={() => setBundleFilter('completed')}
+                                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                                    bundleFilter === 'completed'
+                                      ? 'bg-emerald-600 text-white'
+                                      : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+                                  }`}
+                                >
+                                  <Check className="w-3 h-3" />
+                                  <span>স্লট পূরণ হয়েছে ({completedUnique})</span>
+                                </button>
+                                <button
+                                  onClick={() => setBundleFilter('ongoing')}
+                                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                    bundleFilter === 'ongoing'
+                                      ? 'bg-amber-600 text-white'
+                                      : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
+                                  }`}
+                                >
+                                  চলমান বুকিং ({ongoingUnique})
+                                </button>
+                              </div>
+                            </div>
 
-                                  {/* Bundle Content */}
-                                  <div className="flex-1 min-w-0 flex flex-col justify-between">
-                                    <div>
-                                      {/* Top Badge Row */}
-                                      <div className="flex items-center justify-between gap-1 mb-1">
-                                        <div className="flex items-center gap-1.5">
-                                           <span className="text-[11px] font-black bg-stone-900 text-white px-2 py-0.5 rounded">
-                                            ব্যাচ #{b.batchNumber}
+                            {/* Batches Grid (Sorted with Completed Batches at Top) */}
+                            {(() => {
+                              // Prepare list with product and completion flags from the unique list
+                              const batchList = uniqueLatestBundles.map((b) => {
+                                const prod = products.find((p) => p.id === b.productId);
+                                const isFull = b.filledSlots >= b.totalSlots || b.status === 'completed' || b.status === 'ordered';
+                                return {
+                                  bundle: b,
+                                  product: prod,
+                                  isFull,
+                                };
+                              });
+
+                              // Filter by tab
+                              const filtered = batchList.filter((item) => {
+                                if (bundleFilter === 'completed') return item.isFull;
+                                if (bundleFilter === 'ongoing') return !item.isFull;
+                                return true;
+                              });
+
+                              // Strict Sorting: COMPLETED / FULL BATCHES GO TO THE TOP (Serial a upore)
+                              const sorted = [...filtered].sort((a, b) => {
+                                if (a.isFull && !b.isFull) return -1;
+                                if (!a.isFull && b.isFull) return 1;
+                                return b.bundle.batchNumber - a.bundle.batchNumber;
+                              });
+
+                              if (sorted.length === 0) {
+                                return (
+                                  <div className="text-center py-12 text-stone-500 text-xs bg-white rounded-2xl border border-stone-200">
+                                    <Layers className="w-8 h-8 text-stone-300 mx-auto mb-2" />
+                                    <p>কোনো বান্ডিল ব্যাচ পাওয়া যায়নি।</p>
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                                  {sorted.map(({ bundle: b, product: prod, isFull }) => {
+                                    if (!prod) return null;
+                                    const progressPercent = Math.min(100, Math.round((b.filledSlots / b.totalSlots) * 100));
+
+                                    return (
+                                      <div
+                                        key={b.id}
+                                        onClick={() => setSelectedBundleId(b.id)}
+                                        className={`p-4 rounded-2xl border transition-all cursor-pointer flex gap-3.5 hover:shadow-md hover:border-emerald-500 relative group ${
+                                          isFull
+                                            ? 'bg-emerald-50/40 border-emerald-300 ring-1 ring-emerald-400/30'
+                                            : 'bg-white border-stone-200 hover:bg-stone-50/50'
+                                        }`}
+                                      >
+                                        {/* Product Thumbnail */}
+                                        <div className="relative shrink-0">
+                                          <img
+                                            src={prod.imageUrl}
+                                            alt={prod.title}
+                                            className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-xl border border-stone-200 shadow-xs"
+                                          />
+                                          <span className="absolute bottom-1 right-1 bg-stone-900/80 backdrop-blur-xs text-white text-[9px] font-bold px-1.5 py-0.2 rounded">
+                                            {prod.category}
                                           </span>
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              startEditingProduct(prod);
-                                            }}
-                                            className="px-2 py-0.5 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded text-[10px] font-bold text-stone-800 flex items-center gap-1 cursor-pointer transition-colors"
-                                            title="বান্ডিল ও পণ্য এডিট করুন"
-                                          >
-                                            <Sparkles className="w-3 h-3 text-emerald-600" />
-                                            <span>এডিট</span>
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={async (e) => {
-                                              e.stopPropagation();
-                                              if (confirm(`আপনি কি আসলেই "${prod.title}" বান্ডিলটি এবং এর সমস্ত চলমান ব্যাচ ডাটাবেজ থেকে সম্পূর্ণ মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না!`)) {
-                                                const res = await deleteProduct(prod.id);
-                                                setCopiedNotification(res.message);
-                                                setTimeout(() => setCopiedNotification(null), 3000);
-                                              }
-                                            }}
-                                            className="px-2 py-0.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                                            title="বান্ডিলটি মুছে ফেলুন"
-                                          >
-                                            <Trash2 className="w-3 h-3" />
-                                            <span>মুছে ফেলুন</span>
-                                          </button>
                                         </div>
 
-                                        {/* Prominent Slot Completed Status Badge */}
-                                        {isFull ? (
-                                          <span className="text-[10px] font-bold bg-emerald-600 text-white px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs animate-pulse shrink-0">
-                                            <Check className="w-3 h-3" />
-                                            <span>স্লট পূরণ হয়েছে (Slot Completed)</span>
-                                          </span>
-                                        ) : (
-                                          <span className="text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-full shrink-0">
-                                            {b.totalSlots - b.filledSlots}টি স্লট বাকি
-                                          </span>
-                                        )}
-                                      </div>
+                                        {/* Bundle Content */}
+                                        <div className="flex-1 min-w-0 flex flex-col justify-between">
+                                          <div>
+                                            {/* Top Badge Row */}
+                                            <div className="flex items-center justify-between gap-1 mb-1">
+                                              <div className="flex items-center gap-1.5">
+                                                 <span className="text-[11px] font-black bg-stone-900 text-white px-2 py-0.5 rounded">
+                                                  ব্যাচ #{b.batchNumber}
+                                                </span>
+                                                <button
+                                                  type="button"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    startEditingProduct(prod);
+                                                  }}
+                                                  className="px-2 py-0.5 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded text-[10px] font-bold text-stone-800 flex items-center gap-1 cursor-pointer transition-colors"
+                                                  title="বান্ডিল ও পণ্য এডিট করুন"
+                                                >
+                                                  <Sparkles className="w-3 h-3 text-emerald-600" />
+                                                  <span>এডিট</span>
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    if (confirm(`আপনি কি আসলেই "${prod.title}" বান্ডিলটি এবং এর সমস্ত চলমান ব্যাচ ডাটাবেজ থেকে সম্পূর্ণ মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না!`)) {
+                                                      const res = await deleteProduct(prod.id);
+                                                      setCopiedNotification(res.message);
+                                                      setTimeout(() => setCopiedNotification(null), 3000);
+                                                    }
+                                                  }}
+                                                  className="px-2 py-0.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                                                  title="বান্ডিলটি মুছে ফেলুন"
+                                                >
+                                                  <Trash2 className="w-3 h-3" />
+                                                  <span>মুছে ফেলুন</span>
+                                                </button>
+                                              </div>
 
-                                      {/* Title */}
-                                      <h4 className="text-xs font-bold text-stone-900 truncate group-hover:text-emerald-700 transition-colors">
-                                        {prod.title}
-                                      </h4>
+                                              {/* Prominent Slot Completed Status Badge */}
+                                              {isFull ? (
+                                                <span className="text-[10px] font-bold bg-emerald-600 text-white px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs animate-pulse shrink-0">
+                                                  <Check className="w-3 h-3" />
+                                                  <span>স্লট পূরণ হয়েছে (Slot Completed)</span>
+                                                </span>
+                                              ) : (
+                                                <span className="text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-full shrink-0">
+                                                  {b.totalSlots - b.filledSlots}টি স্লট বাকি
+                                                </span>
+                                              )}
+                                            </div>
 
-                                      {/* Pricing */}
-                                      <div className="text-[11px] text-stone-600 mt-0.5 flex flex-wrap gap-x-2">
-                                        <span>গ্রুপ রেট: <strong className="text-emerald-700 font-bold">৳{prod.groupPrice}</strong></span>
-                                        <span>হোলসেল: ৳{prod.wholesalePrice}</span>
-                                      </div>
-                                    </div>
+                                            {/* Title */}
+                                            <h4 className="text-xs font-bold text-stone-900 truncate group-hover:text-emerald-700 transition-colors">
+                                              {prod.title}
+                                            </h4>
 
-                                    {/* Progress Meter & View CTA */}
-                                    <div className="mt-2 pt-2 border-t border-stone-100">
-                                      <div className="flex items-center justify-between text-[11px] mb-1">
-                                        <span className="font-semibold text-stone-700">
-                                          {b.filledSlots}/{b.totalSlots} স্লট পূর্ণ
-                                        </span>
-                                        <span className="text-[10px] text-emerald-700 font-bold group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
-                                          <span>বিস্তারিত দেখুন</span>
-                                          <Eye className="w-3 h-3" />
-                                        </span>
+                                            {/* Pricing */}
+                                            <div className="text-[11px] text-stone-600 mt-0.5 flex flex-wrap gap-x-2">
+                                              <span>গ্রুপ রেট: <strong className="text-emerald-700 font-bold">৳{prod.groupPrice}</strong></span>
+                                              <span>হোলসেল: ৳{prod.wholesalePrice}</span>
+                                            </div>
+                                          </div>
+
+                                          {/* Progress Meter & View CTA */}
+                                          <div className="mt-2 pt-2 border-t border-stone-100">
+                                            <div className="flex items-center justify-between text-[11px] mb-1">
+                                              <span className="font-semibold text-stone-700">
+                                                {b.filledSlots}/{b.totalSlots} স্লট পূর্ণ
+                                              </span>
+                                              <span className="text-[10px] text-emerald-700 font-bold group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+                                                <span>বিস্তারিত দেখুন</span>
+                                                <Eye className="w-3 h-3" />
+                                              </span>
+                                            </div>
+                                            <div className="w-full bg-stone-200 h-1.5 rounded-full overflow-hidden">
+                                              <div
+                                                className={`h-full rounded-full ${
+                                                  isFull ? 'bg-emerald-600' : 'bg-emerald-500'
+                                                }`}
+                                                style={{ width: `${progressPercent}%` }}
+                                              />
+                                            </div>
+                                          </div>
+                                        </div>
                                       </div>
-                                      <div className="w-full bg-stone-200 h-1.5 rounded-full overflow-hidden">
-                                        <div
-                                          className={`h-full rounded-full ${
-                                            isFull ? 'bg-emerald-600' : 'bg-emerald-500'
-                                          }`}
-                                          style={{ width: `${progressPercent}%` }}
-                                        />
-                                      </div>
-                                    </div>
-                                  </div>
+                                    );
+                                  })}
                                 </div>
                               );
-                            })}
-                          </div>
+                            })()}
+                          </>
                         );
                       })()}
                     </div>
