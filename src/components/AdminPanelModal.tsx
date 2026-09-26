@@ -70,8 +70,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
   const [adminPin, setAdminPin] = useState('');
   const [pinError, setPinError] = useState('');
 
-  // Tabs: 'orders' | 'new-bundle' | 'bundles' | 'categories' | 'colors' | 'supabase-settings'
-  const [activeTab, setActiveTab] = useState<'orders' | 'new-bundle' | 'bundles' | 'categories' | 'colors' | 'supabase-settings'>('bundles');
+  // Tabs: 'orders' | 'single-orders' | 'new-bundle' | 'bundles' | 'categories' | 'colors' | 'supabase-settings'
+  const [activeTab, setActiveTab] = useState<'orders' | 'single-orders' | 'new-bundle' | 'bundles' | 'categories' | 'colors' | 'supabase-settings'>('bundles');
   const [supabaseUrlInput, setSupabaseUrlInput] = useState(() => localStorage.getItem('custom_supabase_url') || '');
   const [supabaseKeyInput, setSupabaseKeyInput] = useState(() => localStorage.getItem('custom_supabase_key') || '');
   const [supabaseSaveMsg, setSupabaseSaveMsg] = useState<string | null>(null);
@@ -367,8 +367,26 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
     }
   };
 
-  // Filter orders by search
+  // Filter orders by search (Group Buy Slot Orders)
   const filteredOrders = allOrders.filter((order) => {
+    // Only group buy orders
+    if (order.isSingleBuy || order.bundleId === 'single-buy') return false;
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    return (
+      order.id.toLowerCase().includes(q) ||
+      order.customerPhone?.includes(q) ||
+      order.contactPhone?.includes(q) ||
+      order.customerName?.toLowerCase().includes(q) ||
+      order.productTitle.toLowerCase().includes(q) ||
+      order.size.toLowerCase().includes(q)
+    );
+  });
+
+  // Filter single-buy orders
+  const filteredSingleOrders = allOrders.filter((order) => {
+    // Only single buy orders
+    if (!order.isSingleBuy && order.bundleId !== 'single-buy') return false;
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase().trim();
     return (
@@ -581,6 +599,30 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                   </button>
 
                   <button
+                    onClick={() => setActiveTab('orders')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                      activeTab === 'orders'
+                        ? 'bg-stone-900 text-white shadow-sm'
+                        : 'bg-stone-100 text-stone-700 border border-stone-200 hover:bg-stone-200'
+                    }`}
+                  >
+                    <Package className="w-4 h-4 text-emerald-600" />
+                    <span>গ্রুপ-বাই বুকিং তালিকা ({allOrders.filter(o => !o.isSingleBuy && o.bundleId !== 'single-buy').length})</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('single-orders')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                      activeTab === 'single-orders'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-stone-100 text-stone-700 border border-stone-200 hover:bg-stone-200'
+                    }`}
+                  >
+                    <Users className="w-4 h-4 text-blue-600" />
+                    <span>একক অর্ডারসমূহ (Single Buy) ({allOrders.filter(o => o.isSingleBuy || o.bundleId === 'single-buy').length})</span>
+                  </button>
+
+                  <button
                     onClick={() => setActiveTab('new-bundle')}
                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
                       activeTab === 'new-bundle'
@@ -637,8 +679,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                   </button>
                 </div>
 
-                {/* Search (when in Orders tab) */}
-                {activeTab === 'orders' && (
+                {/* Search (when in Orders/Single Buy tab) */}
+                {(activeTab === 'orders' || activeTab === 'single-orders') && (
                   <div className="relative w-full sm:w-72">
                     <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
@@ -1444,7 +1486,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                   {filteredOrders.length === 0 ? (
                     <div className="text-center py-12 text-stone-500 text-xs">
                       <Package className="w-8 h-8 text-stone-300 mx-auto mb-2" />
-                      <p>কোনো অর্ডার পাওয়া যায়নি।</p>
+                      <p>কোনো গ্রুপ-বাই অর্ডার পাওয়া যায়নি।</p>
                     </div>
                   ) : (
                     <div className="overflow-x-auto border border-stone-200 rounded-xl bg-white shadow-xs">
@@ -1525,6 +1567,104 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                                   }}
                                   className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
                                   title="অর্ডার বাতিল ও কাস্টমার রিমুভ করুন"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  <span>বাতিল</span>
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB: SINGLE BUY ORDERS */}
+              {activeTab === 'single-orders' && (
+                <div className="space-y-3">
+                  <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl">
+                    <h4 className="text-xs font-black text-blue-900 flex items-center gap-1.5">
+                      <Users className="w-4 h-4 text-blue-700" />
+                      <span>একক ক্রয় অর্ডারসমূহ (Single Buy List):</span>
+                    </h4>
+                    <p className="text-[10px] text-blue-700 mt-1">
+                      গ্রাহকদের করা সমস্ত সরাসরি খুচরা অর্ডারগুলো এখানে সাজানো রয়েছে। এই অর্ডারগুলোর সাথে কোনো স্লট বা ব্যাচের সম্পৃক্ততা নেই, তাই এগুলো সরাসরি ডেলিভারি করা যাবে।
+                    </p>
+                  </div>
+
+                  {filteredSingleOrders.length === 0 ? (
+                    <div className="text-center py-12 text-stone-500 text-xs bg-white border border-stone-200 rounded-2xl">
+                      <Users className="w-8 h-8 text-stone-300 mx-auto mb-2" />
+                      <p>কোনো একক অর্ডার পাওয়া যায়নি।</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto border border-stone-200 rounded-xl bg-white shadow-xs">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-stone-50 text-stone-600 font-semibold border-b border-stone-200">
+                          <tr>
+                            <th className="p-2.5">অর্ডার আইডি</th>
+                            <th className="p-2.5">গ্রাহকের নাম ও ফোন</th>
+                            <th className="p-2.5">পণ্যের নাম, সাইজ ও কালার</th>
+                            <th className="p-2.5">মূল্য (খুচরা) ও অগ্রিম</th>
+                            <th className="p-2.5">ডেলিভারি ঠিকানা</th>
+                            <th className="p-2.5">পেমেন্ট মাধ্যম</th>
+                            <th className="p-2.5">অ্যাকশন</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-stone-200">
+                          {filteredSingleOrders.map((ord) => (
+                            <tr key={ord.id} className="hover:bg-stone-50/80 transition-colors">
+                              <td className="p-2.5 font-mono font-bold text-blue-800 whitespace-nowrap">
+                                <div>#{ord.id}</div>
+                                <span className="inline-block mt-0.5 px-1.5 py-0.2 text-[9px] bg-blue-100 text-blue-800 rounded font-bold border border-blue-200">
+                                  একক ক্রয় (Single)
+                                </span>
+                              </td>
+                              <td className="p-2.5">
+                                <div className="font-bold text-stone-900">{ord.customerName || 'কাস্টমার'}</div>
+                                <a
+                                  href={`tel:${ord.customerPhone || ord.contactPhone}`}
+                                  className="text-blue-700 hover:text-blue-800 font-mono font-bold text-[11px] hover:underline"
+                                >
+                                  {ord.customerPhone || ord.contactPhone}
+                                </a>
+                              </td>
+                              <td className="p-2.5">
+                                <div className="font-medium text-stone-900 truncate max-w-[200px]">{ord.productTitle}</div>
+                                <div className="text-stone-600 text-[11px] flex flex-wrap gap-1 mt-0.5">
+                                  <span className="bg-stone-100 font-bold px-1.5 py-0.2 rounded border border-stone-200">সাইজ: {ord.size}</span>
+                                  {ord.color && <span className="bg-emerald-50 text-emerald-800 font-bold px-1.5 py-0.2 rounded border border-emerald-200">কালার: {ord.color}</span>}
+                                  <span className="bg-blue-50 text-blue-800 font-bold px-1.5 py-0.2 rounded border border-blue-100">পরিমাণ: {ord.totalPieces || 1}টি</span>
+                                </div>
+                              </td>
+                              <td className="p-2.5 whitespace-nowrap">
+                                <div className="font-bold text-blue-800">৳{ord.groupPrice}</div>
+                                <div className="text-[11px] text-stone-500">
+                                  অগ্রিম: ৳{ord.advanceAmount} | বাকি: <span className="text-rose-600 font-bold">৳{ord.dueAmount}</span>
+                                </div>
+                              </td>
+                              <td className="p-2.5 text-stone-600 max-w-[200px] truncate" title={ord.deliveryAddress}>
+                                {ord.deliveryAddress || 'ঠিকানা নেই'}
+                              </td>
+                              <td className="p-2.5 whitespace-nowrap text-stone-700">
+                                <div className="font-semibold">{ord.paymentMethod}</div>
+                                {ord.transactionId && <div className="text-[10px] font-mono text-stone-500">TrxID: {ord.transactionId}</div>}
+                              </td>
+                              <td className="p-2.5 whitespace-nowrap">
+                                <button
+                                  onClick={async () => {
+                                    if (confirm(`আপনি কি এই একক অর্ডারটি (আইডি: #${ord.id}) বাতিল করতে চান?`)) {
+                                      const res = await cancelOrder(ord.id);
+                                      if (res.success) {
+                                        setCopiedNotification(res.message);
+                                        refreshAdminData();
+                                        setTimeout(() => setCopiedNotification(null), 2500);
+                                      }
+                                    }
+                                  }}
+                                  className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
                                 >
                                   <Trash2 className="w-3 h-3" />
                                   <span>বাতিল</span>

@@ -408,52 +408,27 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
           )}
         </div>
 
-          {/* Option 2 & Option 3 Direct Purchase Actions */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-stone-200">
-            {/* Option 2: Whole Bundle */}
-            <button
-              onClick={() => {
-                onBuyWholeBundle(product);
-                onClose();
-              }}
-              className="p-4 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-2xl text-left flex flex-col justify-between transition-all cursor-pointer group/wb shadow-xs"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-extrabold text-amber-900 flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-amber-600" />
-                  <span>অপশন ২: সম্পূর্ণ বান্ডিল</span>
-                </span>
-                <span className="text-xs bg-amber-200 text-amber-900 font-black px-2 py-0.5 rounded-full">
-                  {product.bundleSize} পিস
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-black text-amber-950">৳{product.fullBundlePricePerPiece} /পিস</span>
-                <span className="text-xs font-bold text-amber-800 flex items-center gap-1 group-hover/wb:translate-x-1 transition-transform">
-                  অর্ডার করুন <ArrowRight className="w-3.5 h-3.5" />
-                </span>
-              </div>
-            </button>
-
-            {/* Option 3: Single Buy */}
+          {/* Option 2 Direct Purchase Actions (Single Buy) */}
+          <div className="pt-2 border-t border-stone-200">
+            {/* Option 2: Single Buy */}
             <button
               onClick={() => {
                 onSingleBuy(product);
                 onClose();
               }}
-              className="p-4 bg-blue-50 hover:bg-blue-100 border border-blue-300 rounded-2xl text-left flex flex-col justify-between transition-all cursor-pointer group/sb shadow-xs"
+              className="w-full p-4 bg-blue-50 hover:bg-blue-100 border border-blue-300 rounded-2xl text-left flex flex-col justify-between transition-all cursor-pointer group/sb shadow-xs"
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-extrabold text-blue-900 flex items-center gap-1.5">
                   <ShoppingBag className="w-4 h-4 text-blue-600" />
-                  <span>অপশন ৩: একক ক্রয় (Single Buy)</span>
+                  <span>সরাসরি অর্ডার: একক ক্রয় (Single Buy)</span>
                 </span>
                 <span className="text-xs bg-blue-200 text-blue-900 font-black px-2 py-0.5 rounded-full">
                   ১ পিস
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-black text-blue-950">৳{product.retailPrice}</span>
+                <span className="text-sm font-black text-blue-950">৳{product.retailPrice} (কোনো বান্ডিল মেম্বারশিপের প্রয়োজন নেই)</span>
                 <span className="text-xs font-bold text-blue-800 flex items-center gap-1 group-hover/sb:translate-x-1 transition-transform">
                   কিনুন <ArrowRight className="w-3.5 h-3.5" />
                 </span>

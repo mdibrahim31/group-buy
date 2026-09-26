@@ -57,24 +57,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {product.category}
         </div>
 
-        {/* 3 Price Options Overlay Banner */}
+        {/* 2 Price Options Overlay Banner */}
         <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-stone-950/95 via-stone-950/80 to-transparent p-3 pt-6 text-white">
-          <div className="grid grid-cols-3 gap-1.5 text-center">
+          <div className="grid grid-cols-2 gap-1.5 text-center">
             {/* Option 1: Group Buy */}
             <div className="bg-emerald-950/70 border border-emerald-500/40 rounded-lg p-1.5">
               <span className="text-[9px] text-emerald-300 font-bold block">১. গ্রুপ বাই</span>
               <span className="text-xs font-extrabold text-emerald-400">৳{product.groupPrice}<span className="text-[9px] font-normal">/পিস</span></span>
             </div>
 
-            {/* Option 2: Full Bundle */}
-            <div className="bg-amber-950/70 border border-amber-500/40 rounded-lg p-1.5">
-              <span className="text-[9px] text-amber-300 font-bold block">২. পুরো বান্ডিল</span>
-              <span className="text-xs font-extrabold text-amber-300">৳{product.fullBundlePricePerPiece}<span className="text-[9px] font-normal">/পিস</span></span>
-            </div>
-
-            {/* Option 3: Single Buy */}
+            {/* Option 2: Single Buy */}
             <div className="bg-blue-950/70 border border-blue-500/40 rounded-lg p-1.5">
-              <span className="text-[9px] text-blue-300 font-bold block">৩. একক ক্রয়</span>
+              <span className="text-[9px] text-blue-300 font-bold block">২. একক ক্রয়</span>
               <span className="text-xs font-extrabold text-blue-300">৳{product.retailPrice}<span className="text-[9px] font-normal">/পিস</span></span>
             </div>
           </div>
