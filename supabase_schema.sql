@@ -1,14 +1,12 @@
 -- ==============================================================================
--- GroupBuy Wholesale - Complete Production Database Schema
+-- GroupBuy Wholesale - Production Database Schema (Minimal Clean Core)
 -- Compatible with PostgreSQL 13+ & Supabase
 -- ==============================================================================
--- নির্দেশনা: এই সম্পূর্ণ কোডটি কপি করে Supabase ড্যাশবোর্ডের "SQL Editor"-এ পেস্ট 
--- করে "Run" বাটনে ক্লিক করুন। আগের টেবিলগুলো ড্রপ হয়ে নতুন করে সবকিছু তৈরি হবে।
+-- নির্দেশনা: এই কোডটি কপি করে Supabase ড্যাশবোর্ডের "SQL Editor"-এ পেস্ট করে 
+-- "Run" করুন। এটি একটি ফ্রেশ ডাটাবেজ প্রজেক্টের জন্য নিখুঁত এবং অপ্রয়োজনীয় টেবিলমুক্ত।
 -- ==============================================================================
 
 -- ১. পুরনো টেবিলগুলো সম্পূর্ণ ডিলিট (Clean Reset)
-DROP TABLE IF EXISTS public.courier_shipments CASCADE;
-DROP TABLE IF EXISTS public.payments CASCADE;
 DROP TABLE IF EXISTS public.orders CASCADE;
 DROP TABLE IF EXISTS public.bundle_slots CASCADE;
 DROP TABLE IF EXISTS public.bundles CASCADE;
@@ -134,36 +132,7 @@ CREATE TABLE public.orders (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- ৮. পেমেন্ট ট্রানজেকশন লগ (Payments Log Table)
-CREATE TABLE public.payments (
-    id TEXT PRIMARY KEY,
-    order_id TEXT REFERENCES public.orders(id) ON DELETE CASCADE,
-    customer_id TEXT REFERENCES public.customers(id) ON DELETE SET NULL,
-    amount NUMERIC NOT NULL,
-    payment_method TEXT NOT NULL,
-    trx_id TEXT,
-    payment_type TEXT DEFAULT 'advance' CHECK (payment_type IN ('advance', 'full', 'due_collection', 'refund')),
-    status TEXT DEFAULT 'success' CHECK (status IN ('pending', 'success', 'failed', 'refunded')),
-    gateway_response JSONB DEFAULT '{}'::jsonb,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
--- ৯. কুরিয়ার ও শিপমেন্ট ট্র্যাকিং (Courier Shipments - Pathao/Steadfast API Ready)
-CREATE TABLE public.courier_shipments (
-    id TEXT PRIMARY KEY,
-    order_id TEXT REFERENCES public.orders(id) ON DELETE CASCADE,
-    courier_name TEXT NOT NULL,
-    consignment_id TEXT,
-    tracking_code TEXT,
-    delivery_charge NUMERIC DEFAULT 0,
-    cod_amount NUMERIC DEFAULT 0,
-    shipment_status TEXT DEFAULT 'ready_for_pickup',
-    dispatched_at TIMESTAMP WITH TIME ZONE,
-    delivered_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
--- ১০. সিস্টেম সেটিংস ও কনফিগারেশন (Admin Settings Table)
+-- ৮. সিস্টেম সেটিংস ও কনফিগারেশন (Admin Settings Table)
 CREATE TABLE public.admin_settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
@@ -171,7 +140,7 @@ CREATE TABLE public.admin_settings (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- ১১. ক্যাটাগরি ও কালার টেবিল (Categories & Colors Table)
+-- ৯. ক্যাটাগরি ও কালার টেবিল (Categories & Colors Table)
 CREATE TABLE public.categories (
     name TEXT PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
@@ -184,7 +153,7 @@ CREATE TABLE public.colors (
 
 
 -- ==============================================================================
--- ১২. পারফরম্যান্স ইনডেক্সিং (High Performance Indexes)
+-- ১০. পারফরম্যান্স ইনডেক্সিং (High Performance Indexes)
 -- ==============================================================================
 CREATE INDEX idx_products_category ON public.products(category);
 CREATE INDEX idx_products_status ON public.products(status);
@@ -203,7 +172,7 @@ CREATE INDEX idx_sub_admins_phone ON public.sub_admins(phone);
 
 
 -- ==============================================================================
--- ১৩. Row Level Security (RLS) পলিসি
+-- ১১. Row Level Security (RLS) পলিসি
 -- ==============================================================================
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sub_admins ENABLE ROW LEVEL SECURITY;
@@ -211,8 +180,6 @@ ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bundles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bundle_slots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.courier_shipments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.colors ENABLE ROW LEVEL SECURITY;
@@ -271,17 +238,6 @@ CREATE POLICY "Public insert orders" ON public.orders FOR INSERT WITH CHECK (tru
 DROP POLICY IF EXISTS "Public update orders" ON public.orders;
 CREATE POLICY "Public update orders" ON public.orders FOR UPDATE USING (true);
 
--- Payments & Courier Policies
-DROP POLICY IF EXISTS "Public read payments" ON public.payments;
-CREATE POLICY "Public read payments" ON public.payments FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Public insert payments" ON public.payments;
-CREATE POLICY "Public insert payments" ON public.payments FOR INSERT WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Public read courier" ON public.courier_shipments;
-CREATE POLICY "Public read courier" ON public.courier_shipments FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Public insert courier" ON public.courier_shipments;
-CREATE POLICY "Public insert courier" ON public.courier_shipments FOR INSERT WITH CHECK (true);
-
 -- Admin Settings Policies
 DROP POLICY IF EXISTS "Public read admin_settings" ON public.admin_settings;
 CREATE POLICY "Public read admin_settings" ON public.admin_settings FOR SELECT USING (true);
@@ -307,14 +263,14 @@ CREATE POLICY "Public delete colors" ON public.colors FOR DELETE USING (true);
 
 
 -- ==============================================================================
--- ১৪. প্রাথমিক ক্যাটাগরি ও কালার সিড করা (Default Categories & Colors)
+-- ১২. প্রাথমিক ক্যাটাগরি ও কালার সিড করা (Default Categories & Colors)
 -- ==============================================================================
 INSERT INTO public.categories (name) VALUES ('জুতা'), ('কাপড়') ON CONFLICT (name) DO NOTHING;
 INSERT INTO public.colors (name) VALUES ('কালো'), ('সাদা'), ('ব্রাউন'), ('নীল'), ('লাল'), ('হলুদ'), ('সবুজ'), ('গ্রে') ON CONFLICT (name) DO NOTHING;
 
 
 -- ==============================================================================
--- ১৫. প্রাথমিক পণ্যসমূহ সিড করা (Default Products & Batches Seed Data)
+-- ১৩. প্রাথমিক পণ্যসমূহ সিড করা (Default Products & Batches Seed Data)
 -- ==============================================================================
 INSERT INTO public.products (
     id, title, category, description, image_url, retail_price, group_price, 
