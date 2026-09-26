@@ -477,33 +477,6 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-50 flex flex-col font-sans text-stone-900">
-      {/* Premium Light Top Header */}
-      <div className="bg-white border-b border-stone-200 text-stone-900 px-6 py-4 flex items-center justify-between shrink-0 sticky top-0 z-50 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center shadow-xs">
-            <Layers className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-sm tracking-tight sm:text-base text-stone-900">সাব-অ্যাডমিন ড্যাশবোর্ড (Sub-Admin Dashboard)</h3>
-              <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1 shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                লাইভ
-              </span>
-            </div>
-            <p className="text-[10px] text-stone-500">বান্ডিল পোস্ট এবং প্রোডাক্ট কো-অর্ডিনেশন গেটওয়ে</p>
-          </div>
-        </div>
-        <button
-          onClick={onClose}
-          className="px-3 py-1.5 bg-stone-100 hover:bg-rose-600 text-stone-700 hover:text-white rounded-xl transition-all cursor-pointer flex items-center gap-1.5 font-bold text-xs border border-stone-200 hover:border-rose-500"
-          title="ড্যাশবোর্ড বন্ধ করুন"
-        >
-          <span>বন্ধ করুন</span>
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-
       {/* Main Container Workspace */}
       <div className="flex-1 p-4 sm:p-6 md:p-8 bg-stone-50 text-stone-800 flex flex-col">
         {notification && (
@@ -683,18 +656,6 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
               </div>
 
               <div className="flex items-center gap-2 self-start sm:self-auto">
-                <button
-                  onClick={() => {
-                    if (confirm('আপনি কি পোর্টাল গেটওয়ে লক করতে চান?')) {
-                      setIsAccessGranted(false);
-                      localStorage.removeItem('groupbuy_subadmin_access_granted');
-                    }
-                  }}
-                  title="গেটওয়ে লক করুন"
-                  className="p-2.5 bg-stone-100 text-stone-600 hover:text-stone-900 hover:bg-stone-200 rounded-xl transition-all cursor-pointer border border-stone-200"
-                >
-                  <Lock className="w-4 h-4" />
-                </button>
                 <button
                   onClick={subAdminLogout}
                   className="px-4 py-2.5 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800 border border-rose-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
