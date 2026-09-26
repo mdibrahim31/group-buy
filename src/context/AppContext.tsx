@@ -33,6 +33,7 @@ import {
   dbGetAllReviews,
   dbDeleteReview,
   dbUploadImage,
+  dbUpdateOrderStatus,
 } from '../lib/supabase';
 
 interface AppContextType {
@@ -130,6 +131,7 @@ interface AppContextType {
   subAdminLogout: () => void;
   reviews: Review[];
   saveReview: (review: Omit<Review, 'id' | 'createdAt'>) => Promise<{ success: boolean; message: string }>;
+  completeOrderAndReview: (orderId: string, review: Omit<Review, 'id' | 'createdAt'>) => Promise<{ success: boolean; message: string }>;
   uploadReviewImage: (file: File) => Promise<{ success: boolean; url?: string; error?: string }>;
 }
 
@@ -1372,6 +1374,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, message: 'অর্ডারটি খুঁজে পাওয়া যায়নি।' };
     }
 
+    // Check if bundle is shipped (sent to courier) or order is already delivered/completed
+    const targetBundle = bundles.find(b => b.id === targetOrder.bundleId);
+    if (targetBundle?.status === 'shipped' || targetOrder.status === 'delivered') {
+      return {
+        success: false,
+        message: 'পার্সেলটি ইতিমধ্যে কুরিয়ারে পাঠানো হয়েছে বা ডেলিভারি সম্পন্ন হয়েছে, তাই এখন আর স্লট থেকে উইথড্র বা অর্ডার বাতিল করা সম্ভব নয়।'
+      };
+    }
+
     if (targetOrder.bundleId && targetOrder.slotId) {
       removeCustomerSlot(targetOrder.bundleId, targetOrder.slotId, 'কাস্টমার নিজে বা এডমিন কর্তৃক স্লট রিমুভ');
       await dbDeleteOrder(orderId);
@@ -1398,6 +1409,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { success: false, message: res.error || 'রিভিউ সেভ করা যায়নি।' };
   };
 
+  const completeOrderAndReview = async (orderId: string, review: Omit<Review, 'id' | 'createdAt'>): Promise<{ success: boolean; message: string }> => {
+    // 1. Mark order status as delivered locally & in DB
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'delivered' } : o));
+
+    try {
+      const stored = JSON.parse(localStorage.getItem('wholesaler_reviewed_orders') || '[]');
+      if (!stored.includes(orderId)) {
+        stored.push(orderId);
+        localStorage.setItem('wholesaler_reviewed_orders', JSON.stringify(stored));
+      }
+    } catch {}
+
+    await dbUpdateOrderStatus(orderId, 'delivered');
+
+    // 2. Save the review
+    const res = await saveReview({
+      ...review,
+      orderId,
+    });
+
+    return res;
+  };
+
   const uploadReviewImage = async (file: File): Promise<{ success: boolean; url?: string; error?: string }> => {
     return await dbUploadImage(file);
   };
@@ -1412,6 +1446,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         myOrders,
         reviews,
         saveReview,
+        completeOrderAndReview,
         uploadReviewImage,
         notifications,
         unreadNotificationsCount,

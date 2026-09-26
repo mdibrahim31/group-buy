@@ -204,6 +204,24 @@ export async function dbSaveOrder(order: Order): Promise<{ success: boolean; err
   }
 }
 
+export async function dbUpdateOrderStatus(orderId: string, status: string): Promise<boolean> {
+  if (!supabase || !orderId) return false;
+  try {
+    const { error } = await supabase
+      .from('orders')
+      .update({ status })
+      .eq('id', orderId);
+    if (error) {
+      console.warn('Supabase update order status error:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('Supabase update order status error:', err);
+    return false;
+  }
+}
+
 export async function dbGetOrdersByCustomerId(customerId: string, phone?: string): Promise<Order[]> {
   if (!supabase || (!customerId && !phone)) return [];
   try {

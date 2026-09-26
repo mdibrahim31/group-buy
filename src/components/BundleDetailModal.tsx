@@ -44,32 +44,50 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
     return defaultColors[0] || 'কালো';
   });
 
-  const colorBundles = productBundles.filter(b => b.color === selectedColor);
+  // Batches matching selected color (or batches without specific color)
+  const colorBundles = productBundles.filter(b => !b.color || b.color === selectedColor);
+
+  // Delivered batches of this product
+  const deliveredBatches = productBundles.filter(b => b.status === 'shipped');
+
+  // Display list: color batches + any delivered batches of this product
+  const displayBundles = [
+    ...colorBundles,
+    ...deliveredBatches.filter(db => !colorBundles.some(cb => cb.id === db.id))
+  ].sort((a, b) => a.batchNumber - b.batchNumber);
 
   // Active selected batch tab
   const [selectedBatchId, setSelectedBatchId] = useState<string>(() => {
     if (initialBundleId) {
       const found = productBundles.find(b => b.id === initialBundleId);
-      if (found && found.color === selectedColor) return initialBundleId;
+      if (found) return initialBundleId;
     }
     const firstOpen = colorBundles.find(b => b.status === 'open');
-    return firstOpen ? firstOpen.id : (colorBundles[0]?.id || '');
+    if (firstOpen) return firstOpen.id;
+    return displayBundles[0]?.id || '';
   });
 
   const handleColorChange = (color: string) => {
     setSelectedColor(color);
-    const matchingBundles = productBundles.filter(b => b.color === color);
+    const matchingBundles = productBundles.filter(b => !b.color || b.color === color);
     const firstOpen = matchingBundles.find(b => b.status === 'open');
     if (firstOpen) {
       setSelectedBatchId(firstOpen.id);
     } else if (matchingBundles.length > 0) {
       setSelectedBatchId(matchingBundles[0].id);
-    } else {
-      setSelectedBatchId('');
     }
   };
 
-  const activeBundle = colorBundles.find(b => b.id === selectedBatchId) || colorBundles[0];
+  const activeBundle = productBundles.find(b => b.id === selectedBatchId) || displayBundles[0] || colorBundles[0];
+
+  // Specific reviews for this active batch
+  const activeBatchReviews = reviews.filter(r => {
+    if (activeBundle) {
+      if (r.bundleId && r.bundleId === activeBundle.id) return true;
+      if (r.batchNumber && r.batchNumber === activeBundle.batchNumber && r.productId === product.id) return true;
+    }
+    return false;
+  });
 
   const savingsAmount = product.retailPrice - product.groupPrice;
   const savingsPercent = Math.round((savingsAmount / product.retailPrice) * 100);
@@ -224,7 +242,6 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
               <button
                 onClick={() => {
                   onStartNewBatch(product, undefined, selectedColor);
-                  onClose();
                 }}
                 className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-xs cursor-pointer"
               >
@@ -271,54 +288,94 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
             </div>
 
             {/* Step 2: Show Batch list & Slots */}
-            {colorBundles.length > 0 ? (
+            {displayBundles.length > 0 ? (
               <div className="space-y-4 pt-1">
                 {/* Batch Tabs */}
                 <div className="space-y-1.5">
-                  <span className="text-[11px] font-bold text-stone-500 block">২. ব্যাচ নির্বাচন করুন:</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-stone-500 block">২. ব্যাচ নির্বাচন করুন:</span>
+                    {deliveredBatches.length > 0 && (
+                      <span className="text-[10px] text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                        🚚 {deliveredBatches.length}টি ব্যাচ ডেলিভার্ড
+                      </span>
+                    )}
+                  </div>
                   <div className="flex flex-wrap gap-2">
-                    {colorBundles.map(bundle => {
+                    {displayBundles.map(bundle => {
                       const isSelected = bundle.id === activeBundle?.id;
                       const isCompleted = bundle.filledSlots >= bundle.totalSlots;
+                      const isShipped = bundle.status === 'shipped';
+                      const bRevCount = reviews.filter(r => r.bundleId === bundle.id).length;
+
                       return (
                         <button
                           key={bundle.id}
-                          onClick={() => setSelectedBatchId(bundle.id)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                          onClick={() => {
+                            setSelectedBatchId(bundle.id);
+                            if (bundle.color && bundle.color !== selectedColor) {
+                              setSelectedColor(bundle.color);
+                            }
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                             isSelected
                               ? 'bg-stone-900 text-white shadow-md ring-2 ring-stone-900'
+                              : isShipped
+                              ? 'bg-blue-50 text-blue-900 border border-blue-300 hover:bg-blue-100'
                               : isCompleted
                               ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
                               : 'bg-white text-stone-700 hover:bg-stone-100 border border-stone-200'
                           }`}
                         >
                           <span>ব্যাচ #{bundle.batchNumber}</span>
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                            isSelected ? 'bg-stone-700 text-white' : 'bg-emerald-200 text-emerald-900'
-                          }`}>
-                            {bundle.filledSlots}/{bundle.totalSlots} পূর্ণ
-                          </span>
+                          {isShipped ? (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 ${
+                              isSelected ? 'bg-blue-700 text-white' : 'bg-blue-600 text-white'
+                            }`}>
+                              🚚 ডেলিভার্ড {bRevCount > 0 ? `(${bRevCount})` : ''}
+                            </span>
+                          ) : (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                              isSelected ? 'bg-stone-700 text-white' : 'bg-emerald-200 text-emerald-900'
+                            }`}>
+                              {bundle.filledSlots}/{bundle.totalSlots} পূর্ণ
+                            </span>
+                          )}
                         </button>
                       );
                     })}
                   </div>
                 </div>
 
-                {/* Active Batch Progress Tracker */}
+                {/* Active Batch Progress / Delivered Tracker */}
                 {activeBundle && (
-                  <div className="bg-white rounded-xl p-3.5 border border-emerald-200 shadow-xs space-y-2 animate-in fade-in duration-200">
+                  <div className={`rounded-xl p-3.5 border shadow-xs space-y-2 animate-in fade-in duration-200 ${
+                    activeBundle.status === 'shipped'
+                      ? 'bg-blue-50/80 border-blue-200'
+                      : 'bg-white border-emerald-200'
+                  }`}>
                     <div className="flex items-center justify-between text-xs font-bold">
-                      <span className="text-stone-700">ব্যাচ #{activeBundle.batchNumber} প্রগ্রেস ({progressPercent}%)</span>
-                      <span className="text-emerald-800">{filledSlots} / {totalSlots} স্লট পূর্ণ</span>
+                      <span className={activeBundle.status === 'shipped' ? 'text-blue-950 font-black' : 'text-stone-700'}>
+                        ব্যাচ #{activeBundle.batchNumber} {activeBundle.status === 'shipped' ? '(কুরিয়ারে ডেলিভার্ড সম্পন্ন)' : `প্রগ্রেস (${progressPercent}%)`}
+                      </span>
+                      <span className={activeBundle.status === 'shipped' ? 'text-blue-800 font-bold bg-blue-100 px-2.5 py-0.5 rounded-full border border-blue-200' : 'text-emerald-800'}>
+                        {activeBundle.status === 'shipped' ? '🚚 ডেলিভারি সম্পন্ন' : `${filledSlots} / ${totalSlots} স্লট পূর্ণ`}
+                      </span>
                     </div>
-                    <div className="w-full h-2.5 bg-stone-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-emerald-600 rounded-full transition-all duration-500"
-                        style={{ width: `${progressPercent}%` }}
-                      />
-                    </div>
+                    {activeBundle.status !== 'shipped' && (
+                      <div className="w-full h-2.5 bg-stone-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-600 rounded-full transition-all duration-500"
+                          style={{ width: `${progressPercent}%` }}
+                        />
+                      </div>
+                    )}
                     <div className="text-[11px] text-stone-600 flex items-center gap-1.5">
-                      {filledSlots >= totalSlots ? (
+                      {activeBundle.status === 'shipped' ? (
+                        <span className="text-blue-900 font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+                          🎉 এই ব্যাচের সব পণ্য কুরিয়ারে সফলভাবে ডেলিভারি করা হয়েছে! নিচে এই ব্যাচের গ্রাহকদের রিভিউ ও বাস্তব ছবি দেখতে পারবেন।
+                        </span>
+                      ) : filledSlots >= totalSlots ? (
                         <span className="text-emerald-800 font-bold flex items-center gap-1">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                           স্লট সম্পূর্ণ হয়েছে! হোলসেলার অর্ডার প্রক্রিয়াজাত হচ্ছে।
@@ -338,7 +395,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                   <span className="text-xs font-bold text-stone-700 block">৩. আপনার সাইজ নির্বাচন করুন ও বুক করুন:</span>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                     {(activeBundle?.slots || []).map(slot => {
-                      const isAvailable = slot.status === 'available';
+                      const isAvailable = slot.status === 'available' && activeBundle?.status !== 'shipped';
                       return (
                         <button
                           key={slot.id}
@@ -346,7 +403,6 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                           onClick={() => {
                             if (isAvailable) {
                               onSelectSlot(activeBundle, slot);
-                              onClose();
                             }
                           }}
                           className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all ${
@@ -362,7 +418,9 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                             {isAvailable ? (
                               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                             ) : (
-                              <span className="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded font-bold">বুকড</span>
+                              <span className="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded font-bold">
+                                {activeBundle?.status === 'shipped' ? 'ডেলিভার্ড' : 'বুকড'}
+                              </span>
                             )}
                           </div>
                           <div className="mt-2 text-[11px]">
@@ -372,16 +430,16 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                               </span>
                             ) : (
                               <span className="text-stone-600 block truncate font-medium">
-                                {slot.userPhoneMasked || 'সংরক্ষিত'} • বুকড
+                                {slot.userPhoneMasked || 'সংরক্ষিত'} • {activeBundle?.status === 'shipped' ? 'ডেলিভার্ড' : 'বুকড'}
                               </span>
                             )}
                           </div>
                         </button>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
           ) : (
             <div className="text-center py-10 px-4 bg-white rounded-2xl border border-dashed border-stone-300 space-y-3.5 animate-in fade-in duration-200">
               <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto">
@@ -398,7 +456,6 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
               <button
                 onClick={() => {
                   onStartNewBatch(product, undefined, selectedColor);
-                  onClose();
                 }}
                 className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
               >
@@ -437,23 +494,39 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
             </button>
           </div>
 
-          {/* Customer Reviews & Photos Section */}
+          {/* Customer Reviews & Photos Section (Batch Specific) */}
           <div className="pt-4 border-t border-stone-200 space-y-3">
-            <h4 className="text-xs font-black text-stone-900 flex items-center gap-1.5">
-              <span className="text-sm">⭐</span>
-              <span>গ্রাহকদের রিভিউজ ও বাস্তব ছবিসমূহ ({reviews.filter(r => r.productId === product.id).length})</span>
-            </h4>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h4 className="text-xs font-black text-stone-900 flex items-center gap-1.5">
+                <span className="text-sm">⭐</span>
+                <span>
+                  {activeBundle ? `ব্যাচ #${activeBundle.batchNumber} এর রিভিউজ ও বাস্তব ছবি` : 'গ্রাহকদের রিভিউজ'} ({activeBatchReviews.length})
+                </span>
+              </h4>
+              {activeBundle && (
+                <span className="text-[10px] bg-stone-100 text-stone-600 px-2 py-0.5 rounded-md font-semibold border border-stone-200">
+                  ব্যাচ #{activeBundle.batchNumber} {activeBundle.status === 'shipped' ? '• ডেলিভার্ড' : '• চলমান'}
+                </span>
+              )}
+            </div>
             
-            {reviews.filter(r => r.productId === product.id).length === 0 ? (
+            {activeBatchReviews.length === 0 ? (
               <div className="p-4 bg-stone-50 border border-stone-200/80 rounded-2xl text-center text-[11px] text-stone-500">
-                🌱 এই পণ্যটির কোনো রিভিউ এখনও দেওয়া হয়নি। প্রথম ব্যাচ ডেলিভারি হলে এখানে ক্রেতাদের সরাসরি রিভিউ ও বাস্তব ছবি দেখা যাবে!
+                🌱 {activeBundle ? `ব্যাচ #${activeBundle.batchNumber}` : 'এই ব্যাচ'}-এ এখনও কোনো রিভিউ দেওয়া হয়নি। উপরে অন্য কোনো ডেলিভার্ড ব্যাচে ক্লিক করে ওই ব্যাচের ক্রেতাদের রিভিউ ও বাস্তব ছবি দেখতে পারেন!
               </div>
             ) : (
-              <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
-                {reviews.filter(r => r.productId === product.id).map((rev) => (
+              <div className="space-y-2.5 max-h-[240px] overflow-y-auto pr-1">
+                {activeBatchReviews.map((rev) => (
                   <div key={rev.id} className="p-3 bg-stone-50 border border-stone-200/80 rounded-2xl space-y-2 text-left">
                     <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-bold text-stone-800">{rev.customerName}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-stone-800">{rev.customerName}</span>
+                        {activeBundle && (
+                          <span className="text-[9px] bg-stone-200 text-stone-700 px-1.5 py-0.2 rounded font-medium">
+                            ব্যাচ #{activeBundle.batchNumber}
+                          </span>
+                        )}
+                      </div>
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${
                         rev.reviewType === 'happy'
                           ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'

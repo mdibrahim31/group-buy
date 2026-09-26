@@ -108,8 +108,10 @@ export interface AppNotification {
 
 export interface Review {
   id: string;
+  orderId?: string;
   productId: string;
   bundleId: string;
+  batchNumber?: number;
   customerId?: string;
   customerName: string;
   reviewText?: string;

@@ -16,6 +16,7 @@ import {
   CheckCheck,
   Trash2,
   ArrowRight,
+  Lock,
 } from 'lucide-react';
 
 const compressAndConvertToBase64 = (file: File): Promise<string> => {
@@ -75,11 +76,20 @@ export const MyBookingsModal: React.FC<MyBookingsModalProps> = ({ onViewBundle }
     bundles,
     cancelOrder,
     saveReview,
+    completeOrderAndReview,
     uploadReviewImage,
     user,
   } = useApp();
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const isOrderReviewed = (orderId: string) => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('wholesaler_reviewed_orders') || '[]');
+      if (stored.includes(orderId)) return true;
+    } catch {}
+    return false;
+  };
 
   // Review states
   const [reviewingOrder, setReviewingOrder] = useState<Order | null>(null);
@@ -126,11 +136,17 @@ export const MyBookingsModal: React.FC<MyBookingsModalProps> = ({ onViewBundle }
     setTimeout(() => setCopiedId(null), 2500);
   };
 
-  const handleRemoveFromSlot = async (orderId: string, productTitle: string, size: string) => {
+  const handleRemoveFromSlot = async (orderId: string, productTitle: string, size: string, bundleStatus?: string, orderStatus?: string) => {
+    if (bundleStatus === 'shipped' || orderStatus === 'delivered' || isOrderReviewed(orderId)) {
+      alert('পার্সেলটি ইতিমধ্যে কুরিয়ারে পাঠানো হয়েছে বা ডেলিভারি সম্পন্ন হয়েছে, তাই এখন আর স্লট বাতিল করা সম্ভব নয়।');
+      return;
+    }
     if (window.confirm(`আপনি কি নিশ্চিত যে "${productTitle}" (সাইজ: ${size}) এর স্লট থেকে নিজেকে রিমুভ করতে চান? এর ফলে ডাটাবেজের orders টেবিল থেকে আপনার অর্ডারটি মুছে যাবে।`)) {
       const res = await cancelOrder(orderId);
       if (res.success) {
         alert(res.message || 'আপনাকে সফলভাবে স্লট থেকে রিমুভ করা হয়েছে এবং ডাটাবেজ থেকে অর্ডার মুছে দেওয়া হয়েছে।');
+      } else {
+        alert(res.message || 'স্লট থেকে রিমুভ করা সম্ভব হয়নি।');
       }
     }
   };
@@ -340,53 +356,81 @@ export const MyBookingsModal: React.FC<MyBookingsModalProps> = ({ onViewBundle }
                         পার্সেল পাঠানোর ঠিকানা: <span className="text-stone-700 font-medium">{order.deliveryAddress}</span>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <div className="flex items-center gap-1.5 font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>
-                            স্ট্যাটাস:{' '}
-                            {targetBundle?.status === 'shipped'
-                              ? 'কুরিয়ারে পাঠানো হয়েছে'
-                              : isSingleBuy
-                              ? 'একক অর্ডার কনফার্মড'
-                              : isFullBundle
-                              ? 'বান্ডিল কুরিয়ার প্রসেসিং'
-                              : isCompleted
-                              ? 'হোলসেলার প্রসেসিং'
-                              : 'স্লট নিশ্চিত (দল গঠন চলছে)'}
-                          </span>
-                        </div>
+                        {(() => {
+                          const isCompletedOrder = order.status === 'delivered' || isOrderReviewed(order.id);
+                          const isShippedBatch = targetBundle?.status === 'shipped';
 
-                        {/* Received and review/refund button when batch is shipped */}
-                        {targetBundle?.status === 'shipped' && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setReviewingOrder(order);
-                              setReviewType('happy');
-                              setReviewText('');
-                              setReviewImage('');
-                              setErrorMsg('');
-                              setSuccessMsg('');
-                            }}
-                            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-extrabold flex items-center gap-1 shadow-sm transition-all cursor-pointer text-xs"
-                          >
-                            <CheckCheck className="w-3.5 h-3.5 text-white" />
-                            <span>রিসিভ করেছি</span>
-                          </button>
-                        )}
+                          return (
+                            <>
+                              <div className={`flex items-center gap-1.5 font-semibold px-2.5 py-1 rounded-md border ${
+                                isCompletedOrder
+                                  ? 'text-emerald-900 bg-emerald-100 border-emerald-300'
+                                  : isShippedBatch
+                                  ? 'text-blue-900 bg-blue-50 border-blue-200'
+                                  : 'text-emerald-800 bg-emerald-50 border-emerald-200'
+                              }`}>
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>
+                                  স্ট্যাটাস:{' '}
+                                  {isCompletedOrder
+                                    ? '✓ অর্ডার সম্পন্ন (Completed)'
+                                    : isShippedBatch
+                                    ? 'কুরিয়ারে পাঠানো হয়েছে'
+                                    : isSingleBuy
+                                    ? 'একক অর্ডার কনফার্মড'
+                                    : isFullBundle
+                                    ? 'বান্ডিল কুরিয়ার প্রসেসিং'
+                                    : isCompleted
+                                    ? 'হোলসেলার প্রসেসিং'
+                                    : 'স্লট নিশ্চিত (দল গঠন চলছে)'}
+                                </span>
+                              </div>
 
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRemoveFromSlot(order.id, order.productTitle, order.size);
-                          }}
-                          className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-200 rounded-md font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                          title="স্লট থেকে বের হউন ও অর্ডার বাতিল করুন"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>স্লট থেকে রিমুভ</span>
-                        </button>
+                              {/* Received and review/refund button: ONLY if shipped and not yet reviewed */}
+                              {isShippedBatch && !isCompletedOrder && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setReviewingOrder(order);
+                                    setReviewType('happy');
+                                    setReviewText('');
+                                    setReviewImage('');
+                                    setErrorMsg('');
+                                    setSuccessMsg('');
+                                  }}
+                                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-extrabold flex items-center gap-1 shadow-sm transition-all cursor-pointer text-xs animate-pulse"
+                                >
+                                  <CheckCheck className="w-3.5 h-3.5 text-white" />
+                                  <span>রিসিভ করেছি</span>
+                                </button>
+                              )}
+
+                              {/* Remove / Withdraw button: Disabled/Locked if shipped or completed */}
+                              {isShippedBatch || isCompletedOrder ? (
+                                <span
+                                  className="px-2.5 py-1 bg-stone-100 text-stone-500 border border-stone-200 rounded-md text-[11px] font-semibold flex items-center gap-1 select-none cursor-not-allowed"
+                                  title={isCompletedOrder ? "অর্ডার সম্পন্ন হয়েছে, এখন আর স্লট বাতিলযোগ্য নয়" : "কুরিয়ারে পাঠানো হয়েছে, এখন আর স্লট বাতিল করা সম্ভব নয়"}
+                                >
+                                  <Lock className="w-3.5 h-3.5 text-stone-400" />
+                                  <span>লকড ({isCompletedOrder ? 'অর্ডার সম্পন্ন' : 'কুরিয়ারে প্রেরিত'})</span>
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveFromSlot(order.id, order.productTitle, order.size, targetBundle?.status, order.status);
+                                  }}
+                                  className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-200 rounded-md font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                                  title="স্লট থেকে বের হউন ও অর্ডার বাতিল করুন"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>স্লট থেকে রিমুভ</span>
+                                </button>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -524,9 +568,10 @@ export const MyBookingsModal: React.FC<MyBookingsModalProps> = ({ onViewBundle }
                 const customerName = user?.fullName || reviewingOrder.customerName || 'কাস্টমার';
                 const customerId = user?.id || reviewingOrder.customerId || 'guest';
 
-                const res = await saveReview({
+                const res = await completeOrderAndReview(reviewingOrder.id, {
                   productId: reviewingOrder.productId,
                   bundleId: reviewingOrder.bundleId,
+                  batchNumber: reviewingOrder.batchNumber,
                   customerId,
                   customerName,
                   reviewText,
@@ -535,7 +580,7 @@ export const MyBookingsModal: React.FC<MyBookingsModalProps> = ({ onViewBundle }
                 });
 
                 if (res.success) {
-                  setSuccessMsg(reviewType === 'happy' ? '🎉 রিভিউ সফলভাবে জমা দেওয়া হয়েছে!' : '✓ রিফান্ড আবেদন জমা দেওয়া হয়েছে!');
+                  setSuccessMsg(reviewType === 'happy' ? '🎉 রিভিউ সফলভাবে জমা দেওয়া হয়েছে এবং অর্ডারটি সম্পন্ন হয়েছে!' : '✓ রিফান্ড আবেদন জমা দেওয়া হয়েছে এবং অর্ডারটি সম্পন্ন হয়েছে!');
                   setTimeout(() => {
                     setSuccessMsg('');
                     setReviewingOrder(null);

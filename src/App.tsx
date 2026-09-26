@@ -353,7 +353,6 @@ const MainContent: React.FC = () => {
           onSuccess={() => {
             setSelectedBooking(null);
             showToast('স্লট সফলভাবে বুক হয়েছে! আপনার বুকিং তালিকায় যুক্ত করা হয়েছে।');
-            setMyBookingsOpen(true);
           }}
         />
       )}
@@ -367,7 +366,6 @@ const MainContent: React.FC = () => {
           onSuccess={(newBatchNum) => {
             setNewBatchTarget(null);
             showToast(`ব্যাচ #${newBatchNum} তৈরি হয়েছে এবং আপনার সাইজ নিশ্চিত করা হয়েছে!`);
-            setMyBookingsOpen(true);
           }}
         />
       )}
