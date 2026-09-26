@@ -1803,7 +1803,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                                   <option value="open">বুকিং চলমান (Open)</option>
                                   <option value="completed">স্লট পূরণ হয়েছে (Completed)</option>
                                   <option value="ordered">হোলসেলারকে অর্ডার প্লেসড (Ordered)</option>
-                                  <option value="shipped">কুরিয়ারে ডেলিভারি সম্পন্ন (Shipped)</option>
+                                  <option value="shipped">কুরিয়ারে পাঠানো হয়েছে (Send to Courier / Shipped)</option>
                                 </select>
                               </div>
                               <button
