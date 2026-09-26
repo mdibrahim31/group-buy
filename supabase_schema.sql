@@ -13,8 +13,11 @@ DROP TABLE IF EXISTS public.orders CASCADE;
 DROP TABLE IF EXISTS public.bundle_slots CASCADE;
 DROP TABLE IF EXISTS public.bundles CASCADE;
 DROP TABLE IF EXISTS public.products CASCADE;
+DROP TABLE IF EXISTS public.sub_admins CASCADE;
 DROP TABLE IF EXISTS public.customers CASCADE;
 DROP TABLE IF EXISTS public.admin_settings CASCADE;
+DROP TABLE IF EXISTS public.categories CASCADE;
+DROP TABLE IF EXISTS public.colors CASCADE;
 
 -- ২. কাস্টমার ও ইউজার টেবিল (Customers Table)
 CREATE TABLE public.customers (
@@ -30,7 +33,16 @@ CREATE TABLE public.customers (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- ৩. পণ্য টেবিল (Products Table - Wholesale Bundles)
+-- ৩. সাব-অ্যাডমিন টেবিল (Sub Admins Table)
+CREATE TABLE public.sub_admins (
+    id TEXT PRIMARY KEY,
+    phone TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    full_name TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- ৪. পণ্য টেবিল (Products Table - Wholesale Bundles)
 CREATE TABLE public.products (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
@@ -50,11 +62,13 @@ CREATE TABLE public.products (
     min_slots_to_confirm INTEGER DEFAULT 6,
     status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'draft', 'archived')),
     is_featured BOOLEAN DEFAULT false,
+    created_by_sub_admin_id TEXT REFERENCES public.sub_admins(id) ON DELETE SET NULL,
+    created_by_sub_admin_name TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- ৪. বান্ডিল / ব্যাচ টেবিল (Bundles / Batches Table)
+-- ৫. বান্ডিল / ব্যাচ টেবিল (Bundles / Batches Table)
 CREATE TABLE public.bundles (
     id TEXT PRIMARY KEY,
     product_id TEXT NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
@@ -65,11 +79,13 @@ CREATE TABLE public.bundles (
     color TEXT,
     available_colors TEXT[] DEFAULT '{}',
     expires_at TIMESTAMP WITH TIME ZONE,
+    created_by_sub_admin_id TEXT REFERENCES public.sub_admins(id) ON DELETE SET NULL,
+    created_by_sub_admin_name TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- ৫. বান্ডিল স্লট টেবিল (Bundle Slots - Size Wise Slot Booking)
+-- ৬. বান্ডিল স্লট টেবিল (Bundle Slots - Size Wise Slot Booking)
 CREATE TABLE public.bundle_slots (
     id TEXT PRIMARY KEY,
     bundle_id TEXT NOT NULL REFERENCES public.bundles(id) ON DELETE CASCADE,
@@ -84,7 +100,7 @@ CREATE TABLE public.bundle_slots (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- ৬. অর্ডার টেবিল (Orders Table)
+-- ৭. অর্ডার টেবিল (Orders Table)
 CREATE TABLE public.orders (
     id TEXT PRIMARY KEY,
     customer_id TEXT REFERENCES public.customers(id) ON DELETE SET NULL,
@@ -118,7 +134,7 @@ CREATE TABLE public.orders (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- ৭. পেমেন্ট ট্রানজেকশন লগ (Payments Log Table - Future Payment Gateway)
+-- ৮. পেমেন্ট ট্রানজেকশন লগ (Payments Log Table)
 CREATE TABLE public.payments (
     id TEXT PRIMARY KEY,
     order_id TEXT REFERENCES public.orders(id) ON DELETE CASCADE,
@@ -132,7 +148,7 @@ CREATE TABLE public.payments (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- ৮. কুরিয়ার ও শিপমেন্ট ট্র্যাকিং (Courier Shipments - Pathao/Steadfast API Ready)
+-- ৯. কুরিয়ার ও শিপমেন্ট ট্র্যাকিং (Courier Shipments - Pathao/Steadfast API Ready)
 CREATE TABLE public.courier_shipments (
     id TEXT PRIMARY KEY,
     order_id TEXT REFERENCES public.orders(id) ON DELETE CASCADE,
@@ -147,7 +163,7 @@ CREATE TABLE public.courier_shipments (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- ৯. সিস্টেম সেটিংস ও কনফিগারেশন (Admin Settings Table)
+-- ১০. সিস্টেম সেটিংস ও কনফিগারেশন (Admin Settings Table)
 CREATE TABLE public.admin_settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
@@ -155,13 +171,27 @@ CREATE TABLE public.admin_settings (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- ১১. ক্যাটাগরি ও কালার টেবিল (Categories & Colors Table)
+CREATE TABLE public.categories (
+    name TEXT PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE TABLE public.colors (
+    name TEXT PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+
 -- ==============================================================================
--- ১০. পারফরম্যান্স ইনডেক্সিং (High Performance Indexes)
+-- ১২. পারফরম্যান্স ইনডেক্সিং (High Performance Indexes)
 -- ==============================================================================
 CREATE INDEX idx_products_category ON public.products(category);
 CREATE INDEX idx_products_status ON public.products(status);
+CREATE INDEX idx_products_sub_admin ON public.products(created_by_sub_admin_id);
 CREATE INDEX idx_bundles_product_id ON public.bundles(product_id);
 CREATE INDEX idx_bundles_status ON public.bundles(status);
+CREATE INDEX idx_bundles_sub_admin ON public.bundles(created_by_sub_admin_id);
 CREATE INDEX idx_bundle_slots_bundle_id ON public.bundle_slots(bundle_id);
 CREATE INDEX idx_bundle_slots_status ON public.bundle_slots(status);
 CREATE INDEX idx_orders_customer_id ON public.orders(customer_id);
@@ -169,11 +199,14 @@ CREATE INDEX idx_orders_customer_phone ON public.orders(customer_phone);
 CREATE INDEX idx_orders_bundle_id ON public.orders(bundle_id);
 CREATE INDEX idx_orders_status ON public.orders(status);
 CREATE INDEX idx_customers_phone ON public.customers(phone);
+CREATE INDEX idx_sub_admins_phone ON public.sub_admins(phone);
+
 
 -- ==============================================================================
--- ১১. Row Level Security (RLS) পলিসি
+-- ১৩. Row Level Security (RLS) পলিসি
 -- ==============================================================================
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sub_admins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bundles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bundle_slots ENABLE ROW LEVEL SECURITY;
@@ -181,6 +214,8 @@ ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.courier_shipments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.colors ENABLE ROW LEVEL SECURITY;
 
 -- Customers Policies
 DROP POLICY IF EXISTS "Public read customers" ON public.customers;
@@ -189,6 +224,14 @@ DROP POLICY IF EXISTS "Public insert customers" ON public.customers;
 CREATE POLICY "Public insert customers" ON public.customers FOR INSERT WITH CHECK (true);
 DROP POLICY IF EXISTS "Public update customers" ON public.customers;
 CREATE POLICY "Public update customers" ON public.customers FOR UPDATE USING (true);
+
+-- Sub-Admins Policies
+DROP POLICY IF EXISTS "Public read sub_admins" ON public.sub_admins;
+CREATE POLICY "Public read sub_admins" ON public.sub_admins FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public insert sub_admins" ON public.sub_admins;
+CREATE POLICY "Public insert sub_admins" ON public.sub_admins FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Public update sub_admins" ON public.sub_admins;
+CREATE POLICY "Public update sub_admins" ON public.sub_admins FOR UPDATE USING (true);
 
 -- Products Policies
 DROP POLICY IF EXISTS "Public read products" ON public.products;
@@ -247,8 +290,31 @@ CREATE POLICY "Public insert admin_settings" ON public.admin_settings FOR INSERT
 DROP POLICY IF EXISTS "Public update admin_settings" ON public.admin_settings;
 CREATE POLICY "Public update admin_settings" ON public.admin_settings FOR UPDATE USING (true);
 
+-- Categories & Colors Policies
+DROP POLICY IF EXISTS "Public read categories" ON public.categories;
+CREATE POLICY "Public read categories" ON public.categories FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public insert categories" ON public.categories;
+CREATE POLICY "Public insert categories" ON public.categories FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Public delete categories" ON public.categories;
+CREATE POLICY "Public delete categories" ON public.categories FOR DELETE USING (true);
+
+DROP POLICY IF EXISTS "Public read colors" ON public.colors;
+CREATE POLICY "Public read colors" ON public.colors FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public insert colors" ON public.colors;
+CREATE POLICY "Public insert colors" ON public.colors FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Public delete colors" ON public.colors;
+CREATE POLICY "Public delete colors" ON public.colors FOR DELETE USING (true);
+
+
 -- ==============================================================================
--- ১২. প্রাথমিক পণ্যসমূহ সিড করা (Default Products & Batches Seed Data)
+-- ১৪. প্রাথমিক ক্যাটাগরি ও কালার সিড করা (Default Categories & Colors)
+-- ==============================================================================
+INSERT INTO public.categories (name) VALUES ('জুতা'), ('কাপড়') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.colors (name) VALUES ('কালো'), ('সাদা'), ('ব্রাউন'), ('নীল'), ('লাল'), ('হলুদ'), ('সবুজ'), ('গ্রে') ON CONFLICT (name) DO NOTHING;
+
+
+-- ==============================================================================
+-- ১৫. প্রাথমিক পণ্যসমূহ সিড করা (Default Products & Batches Seed Data)
 -- ==============================================================================
 INSERT INTO public.products (
     id, title, category, description, image_url, retail_price, group_price, 
@@ -326,39 +392,3 @@ VALUES
 ('b1-s5', 'bundle-prod-1-batch-1', 'prod-1', 5, '43', 'available', null, null, null, null),
 ('b1-s6', 'bundle-prod-1-batch-1', 'prod-1', 6, '44', 'available', null, null, null, null)
 ON CONFLICT (id) DO NOTHING;
-
--- ==============================================================================
--- ১৩. ক্যাটাগরি ও কালার টেবিল (Categories & Colors Table)
--- ==============================================================================
-CREATE TABLE IF NOT EXISTS public.categories (
-    name TEXT PRIMARY KEY,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS public.colors (
-    name TEXT PRIMARY KEY,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
--- RLS সচল করা
-ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.colors ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Public read categories" ON public.categories;
-CREATE POLICY "Public read categories" ON public.categories FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Public insert categories" ON public.categories;
-CREATE POLICY "Public insert categories" ON public.categories FOR INSERT WITH CHECK (true);
-DROP POLICY IF EXISTS "Public delete categories" ON public.categories;
-CREATE POLICY "Public delete categories" ON public.categories FOR DELETE USING (true);
-
-DROP POLICY IF EXISTS "Public read colors" ON public.colors;
-CREATE POLICY "Public read colors" ON public.colors FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Public insert colors" ON public.colors;
-CREATE POLICY "Public insert colors" ON public.colors FOR INSERT WITH CHECK (true);
-DROP POLICY IF EXISTS "Public delete colors" ON public.colors;
-CREATE POLICY "Public delete colors" ON public.colors FOR DELETE USING (true);
-
--- প্রাথমিক ক্যাটাগরি ও কালার সিড করা
-INSERT INTO public.categories (name) VALUES ('জুতা'), ('কাপড়') ON CONFLICT (name) DO NOTHING;
-INSERT INTO public.colors (name) VALUES ('কালো'), ('সাদা'), ('ব্রাউন'), ('নীল'), ('লাল'), ('হলুদ'), ('সবুজ'), ('গ্রে') ON CONFLICT (name) DO NOTHING;
-
