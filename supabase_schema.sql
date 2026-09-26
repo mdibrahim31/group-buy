@@ -6,18 +6,7 @@
 -- "Run" করুন। এটি একটি ফ্রেশ ডাটাবেজ প্রজেক্টের জন্য নিখুঁত এবং অপ্রয়োজনীয় টেবিলমুক্ত।
 -- ==============================================================================
 
--- ১. পুরনো টেবিলগুলো সম্পূর্ণ ডিলিট (Clean Reset)
-DROP TABLE IF EXISTS public.orders CASCADE;
-DROP TABLE IF EXISTS public.bundle_slots CASCADE;
-DROP TABLE IF EXISTS public.bundles CASCADE;
-DROP TABLE IF EXISTS public.products CASCADE;
-DROP TABLE IF EXISTS public.sub_admins CASCADE;
-DROP TABLE IF EXISTS public.customers CASCADE;
-DROP TABLE IF EXISTS public.admin_settings CASCADE;
-DROP TABLE IF EXISTS public.categories CASCADE;
-DROP TABLE IF EXISTS public.colors CASCADE;
-
--- ২. কাস্টমার ও ইউজার টেবিল (Customers Table)
+-- ১. কাস্টমার ও ইউজার টেবিল (Customers Table)
 CREATE TABLE public.customers (
     id TEXT PRIMARY KEY,
     phone TEXT UNIQUE NOT NULL,
