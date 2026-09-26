@@ -988,7 +988,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                     </div>
 
                     {/* Pricing Grid - Clean (Wholesale cost removed as requested) */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <div>
                         <label className="block text-[11px] font-bold text-stone-700 mb-1">
                           খুচরা বাজার মূল্য *
@@ -1019,22 +1019,6 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                             onChange={(e) => setNewGroupPrice(e.target.value === '' ? '' : Number(e.target.value))}
                             className="w-full pl-6 pr-2 py-2 bg-emerald-50 border border-emerald-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-emerald-900"
                             required
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-bold text-stone-600 mb-1">
-                          পুরো বান্ডিল কিনলে রেট
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400 text-xs">৳</span>
-                          <input
-                            type="number"
-                            placeholder="750"
-                            value={newFullBundlePrice}
-                            onChange={(e) => setNewFullBundlePrice(e.target.value === '' ? '' : Number(e.target.value))}
-                            className="w-full pl-6 pr-2 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-medium"
                           />
                         </div>
                       </div>
@@ -2517,8 +2501,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                   />
                 </div>
 
-                {/* Prices Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                 {/* Prices Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-stone-700 mb-1">খুচরা মূল্য (৳) *</label>
                     <input
@@ -2536,16 +2520,6 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                       value={editGroupPrice}
                       onChange={(e) => setEditGroupPrice(e.target.value === '' ? '' : Number(e.target.value))}
                       className="w-full px-3 py-2 bg-emerald-50 border border-emerald-300 rounded-xl text-xs font-bold text-emerald-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">পুরো বান্ডিল মূল্য/পিস (৳) *</label>
-                    <input
-                      type="number"
-                      value={editFullBundlePrice}
-                      onChange={(e) => setEditFullBundlePrice(e.target.value === '' ? '' : Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                       required
                     />
                   </div>

@@ -103,6 +103,7 @@ CREATE TABLE public.orders (
     product_image TEXT,
     size TEXT NOT NULL,
     is_full_bundle BOOLEAN DEFAULT FALSE,
+    is_single_buy BOOLEAN DEFAULT FALSE,
     total_pieces INTEGER DEFAULT 1,
     retail_price NUMERIC,
     wholesale_price NUMERIC,
@@ -338,3 +339,35 @@ VALUES
 ('b1-s5', 'bundle-prod-1-batch-1', 'prod-1', 5, '43', 'available', null, null, null, null),
 ('b1-s6', 'bundle-prod-1-batch-1', 'prod-1', 6, '44', 'available', null, null, null, null)
 ON CONFLICT (id) DO NOTHING;
+
+-- ১০. কাস্টমার রিভিউ টেবিল (Customer Reviews & Refunds Table)
+CREATE TABLE IF NOT EXISTS public.reviews (
+    id TEXT PRIMARY KEY,
+    product_id TEXT REFERENCES public.products(id) ON DELETE CASCADE,
+    bundle_id TEXT REFERENCES public.bundles(id) ON DELETE CASCADE,
+    customer_id TEXT,
+    customer_name TEXT NOT NULL,
+    review_text TEXT,
+    review_image TEXT,
+    review_type TEXT CHECK (review_type IN ('happy', 'refund')) NOT NULL DEFAULT 'happy',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Indexes for reviews
+CREATE INDEX IF NOT EXISTS idx_reviews_product_id ON public.reviews(product_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_bundle_id ON public.reviews(bundle_id);
+
+-- Enable RLS
+ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
+
+-- Select policy: anyone can read reviews
+CREATE POLICY "Anyone can read reviews" ON public.reviews
+    FOR SELECT USING (true);
+
+-- Insert policy: anyone can insert reviews
+CREATE POLICY "Anyone can insert reviews" ON public.reviews
+    FOR INSERT WITH CHECK (true);
+
+-- Delete policy: anyone can delete reviews (simplified for preview env)
+CREATE POLICY "Anyone can delete reviews" ON public.reviews
+    FOR DELETE USING (true);

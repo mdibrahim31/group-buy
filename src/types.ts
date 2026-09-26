@@ -106,3 +106,15 @@ export interface AppNotification {
   productId?: string;
 }
 
+export interface Review {
+  id: string;
+  productId: string;
+  bundleId: string;
+  customerId?: string;
+  customerName: string;
+  reviewText?: string;
+  reviewImage?: string;
+  reviewType: 'happy' | 'refund';
+  createdAt: string;
+}
+

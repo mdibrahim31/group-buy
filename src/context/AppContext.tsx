@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { User, Product, Bundle, Order, BundleSlot, Customer, AppNotification, SubAdmin } from '../types';
+import { User, Product, Bundle, Order, BundleSlot, Customer, AppNotification, SubAdmin, Review } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_BUNDLES, INITIAL_NOTIFICATIONS } from '../data/initialData';
 import {
   dbGetCustomerByPhone,
@@ -29,6 +29,10 @@ import {
   dbGetSubAdminByPhone,
   dbSaveSubAdmin,
   dbGetAllSubAdmins,
+  dbSaveReview,
+  dbGetAllReviews,
+  dbDeleteReview,
+  dbUploadImage,
 } from '../lib/supabase';
 
 interface AppContextType {
@@ -124,6 +128,9 @@ interface AppContextType {
   subAdminLogin: (phone: string, pass: string) => Promise<{ success: boolean; message: string }>;
   subAdminRegister: (phone: string, pass: string, name: string, address?: string) => Promise<{ success: boolean; message: string }>;
   subAdminLogout: () => void;
+  reviews: Review[];
+  saveReview: (review: Omit<Review, 'id' | 'createdAt'>) => Promise<{ success: boolean; message: string }>;
+  uploadReviewImage: (file: File) => Promise<{ success: boolean; url?: string; error?: string }>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -202,6 +209,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [bundles, setBundles] = useState<Bundle[]>([]);
 
   const [orders, setOrders] = useState<Order[]>([]);
+
+  const [reviews, setReviews] = useState<Review[]>([]);
 
   const [notifications, setNotifications] = useState<AppNotification[]>(() => {
     try {
@@ -340,12 +349,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const loadSupabaseCatalog = async () => {
       if (!isSupabaseConfigured()) return;
       try {
-        const [remoteProducts, remoteBundles, remoteCategories, remoteColors, remoteOrders] = await Promise.all([
+        const [remoteProducts, remoteBundles, remoteCategories, remoteColors, remoteOrders, remoteReviews] = await Promise.all([
           dbGetAllProducts(),
           dbGetAllBundles(),
           dbGetAllCategories(),
           dbGetAllColors(),
           dbGetAllOrders(),
+          dbGetAllReviews(),
         ]);
 
         setProducts(remoteProducts);
@@ -353,6 +363,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (remoteCategories.length > 0) setCategories(remoteCategories);
         if (remoteColors.length > 0) setColors(remoteColors);
         setOrders(remoteOrders);
+        setReviews(remoteReviews);
 
         // Verify logged-in user still exists in database (Desktop Monitor rule)
         if (user && user.phone) {
@@ -409,6 +420,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       )
       .on(
         'postgres_changes',
+        { event: '*', schema: 'public', table: 'reviews' },
+        async () => {
+          const remoteReviews = await dbGetAllReviews();
+          setReviews(remoteReviews);
+        }
+      )
+      .on(
+        'postgres_changes',
         { event: '*', schema: 'public', table: 'categories' },
         async () => {
           const remoteCategories = await dbGetAllCategories();
@@ -441,14 +460,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Periodic sync every 5 seconds as strict database monitor
     const syncInterval = setInterval(async () => {
       try {
-        const [remoteProducts, remoteBundles, remoteOrders] = await Promise.all([
+        const [remoteProducts, remoteBundles, remoteOrders, remoteReviews] = await Promise.all([
           dbGetAllProducts(),
           dbGetAllBundles(),
           dbGetAllOrders(),
+          dbGetAllReviews(),
         ]);
         setProducts(remoteProducts);
         setBundles(remoteBundles);
         setOrders(remoteOrders);
+        setReviews(remoteReviews);
 
         if (user && user.phone) {
           const remoteCust = await dbGetCustomerByPhone(user.phone);
@@ -1361,6 +1382,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { success: true, message: 'স্লট থেকে রিমুভ হওয়া সম্পন্ন হয়েছে এবং ডাটাবেজের orders টেবিল থেকে অর্ডারটি মুছে ফেলা হয়েছে।' };
   };
 
+  const saveReview = async (review: Omit<Review, 'id' | 'createdAt'>): Promise<{ success: boolean; message: string }> => {
+    const newId = `rev-${Date.now()}`;
+    const newReview: Review = {
+      ...review,
+      id: newId,
+      createdAt: new Date().toISOString(),
+    };
+
+    const res = await dbSaveReview(newReview);
+    if (res.success) {
+      setReviews(prev => [newReview, ...prev]);
+      return { success: true, message: 'রিভিউটি সফলভাবে ডাটাবেজে সংরক্ষণ করা হয়েছে!' };
+    }
+    return { success: false, message: res.error || 'রিভিউ সেভ করা যায়নি।' };
+  };
+
+  const uploadReviewImage = async (file: File): Promise<{ success: boolean; url?: string; error?: string }> => {
+    return await dbUploadImage(file);
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -1369,6 +1410,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         bundles,
         orders,
         myOrders,
+        reviews,
+        saveReview,
+        uploadReviewImage,
         notifications,
         unreadNotificationsCount,
         notificationModalOpen,

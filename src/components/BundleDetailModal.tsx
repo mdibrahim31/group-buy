@@ -22,7 +22,8 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
   onBuyWholeBundle,
   onSingleBuy,
 }) => {
-  const { bundles } = useApp();
+  const { bundles, reviews } = useApp();
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
   // Find all active/existing batches for this product
   const productBundles = bundles
@@ -436,6 +437,53 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
             </button>
           </div>
 
+          {/* Customer Reviews & Photos Section */}
+          <div className="pt-4 border-t border-stone-200 space-y-3">
+            <h4 className="text-xs font-black text-stone-900 flex items-center gap-1.5">
+              <span className="text-sm">⭐</span>
+              <span>গ্রাহকদের রিভিউজ ও বাস্তব ছবিসমূহ ({reviews.filter(r => r.productId === product.id).length})</span>
+            </h4>
+            
+            {reviews.filter(r => r.productId === product.id).length === 0 ? (
+              <div className="p-4 bg-stone-50 border border-stone-200/80 rounded-2xl text-center text-[11px] text-stone-500">
+                🌱 এই পণ্যটির কোনো রিভিউ এখনও দেওয়া হয়নি। প্রথম ব্যাচ ডেলিভারি হলে এখানে ক্রেতাদের সরাসরি রিভিউ ও বাস্তব ছবি দেখা যাবে!
+              </div>
+            ) : (
+              <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
+                {reviews.filter(r => r.productId === product.id).map((rev) => (
+                  <div key={rev.id} className="p-3 bg-stone-50 border border-stone-200/80 rounded-2xl space-y-2 text-left">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-bold text-stone-800">{rev.customerName}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${
+                        rev.reviewType === 'happy'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          : 'bg-rose-100 text-rose-800 border border-rose-200'
+                      }`}>
+                        {rev.reviewType === 'happy' ? '😊 সন্তুষ্ট ক্রেতা' : '😟 রিফান্ড অনুরোধ'}
+                      </span>
+                    </div>
+                    {rev.reviewText && (
+                      <p className="text-xs text-stone-700 leading-relaxed font-medium">
+                        "{rev.reviewText}"
+                      </p>
+                    )}
+                    {rev.reviewImage && (
+                      <div className="flex items-center gap-2 pt-0.5">
+                        <img
+                          src={rev.reviewImage}
+                          alt="Review attachment"
+                          onClick={() => setZoomedImage(rev.reviewImage || null)}
+                          className="w-14 h-14 rounded-xl object-cover border border-stone-200 cursor-zoom-in hover:opacity-90 active:scale-95 transition-all shadow-xs"
+                        />
+                        <span className="text-[10px] text-stone-400 font-medium">বাস্তব ছবি (ক্লিক করে বড় করুন)</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Guarantee Footer */}
           <div className="flex items-center justify-center gap-2 text-xs text-stone-500 pt-2 text-center">
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
@@ -443,6 +491,28 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
           </div>
 
         </div>
+
+      {/* Image Zoom Modal Overlay */}
+      {zoomedImage && (
+        <div 
+          onClick={() => setZoomedImage(null)}
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-stone-950/90 backdrop-blur-md cursor-zoom-out animate-in fade-in duration-200"
+        >
+          <div className="relative max-w-lg w-full max-h-[85vh] flex items-center justify-center">
+            <img 
+              src={zoomedImage} 
+              alt="Zoomed Review Attachment" 
+              className="rounded-3xl max-w-full max-h-[80vh] object-contain border border-stone-800 shadow-2xl"
+            />
+            <button
+              onClick={() => setZoomedImage(null)}
+              className="absolute -top-10 right-0 p-2 bg-stone-900/80 hover:bg-stone-900 text-white rounded-full transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );

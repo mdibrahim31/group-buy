@@ -162,12 +162,13 @@ export async function dbSaveOrder(order: Order): Promise<{ success: boolean; err
     return { success: false, error: 'ডাটাবেজ কানেক্টেড নেই।' };
   }
   try {
+    const isSingle = Boolean(order.isSingleBuy) || order.bundleId === 'single-buy';
     const payload = {
       id: order.id,
       customer_id: order.customerId || null,
       customer_name: order.customerName || '',
       customer_phone: order.customerPhone || order.contactPhone || '',
-      bundle_id: order.bundleId,
+      bundle_id: isSingle ? null : order.bundleId,
       slot_id: order.slotId || null,
       batch_number: order.batchNumber,
       product_id: order.productId,
@@ -176,6 +177,7 @@ export async function dbSaveOrder(order: Order): Promise<{ success: boolean; err
       size: order.size,
       color: order.color || null,
       is_full_bundle: Boolean(order.isFullBundle),
+      is_single_buy: isSingle,
       total_pieces: order.totalPieces || 1,
       group_price: order.groupPrice,
       advance_amount: order.advanceAmount,
@@ -228,7 +230,7 @@ export async function dbGetOrdersByCustomerId(customerId: string, phone?: string
       customerId: d.customer_id,
       customerName: d.customer_name,
       customerPhone: d.customer_phone,
-      bundleId: d.bundle_id,
+      bundleId: d.bundle_id || 'single-buy',
       slotId: d.slot_id,
       batchNumber: d.batch_number,
       productId: d.product_id,
@@ -237,8 +239,8 @@ export async function dbGetOrdersByCustomerId(customerId: string, phone?: string
       size: d.size,
       color: d.color || undefined,
       isFullBundle: d.is_full_bundle,
-      isSingleBuy: d.bundle_id === 'single-buy',
-      orderType: d.bundle_id === 'single-buy' ? 'single_buy' : 'group_slot',
+      isSingleBuy: d.is_single_buy || d.bundle_id === null || d.bundle_id === 'single-buy',
+      orderType: (d.is_single_buy || d.bundle_id === null || d.bundle_id === 'single-buy') ? 'single_buy' : 'group_slot',
       totalPieces: d.total_pieces,
       groupPrice: Number(d.group_price),
       advanceAmount: Number(d.advance_amount),
@@ -335,7 +337,7 @@ export async function dbGetAllOrders(): Promise<Order[]> {
       customerId: d.customer_id,
       customerName: d.customer_name,
       customerPhone: d.customer_phone,
-      bundleId: d.bundle_id,
+      bundleId: d.bundle_id || 'single-buy',
       slotId: d.slot_id,
       batchNumber: d.batch_number,
       productId: d.product_id,
@@ -344,8 +346,8 @@ export async function dbGetAllOrders(): Promise<Order[]> {
       size: d.size,
       color: d.color || undefined,
       isFullBundle: d.is_full_bundle,
-      isSingleBuy: d.bundle_id === 'single-buy',
-      orderType: d.bundle_id === 'single-buy' ? 'single_buy' : 'group_slot',
+      isSingleBuy: d.is_single_buy || d.bundle_id === null || d.bundle_id === 'single-buy',
+      orderType: (d.is_single_buy || d.bundle_id === null || d.bundle_id === 'single-buy') ? 'single_buy' : 'group_slot',
       totalPieces: d.total_pieces,
       groupPrice: Number(d.group_price),
       advanceAmount: Number(d.advance_amount),
@@ -905,6 +907,103 @@ export async function dbGetAllSubAdmins(): Promise<any[]> {
     }));
   } catch {
     return [];
+  }
+}
+
+// ======================= REVIEWS & UPLOADS =======================
+
+export async function dbUploadImage(file: File): Promise<{ success: boolean; url?: string; error?: string }> {
+  if (!supabase) {
+    return { success: false, error: 'ডাটাবেজ কানেক্টেড নেই।' };
+  }
+  try {
+    const fileExt = file.name.split('.').pop() || 'jpg';
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+    const filePath = `reviews/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('images')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: true,
+      });
+
+    if (uploadError) {
+      // Return details
+      return { success: false, error: `আপলোড ব্যর্থ হয়েছে: ${uploadError.message}` };
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('images')
+      .getPublicUrl(filePath);
+
+    return { success: true, url: publicUrlData.publicUrl };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'একটি ত্রুটি ঘটেছে।' };
+  }
+}
+
+export async function dbSaveReview(review: any): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) return { success: false, error: 'ডাটাবেজ কানেক্টেড নেই।' };
+  try {
+    const payload = {
+      id: review.id || `rev-${Date.now()}`,
+      product_id: review.productId,
+      bundle_id: review.bundleId,
+      customer_id: review.customerId || null,
+      customer_name: review.customerName,
+      review_text: review.reviewText || '',
+      review_image: review.reviewImage || null,
+      review_type: review.reviewType || 'happy',
+      created_at: review.createdAt || new Date().toISOString(),
+    };
+
+    const { error } = await supabase.from('reviews').insert(payload);
+    if (error) {
+      console.warn('Supabase dbSaveReview error:', error.message);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'রিভিউ সেভ করা যায়নি।' };
+  }
+}
+
+export async function dbGetAllReviews(): Promise<any[]> {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+    return data.map((d: any) => ({
+      id: d.id,
+      productId: d.product_id,
+      bundleId: d.bundle_id,
+      customerId: d.customer_id,
+      customerName: d.customer_name,
+      reviewText: d.review_text,
+      reviewImage: d.review_image,
+      reviewType: d.review_type,
+      createdAt: d.created_at,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function dbDeleteReview(reviewId: string): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase
+      .from('reviews')
+      .delete()
+      .eq('id', reviewId);
+    return !error;
+  } catch {
+    return false;
   }
 }
 

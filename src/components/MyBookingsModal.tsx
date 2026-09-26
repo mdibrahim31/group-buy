@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Product } from '../types';
+import { Product, Order } from '../types';
 import {
   X,
   Package,
@@ -30,11 +30,43 @@ export const MyBookingsModal: React.FC<MyBookingsModalProps> = ({ onViewBundle }
     products,
     bundles,
     cancelOrder,
+    saveReview,
+    uploadReviewImage,
+    user,
   } = useApp();
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // Review states
+  const [reviewingOrder, setReviewingOrder] = useState<Order | null>(null);
+  const [reviewText, setReviewText] = useState('');
+  const [reviewImage, setReviewImage] = useState('');
+  const [reviewType, setReviewType] = useState<'happy' | 'refund'>('happy');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
   if (!myBookingsOpen) return null;
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setUploadingImage(true);
+    setErrorMsg('');
+    try {
+      const res = await uploadReviewImage(file);
+      if (res.success && res.url) {
+        setReviewImage(res.url);
+      } else {
+        setErrorMsg(res.error || 'ইমেজ আপলোড ব্যর্থ হয়েছে। দয়া করে পুনরায় চেষ্টা করুন।');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'আপলোড ব্যর্থ হয়েছে।');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const handleCopyShare = (orderId: string, productTitle: string, batchNumber: number) => {
     const text = `আমি "${productTitle}" এর ব্যাচ #${batchNumber}-এ পাইকারি মূল্যে স্লট বুক করেছি! বাকি স্লটগুলো পূরণ হলে সরাসরি হোলসেলার থেকে মাল পাঠানো হবে। আপনার সাইজ বুক করতে জয়েন করুন: ${window.location.origin}`;
@@ -256,12 +288,14 @@ export const MyBookingsModal: React.FC<MyBookingsModalProps> = ({ onViewBundle }
                       <div>
                         পার্সেল পাঠানোর ঠিকানা: <span className="text-stone-700 font-medium">{order.deliveryAddress}</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <div className="flex items-center gap-1.5 font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                           <span>
                             স্ট্যাটাস:{' '}
-                            {isSingleBuy
+                            {targetBundle?.status === 'shipped'
+                              ? 'কুরিয়ারে পাঠানো হয়েছে'
+                              : isSingleBuy
                               ? 'একক অর্ডার কনফার্মড'
                               : isFullBundle
                               ? 'বান্ডিল কুরিয়ার প্রসেসিং'
@@ -270,8 +304,32 @@ export const MyBookingsModal: React.FC<MyBookingsModalProps> = ({ onViewBundle }
                               : 'স্লট নিশ্চিত (দল গঠন চলছে)'}
                           </span>
                         </div>
+
+                        {/* Received and review/refund button when batch is shipped */}
+                        {targetBundle?.status === 'shipped' && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setReviewingOrder(order);
+                              setReviewType('happy');
+                              setReviewText('');
+                              setReviewImage('');
+                              setErrorMsg('');
+                              setSuccessMsg('');
+                            }}
+                            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-extrabold flex items-center gap-1 shadow-sm transition-all cursor-pointer text-xs"
+                          >
+                            <CheckCheck className="w-3.5 h-3.5 text-white" />
+                            <span>রিসিভ করেছি</span>
+                          </button>
+                        )}
+
                         <button
-                          onClick={() => handleRemoveFromSlot(order.id, order.productTitle, order.size)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveFromSlot(order.id, order.productTitle, order.size);
+                          }}
                           className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-200 rounded-md font-bold flex items-center gap-1 transition-colors cursor-pointer"
                           title="স্লট থেকে বের হউন ও অর্ডার বাতিল করুন"
                         >
@@ -287,6 +345,164 @@ export const MyBookingsModal: React.FC<MyBookingsModalProps> = ({ onViewBundle }
           )}
         </div>
       </div>
+
+      {/* Review & Delivery Confirmation Modal Overlay */}
+      {reviewingOrder && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-stone-200 space-y-5 flex flex-col text-left">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-100">
+              <h3 className="text-sm font-black text-stone-900 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-emerald-600" />
+                <span>পণ্য প্রাপ্তি স্বীকার ও রিভিউ প্রদান</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setReviewingOrder(null)}
+                className="text-stone-400 hover:text-stone-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs text-stone-600 font-bold">অর্ডারকৃত পণ্য:</p>
+                <div className="flex items-center gap-2.5 mt-1.5 p-2.5 bg-stone-50 rounded-xl border border-stone-200/60">
+                  <img src={reviewingOrder.productImage} className="w-10 h-10 rounded-lg object-cover" />
+                  <div>
+                    <h4 className="text-xs font-bold text-stone-900">{reviewingOrder.productTitle}</h4>
+                    <p className="text-[10px] text-stone-500 mt-0.5">সাইজ: {reviewingOrder.size} | কালার: {reviewingOrder.color || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 1: Happy vs Refund Toggle */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-stone-800 block">১. ডেলিভারির অভিজ্ঞতা কেমন ছিল? *</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setReviewType('happy')}
+                    className={`p-3 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                      reviewType === 'happy'
+                        ? 'bg-emerald-50 border-emerald-500 text-emerald-900 ring-2 ring-emerald-500/25'
+                        : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50'
+                    }`}
+                  >
+                    <span className="text-lg">😊</span>
+                    <span className="text-xs font-bold">পণ্য পেয়েছি ও সন্তুষ্ট</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReviewType('refund')}
+                    className={`p-3 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                      reviewType === 'refund'
+                        ? 'bg-rose-50 border-rose-500 text-rose-900 ring-2 ring-rose-500/25'
+                        : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50'
+                    }`}
+                  >
+                    <span className="text-lg">😟</span>
+                    <span className="text-xs font-bold">পেমেন্ট ফেরত (Refund) চাই</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Step 2: Review text */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-stone-800 block">২. আপনার মতামত লিখুন</label>
+                <textarea
+                  value={reviewText}
+                  onChange={(e) => setReviewText(e.target.value)}
+                  placeholder={reviewType === 'happy' ? "যেমন: কাপড়টি খুব আরামদায়ক ছিল এবং সেলাই ফিনিশিং অনেক সুন্দর ছিল..." : "যেমন: রিফান্ড চাওয়ার কারণ এবং বিস্তারিত লিখুন..."}
+                  className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 h-20 resize-none"
+                />
+              </div>
+
+              {/* Step 3: File Input Upload */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-stone-800 block">৩. পণ্যের বাস্তব ছবি আপলোড করুন</label>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                      id="review-image-upload"
+                      disabled={uploadingImage}
+                    />
+                    <label
+                      htmlFor="review-image-upload"
+                      className={`w-full py-2.5 px-4 border border-dashed border-stone-300 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer hover:bg-stone-50 transition-colors ${uploadingImage ? 'opacity-50 pointer-events-none' : ''}`}
+                    >
+                      {uploadingImage ? (
+                        <span>⏳ ছবি আপলোড হচ্ছে...</span>
+                      ) : (
+                        <span>📸 গ্যালারি থেকে ছবি সিলেক্ট করুন</span>
+                      )}
+                    </label>
+                  </div>
+                  {reviewImage && (
+                    <img src={reviewImage} className="w-10 h-10 rounded-lg object-cover border border-emerald-500 shadow-sm shrink-0" />
+                  )}
+                </div>
+                {reviewImage && (
+                  <p className="text-[10px] text-emerald-700 font-bold mt-1">✓ ছবি সফলভাবে Supabase 'images' বাকেটে আপলোড করা হয়েছে!</p>
+                )}
+                {errorMsg && (
+                  <p className="text-[10px] text-rose-600 font-bold mt-1">{errorMsg}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Error or Success notification */}
+            {successMsg && (
+              <div className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold text-center">
+                {successMsg}
+              </div>
+            )}
+
+            {/* Complete button */}
+            <button
+              type="button"
+              onClick={async () => {
+                if (uploadingImage) return;
+                setSuccessMsg('');
+                setErrorMsg('');
+                
+                const customerName = user?.fullName || reviewingOrder.customerName || 'কাস্টমার';
+                const customerId = user?.id || reviewingOrder.customerId || 'guest';
+
+                const res = await saveReview({
+                  productId: reviewingOrder.productId,
+                  bundleId: reviewingOrder.bundleId,
+                  customerId,
+                  customerName,
+                  reviewText,
+                  reviewImage,
+                  reviewType,
+                });
+
+                if (res.success) {
+                  setSuccessMsg(reviewType === 'happy' ? '🎉 রিভিউ সফলভাবে জমা দেওয়া হয়েছে!' : '✓ রিফান্ড আবেদন জমা দেওয়া হয়েছে!');
+                  setTimeout(() => {
+                    setSuccessMsg('');
+                    setReviewingOrder(null);
+                  }, 2000);
+                } else {
+                  setErrorMsg(res.message);
+                }
+              }}
+              className={`w-full py-3 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all ${
+                reviewType === 'happy' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'
+              }`}
+            >
+              <span>{reviewType === 'happy' ? 'অর্ডার কমপ্লিট করুন ও রিভিউ দিন' : 'রিফান্ড ও রিভিউ সম্পন্ন করুন'}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
