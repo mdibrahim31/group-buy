@@ -32,7 +32,7 @@ import {
   Palette,
 } from 'lucide-react';
 import { Order, Product, Bundle } from '../types';
-import { dbGetAllOrders, isSupabaseConfigured } from '../lib/supabase';
+import { dbGetAllOrders, isSupabaseConfigured, dbGetAllSubAdmins } from '../lib/supabase';
 
 interface AdminPanelModalProps {
   isOpen: boolean;
@@ -87,6 +87,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
   };
   const [searchQuery, setSearchQuery] = useState('');
   const [allOrders, setAllOrders] = useState<Order[]>([]);
+  const [subAdmins, setSubAdmins] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Category management state
@@ -310,6 +311,14 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
   const refreshAdminData = async () => {
     setLoading(true);
     try {
+      // Fetch sub-admins
+      try {
+        const subs = await dbGetAllSubAdmins();
+        setSubAdmins(subs);
+      } catch (e) {
+        console.warn('Could not fetch sub-admins:', e);
+      }
+
       const remoteOrders = await dbGetAllOrders();
       const orderMap = new Map<string, Order>();
       remoteOrders.forEach(o => orderMap.set(o.id, o));
@@ -1640,11 +1649,19 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                                 <span>হোলসেল রেট: <strong className="text-stone-800">৳{product.wholesalePrice}</strong></span>
                                 <span>খুচরা বাজার মূল্য: <span className="line-through text-stone-400">৳{product.retailPrice}</span></span>
                                 <span>বান্ডিল সাইজ: <strong>{product.bundleSize} পিস</strong></span>
-                                {product.createdBySubAdminName && (
-                                  <span className="bg-purple-100 text-purple-800 font-extrabold px-2 py-0.5 rounded-md text-[10px]">
-                                    👤 আপলোডার: {product.createdBySubAdminName}
-                                  </span>
-                                )}
+                                {product.createdBySubAdminName && (() => {
+                                  const uploader = subAdmins.find(sa => sa.id === product.createdBySubAdminId);
+                                  return (
+                                    <div className="bg-purple-50 text-purple-950 border border-purple-200 rounded-xl p-2.5 mt-2 flex flex-col gap-1 w-full max-w-sm">
+                                      <p className="text-[10px] font-black text-purple-800 flex items-center gap-1">
+                                        <span>👤 আপলোডার প্রোফাইল:</span>
+                                      </p>
+                                      <p className="text-xs font-bold text-stone-900">{product.createdBySubAdminName}</p>
+                                      <p className="text-[10px] text-stone-600 font-semibold">📞 ফোন: {uploader ? uploader.phone : 'লোডিং...'}</p>
+                                      <p className="text-[10px] text-stone-600 font-semibold">📍 ঠিকানা: {uploader && uploader.address ? uploader.address : 'উল্লেখ নেই/সংরক্ষিত নেই'}</p>
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             </div>
 
@@ -2194,11 +2211,14 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                                             <div className="text-[11px] text-stone-600 mt-0.5 flex flex-wrap gap-x-2 gap-y-1 items-center">
                                               <span>গ্রুপ রেট: <strong className="text-emerald-700 font-bold">৳{prod.groupPrice}</strong></span>
                                               <span>হোলসেল: ৳{prod.wholesalePrice}</span>
-                                              {prod.createdBySubAdminName && (
-                                                <span className="bg-purple-50 text-purple-700 text-[9px] font-bold px-1.5 py-0.5 rounded border border-purple-200">
-                                                  👤 আপলোডার: {prod.createdBySubAdminName}
-                                                </span>
-                                              )}
+                                              {prod.createdBySubAdminName && (() => {
+                                                const uploader = subAdmins.find(sa => sa.id === prod.createdBySubAdminId);
+                                                return (
+                                                  <span className="bg-purple-50 text-purple-700 text-[9px] font-bold px-1.5 py-0.5 rounded border border-purple-200">
+                                                    👤 আপলোডার: {prod.createdBySubAdminName} {uploader ? `(${uploader.phone})` : ''}
+                                                  </span>
+                                                );
+                                              })()}
                                             </div>
                                           </div>
 

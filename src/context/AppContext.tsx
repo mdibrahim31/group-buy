@@ -122,7 +122,7 @@ interface AppContextType {
   findOrderByIdOrCustomer: (query: string) => Promise<Order[]>;
   currentSubAdmin: SubAdmin | null;
   subAdminLogin: (phone: string, pass: string) => Promise<{ success: boolean; message: string }>;
-  subAdminRegister: (phone: string, pass: string, name: string) => Promise<{ success: boolean; message: string }>;
+  subAdminRegister: (phone: string, pass: string, name: string, address?: string) => Promise<{ success: boolean; message: string }>;
   subAdminLogout: () => void;
 }
 
@@ -572,7 +572,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const subAdminRegister = async (phone: string, pass: string, name: string): Promise<{ success: boolean; message: string }> => {
+  const subAdminRegister = async (phone: string, pass: string, name: string, address?: string): Promise<{ success: boolean; message: string }> => {
     const cleanPhone = phone.trim();
     if (!cleanPhone || !pass || !name) {
       return { success: false, message: 'সব প্রয়োজনীয় তথ্য পূরণ করুন।' };
@@ -589,6 +589,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         phone: cleanPhone,
         password: pass,
         fullName: name.trim(),
+        address: address ? address.trim() : '',
         createdAt: new Date().toISOString(),
       };
 

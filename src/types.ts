@@ -15,6 +15,7 @@ export interface SubAdmin {
   phone: string;
   password?: string;
   fullName: string;
+  address?: string;
   createdAt?: string;
 }
 

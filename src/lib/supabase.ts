@@ -835,6 +835,7 @@ export async function dbGetSubAdminByPhone(phone: string): Promise<any | null> {
       phone: data.phone,
       password: data.password,
       fullName: data.full_name || data.fullName,
+      address: data.address || '',
       createdAt: data.created_at,
     };
   } catch (err) {
@@ -856,6 +857,7 @@ export async function dbSaveSubAdmin(subAdmin: any): Promise<{ success: boolean;
       phone: subAdmin.phone.trim(),
       password: subAdmin.password,
       full_name: subAdmin.fullName.trim(),
+      address: subAdmin.address ? subAdmin.address.trim() : '',
       created_at: subAdmin.createdAt || new Date().toISOString(),
     };
 
@@ -891,6 +893,7 @@ export async function dbGetAllSubAdmins(): Promise<any[]> {
       phone: d.phone,
       password: d.password,
       fullName: d.full_name || d.fullName || '',
+      address: d.address || '',
       createdAt: d.created_at,
     }));
   } catch {

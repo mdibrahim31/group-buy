@@ -61,6 +61,7 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [subAdminAddress, setSubAdminAddress] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
 
@@ -250,13 +251,14 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
-    const res = await subAdminRegister(fullName, phone, password);
+    const res = await subAdminRegister(phone, password, fullName, subAdminAddress);
     if (res.success) {
       setAuthSuccess(res.message);
       setAuthMode('login');
       setFullName('');
       setPhone('');
       setPassword('');
+      setSubAdminAddress('');
     } else {
       setAuthError(res.message);
     }
@@ -621,6 +623,17 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
                     placeholder="নিরাপদ পাসওয়ার্ড দিন"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-stone-600 mb-1.5">ঠিকানা (Full Address/Location):</label>
+                  <input
+                    type="text"
+                    placeholder="যেমন: চকবাজার, ঢাকা"
+                    value={subAdminAddress}
+                    onChange={(e) => setSubAdminAddress(e.target.value)}
                     className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     required
                   />
