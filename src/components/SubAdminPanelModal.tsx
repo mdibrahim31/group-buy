@@ -48,14 +48,8 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
     addProduct,
     updateProduct,
     deleteProduct,
+    deleteBundle,
   } = useApp();
-
-  // Security Access Verification
-  const [accessCode, setAccessCode] = useState('');
-  const [isAccessGranted, setIsAccessGranted] = useState(() => {
-    return localStorage.getItem('groupbuy_subadmin_access_granted') === 'true';
-  });
-  const [accessError, setAccessError] = useState<string | null>(null);
 
   // Forms auth state
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
@@ -63,6 +57,7 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [subAdminAddress, setSubAdminAddress] = useState('');
+  const [registrationPin, setRegistrationPin] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
 
@@ -216,24 +211,6 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
     },
   ];
 
-  // Handle access code verify
-  const handleVerifyAccessCode = (e: React.FormEvent) => {
-    e.preventDefault();
-    const serverKey = (
-      // @ts-ignore
-      (typeof __APP_SUB_ADMIN_ACCESS_KEY__ !== 'undefined' ? __APP_SUB_ADMIN_ACCESS_KEY__ : '') ||
-      import.meta.env.VITE_SUB_ADMIN_ACCESS_KEY ||
-      'subadmin123'
-    ).trim();
-    if (accessCode.trim() === serverKey) {
-      setIsAccessGranted(true);
-      localStorage.setItem('groupbuy_subadmin_access_granted', 'true');
-      setAccessError(null);
-    } else {
-      setAccessError('ভুল সিক্রেট কোড! অনুগ্রহ করে সঠিক কোডটি দিন।');
-    }
-  };
-
   // Handle Login
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -252,6 +229,25 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
+
+    // Verify Admin Registration PIN configured in GitHub Actions / env
+    const expectedPin = (
+      // @ts-ignore
+      (typeof __APP_SUB_ADMIN_ACCESS_KEY__ !== 'undefined' ? __APP_SUB_ADMIN_ACCESS_KEY__ : '') ||
+      import.meta.env.VITE_SUB_ADMIN_ACCESS_KEY ||
+      'subadmin123'
+    ).trim();
+
+    if (!registrationPin.trim()) {
+      setAuthError('দয়া করে অ্যাডমিন কর্তৃক প্রদত্ত সিক্রেট রেজিস্ট্রেশন পিন (PIN) প্রদান করুন।');
+      return;
+    }
+
+    if (registrationPin.trim() !== expectedPin) {
+      setAuthError('ভুল রেজিস্ট্রেশন পিন! অ্যাডমিনের সেট করা সঠিক পিন প্রদান না করলে রেজিস্ট্রেশন সম্পন্ন হবে না।');
+      return;
+    }
+
     const res = await subAdminRegister(phone, password, fullName, subAdminAddress);
     if (res.success) {
       setAuthSuccess(res.message);
@@ -260,6 +256,7 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
       setPhone('');
       setPassword('');
       setSubAdminAddress('');
+      setRegistrationPin('');
     } else {
       setAuthError(res.message);
     }
@@ -297,6 +294,10 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
 
   // Open Edit Product form
   const handleOpenEditForm = (prod: Product) => {
+    if (!currentSubAdmin || prod.createdBySubAdminId !== currentSubAdmin.id) {
+      showNotification('নিরাপত্তা সতর্কতা: আপনি শুধুমাত্র নিজের আপলোড করা বান্ডিল এডিট করতে পারবেন।');
+      return;
+    }
     setEditingProduct(prod);
     setProdTitle(prod.title);
     setProdCategory(prod.category);
@@ -410,6 +411,10 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
   const handleEditProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct) return;
+    if (!currentSubAdmin || editingProduct.createdBySubAdminId !== currentSubAdmin.id) {
+      setFormError('নিরাপত্তা ত্রুটি: আপনি শুধুমাত্র নিজের আপলোড করা বান্ডিল এডিট করতে পারবেন।');
+      return;
+    }
     setFormError(null);
 
     if (!prodTitle.trim()) {
@@ -480,6 +485,24 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
 
   return (
     <div className="fixed inset-0 z-[90] overflow-y-auto bg-stone-50 flex flex-col font-sans text-stone-900">
+      {/* Top Bar with Close/Back */}
+      <div className="bg-white border-b border-stone-200 px-4 py-3 flex items-center justify-between shadow-xs shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 bg-emerald-600 text-white rounded-lg flex items-center justify-center font-bold text-xs">
+            GB
+          </div>
+          <span className="text-xs font-black text-stone-800">সাব-অ্যাডমিন প্যানেল</span>
+        </div>
+        <button
+          onClick={onClose}
+          className="p-1.5 text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-xs font-semibold"
+          title="হোম পেজে ফিরে যান"
+        >
+          <X className="w-4 h-4" />
+          <span className="hidden sm:inline">হোমে ফিরে যান</span>
+        </button>
+      </div>
+
       {/* Main Container Workspace */}
       <div className="flex-1 p-4 sm:p-6 md:p-8 bg-stone-50 text-stone-800 flex flex-col">
         {notification && (
@@ -489,37 +512,20 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
           </div>
         )}
 
-        {/* PHASE 1: Verify General Access Code */}
-        {!isAccessGranted ? (
-          <div className="max-w-md mx-auto py-16 text-center w-full my-auto">
-            <div className="w-16 h-16 bg-amber-100 border border-amber-200 text-amber-600 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-sm">
-              <Lock className="w-8 h-8 animate-bounce" />
-            </div>
-            <h4 className="text-base font-black text-stone-900 mb-2 sm:text-lg">সাব-অ্যাডমিন সিক্রেট ভেরিফিকেশন</h4>
-            <p className="text-xs text-stone-500 mb-6 leading-relaxed max-w-sm mx-auto">
-              অনুগ্রহ করে মূল অ্যাডমিন কর্তৃক প্রদত্ত **সিক্রেট কোড** এন্টার করে গেটওয়েটি আনলক করুন।
-            </p>
-
-            <form onSubmit={handleVerifyAccessCode} className="space-y-4">
-              <input
-                type="password"
-                placeholder="সাব-অ্যাডমিন সিক্রেট কী (Secret Access Key)"
-                value={accessCode}
-                onChange={(e) => setAccessCode(e.target.value)}
-                className="w-full text-center px-4 py-3 bg-white border border-stone-300 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 text-stone-900 shadow-xs placeholder-stone-400"
-              />
-              {accessError && <p className="text-xs text-rose-600 font-bold mt-2">{accessError}</p>}
-              <button
-                type="submit"
-                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold transition-all shadow-md cursor-pointer"
-              >
-                Let's Go / আনলক করুন
-              </button>
-            </form>
-          </div>
-        ) : /* PHASE 2: Registration & Login Gateway */
-        !currentSubAdmin ? (
+        {/* Login & Registration Gateway */}
+        {!currentSubAdmin ? (
           <div className="max-w-md mx-auto py-10 w-full my-auto">
+            {/* Header info */}
+            <div className="text-center mb-6">
+              <div className="w-14 h-14 bg-emerald-100 text-emerald-700 rounded-3xl flex items-center justify-center mx-auto mb-3 shadow-xs">
+                <Layers className="w-7 h-7" />
+              </div>
+              <h3 className="text-lg font-black text-stone-900">সাব-অ্যাডমিন পোর্টাল</h3>
+              <p className="text-xs text-stone-500 mt-1">
+                গ্রুপবাই হোলসেল বান্ডিল পোস্ট ও পরিচালনা করার গেটওয়ে
+              </p>
+            </div>
+
             {/* Tab Selector */}
             <div className="flex bg-stone-100 p-1.5 rounded-2xl mb-6 border border-stone-200">
               <button
@@ -595,6 +601,25 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
               </form>
             ) : (
               <form onSubmit={handleRegister} className="space-y-4 bg-white border border-stone-200 p-6 rounded-3xl shadow-sm">
+                {/* Admin Secret Registration PIN */}
+                <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-3.5">
+                  <label className="block text-xs font-extrabold text-amber-900 mb-1 flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-amber-600" />
+                    <span>সিক্রেট রেজিস্ট্রেশন পিন (PIN):</span>
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="অ্যাডমিনের প্রদত্ত গোপন রেজিস্ট্রেশন পিন দিন"
+                    value={registrationPin}
+                    onChange={(e) => setRegistrationPin(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-white border border-amber-300 rounded-xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500 font-semibold"
+                    required
+                  />
+                  <p className="text-[10px] text-amber-700 mt-1 leading-tight">
+                    * অ্যাডমিনের অনুমোদিত সিক্রেট পিন ছাড়া নতুন সাব-অ্যাডমিন একাউন্ট রেজিস্ট্রেশন সফল হবে না।
+                  </p>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-stone-600 mb-1.5">সাব-অ্যাডমিন নাম (Full Name):</label>
                   <input
@@ -773,9 +798,20 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
                           <div className="flex-1 min-w-0 flex flex-col justify-between">
                             <div>
                               <div className="flex items-center justify-between gap-1.5 mb-1.5">
-                                <span className="text-[9px] font-black bg-stone-100 border border-stone-200 text-stone-700 px-2 py-0.5 rounded-md">
-                                  বান্ডিল সাইজ: {prod.bundleSize}টি
-                                </span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[9px] font-black bg-stone-100 border border-stone-200 text-stone-700 px-2 py-0.5 rounded-md">
+                                    বান্ডিল সাইজ: {prod.bundleSize}টি
+                                  </span>
+                                  {prod.createdBySubAdminId === currentSubAdmin.id ? (
+                                    <span className="text-[8px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded">
+                                      আপনার আপলোড
+                                    </span>
+                                  ) : (
+                                    <span className="text-[8px] font-bold bg-stone-100 text-stone-500 border border-stone-200 px-1.5 py-0.5 rounded">
+                                      অন্যের পণ্য (ভিউ অনলি)
+                                    </span>
+                                  )}
+                                </div>
                                 {prod.createdBySubAdminId === currentSubAdmin.id && (
                                   <div className="flex items-center gap-1.5">
                                     <button
@@ -819,8 +855,31 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
                                   {prodBundles.map(b => (
                                     <div key={b.id} className="bg-stone-50 border border-stone-200 rounded-xl p-2.5">
                                       <div className="flex items-center justify-between text-[10px] mb-1">
-                                        <span className="font-bold text-stone-700">ব্যাচ #{b.batchNumber}</span>
-                                        <span className="text-emerald-700 font-extrabold">{b.filledSlots}/{b.totalSlots} স্লট বুকড</span>
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="font-bold text-stone-700">ব্যাচ #{b.batchNumber}</span>
+                                          {b.color && (
+                                            <span className="text-[9px] bg-stone-200 text-stone-700 px-1.5 py-0.2 rounded font-medium">
+                                              {b.color}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-emerald-700 font-extrabold">{b.filledSlots}/{b.totalSlots} স্লট বুকড</span>
+                                          {prod.createdBySubAdminId === currentSubAdmin.id && (
+                                            <button
+                                              onClick={async () => {
+                                                if (confirm(`আপনি কি ব্যাচ #${b.batchNumber} মুছে ফেলতে চান?`)) {
+                                                  const res = await deleteBundle(b.id);
+                                                  showNotification(res.message);
+                                                }
+                                              }}
+                                              className="text-stone-400 hover:text-rose-600 p-0.5 rounded transition-colors cursor-pointer"
+                                              title="এই ব্যাচটি মুছুন"
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                            </button>
+                                          )}
+                                        </div>
                                       </div>
 
                                       {/* Masked Slots Row */}
