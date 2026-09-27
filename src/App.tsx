@@ -5,7 +5,7 @@ import { ProductCard } from './components/ProductCard';
 import { BundleDetailModal } from './components/BundleDetailModal';
 import { BookingModal } from './components/BookingModal';
 import { StartNewBatchModal } from './components/StartNewBatchModal';
-import { BuyWholeBundleModal } from './components/BuyWholeBundleModal';
+
 
 import { AuthModal } from './components/AuthModal';
 import { MyBookingsModal } from './components/MyBookingsModal';
@@ -45,8 +45,7 @@ const MainContent: React.FC = () => {
     preselectedColor?: string;
   } | null>(null);
 
-  // Buy Whole Bundle Modal State
-  const [wholeBundleTarget, setWholeBundleTarget] = useState<Product | null>(null);
+
 
 
 
@@ -346,9 +345,7 @@ const MainContent: React.FC = () => {
                 key={product.id}
                 product={product}
                 onOpenBundleModal={(prod) => setSelectedProductForBundle(prod)}
-                onBuyWholeBundle={(prod) => {
-                  requireAuth(() => setWholeBundleTarget(prod));
-                }}
+
               />
             ))}
           </div>
@@ -417,16 +414,7 @@ const MainContent: React.FC = () => {
                 setNewBatchTarget({ product: currentProd, preselectedSize: size, preselectedColor: color });
               });
             }}
-            onBuyWholeBundle={(prod) => {
-              const currentProd = products.find(p => p.id === prod.id) || prod;
-              if (currentProd.isAvailable === false || (currentProd as any).status === 'unavailable') {
-                showToast('⚠️ এই পণ্যটি বর্তমানে আনঅ্যাভেইলেবল (স্টক শেষ)।');
-                return;
-              }
-              requireAuth(() => {
-                setWholeBundleTarget(currentProd);
-              });
-            }}
+
           />
         );
       })()}
@@ -461,17 +449,7 @@ const MainContent: React.FC = () => {
         />
       )}
 
-      {wholeBundleTarget && (
-        <BuyWholeBundleModal
-          product={wholeBundleTarget}
-          onClose={() => setWholeBundleTarget(null)}
-          onSuccess={() => {
-            setWholeBundleTarget(null);
-            showToast('অভিনন্দন! সম্পূর্ণ বান্ডিল অর্ডার সফল হয়েছে।');
-            setMyBookingsOpen(true);
-          }}
-        />
-      )}
+
 
 
 

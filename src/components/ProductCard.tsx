@@ -6,13 +6,11 @@ import { Users, Sparkles, TrendingDown, ArrowRight, ShoppingBag, Layers, Eye, Sh
 interface ProductCardProps {
   product: Product;
   onOpenBundleModal: (product: Product) => void;
-  onBuyWholeBundle: (product: Product) => void;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   onOpenBundleModal,
-  onBuyWholeBundle,
 }) => {
   const { bundles } = useApp();
   const [copied, setCopied] = useState(false);

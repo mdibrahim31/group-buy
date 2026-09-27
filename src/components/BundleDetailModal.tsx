@@ -9,7 +9,6 @@ interface BundleDetailModalProps {
   onClose: () => void;
   onSelectSlot: (bundle: Bundle, slot: BundleSlot) => void;
   onStartNewBatch: (product: Product, desiredSize?: string, desiredColor?: string) => void;
-  onBuyWholeBundle: (product: Product) => void;
 }
 
 export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
@@ -18,7 +17,6 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
   onClose,
   onSelectSlot,
   onStartNewBatch,
-  onBuyWholeBundle,
 }) => {
   const { products, bundles, reviews } = useApp();
   // Always use the live product from AppContext state
@@ -250,15 +248,11 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                 </div>
               </div>
 
-              {/* 2 Price Options Mini Bar */}
-              <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-stone-200 text-center">
-                <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-2">
-                  <span className="text-[10px] text-emerald-800 font-bold block">১. গ্রুপ বাই</span>
-                  <span className="text-xs font-black text-emerald-700">৳{product.groupPrice}<span className="text-[9px]">/পিস</span></span>
-                </div>
-                <div className="bg-blue-50 border border-blue-300 rounded-xl p-2">
-                  <span className="text-[10px] text-blue-800 font-bold block">২. একক ক্রয়</span>
-                  <span className="text-xs font-black text-blue-700">৳{product.retailPrice}<span className="text-[9px]">/পিস</span></span>
+              {/* Group Buy Pricing Details */}
+              <div className="mt-3 pt-3 border-t border-stone-200 text-center">
+                <div className="bg-emerald-50 border border-emerald-300 rounded-xl py-2 px-4 inline-block">
+                  <span className="text-[10px] text-emerald-800 font-bold block">গ্রুপ বাই পাইকারি মূল্য</span>
+                  <span className="text-sm font-black text-emerald-700">৳{product.groupPrice} <span className="text-[10px] font-normal text-stone-600">/পিস (খুচরা বাজার মূল্য: ৳{product.retailPrice})</span></span>
                 </div>
               </div>
             </div>
@@ -320,7 +314,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
               <div className="flex items-center gap-2">
                 <Users className="w-5 h-5 text-emerald-700" />
                 <div>
-                  <h4 className="text-sm font-black text-stone-900">অপশন ১: গ্রুপ বাই ব্যাচ ও সাইজ স্লট</h4>
+                  <h4 className="text-sm font-black text-stone-900">গ্রুপ বাই ব্যাচ ও সাইজ স্লট</h4>
                   <p className="text-[11px] text-stone-600">১টি ব্যাচের সব কয়টি পণ্য সম্পূর্ণ একই কালারের হবে</p>
                 </div>
               </div>
