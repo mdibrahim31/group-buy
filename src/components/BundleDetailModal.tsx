@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Product, Bundle, BundleSlot } from '../types';
 import { useApp } from '../context/AppContext';
 import { Users, Clock, PlusCircle, CheckCircle2, Sparkles, TrendingDown, ArrowRight, ShoppingBag, X, ShieldCheck, ExternalLink, Image as ImageIcon } from 'lucide-react';
@@ -66,6 +66,27 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
     if (firstOpen) return firstOpen.id;
     return displayBundles[0]?.id || '';
   });
+
+  useEffect(() => {
+    if (initialBundleId) {
+      setSelectedBatchId(initialBundleId);
+      const found = productBundles.find(b => b.id === initialBundleId);
+      if (found?.color && defaultColors.includes(found.color)) {
+        setSelectedColor(found.color);
+      }
+    }
+  }, [initialBundleId]);
+
+  useEffect(() => {
+    if (!selectedBatchId || !productBundles.some(b => b.id === selectedBatchId)) {
+      const firstOpen = colorBundles.find(b => b.status === 'open');
+      if (firstOpen) {
+        setSelectedBatchId(firstOpen.id);
+      } else if (displayBundles.length > 0) {
+        setSelectedBatchId(displayBundles[0].id);
+      }
+    }
+  }, [productBundles, colorBundles, displayBundles, selectedBatchId]);
 
   const handleColorChange = (color: string) => {
     setSelectedColor(color);

@@ -344,44 +344,7 @@ const MainContent: React.FC = () => {
       <WhatsAppSupport phoneNumber="01882208531" />
 
       {/* Modals */}
-      {selectedBooking && (
-        <BookingModal
-          product={selectedBooking.product}
-          bundle={selectedBooking.bundle}
-          slot={selectedBooking.slot}
-          onClose={() => setSelectedBooking(null)}
-          onSuccess={() => {
-            setSelectedBooking(null);
-            showToast('স্লট সফলভাবে বুক হয়েছে! আপনার বুকিং তালিকায় যুক্ত করা হয়েছে।');
-          }}
-        />
-      )}
-
-      {newBatchTarget && (
-        <StartNewBatchModal
-          product={newBatchTarget.product}
-          preselectedSize={newBatchTarget.preselectedSize}
-          preselectedColor={newBatchTarget.preselectedColor}
-          onClose={() => setNewBatchTarget(null)}
-          onSuccess={(newBatchNum) => {
-            setNewBatchTarget(null);
-            showToast(`ব্যাচ #${newBatchNum} তৈরি হয়েছে এবং আপনার সাইজ নিশ্চিত করা হয়েছে!`);
-          }}
-        />
-      )}
-
-      {wholeBundleTarget && (
-        <BuyWholeBundleModal
-          product={wholeBundleTarget}
-          onClose={() => setWholeBundleTarget(null)}
-          onSuccess={() => {
-            setWholeBundleTarget(null);
-            showToast('অভিনন্দন! সম্পূর্ণ বান্ডিল অর্ডার সফল হয়েছে।');
-            setMyBookingsOpen(true);
-          }}
-        />
-      )}
-
+      {/* Bundle Detail Modal (Full-screen view) */}
       {selectedProductForBundle && (
         <BundleDetailModal
           product={selectedProductForBundle}
@@ -401,6 +364,48 @@ const MainContent: React.FC = () => {
           }}
           onSingleBuy={(prod, size) => {
             setSingleBuyTarget({ product: prod, desiredSize: size });
+          }}
+        />
+      )}
+
+      {/* Action Popups (Rendered on top of BundleDetailModal) */}
+      {selectedBooking && (
+        <BookingModal
+          product={selectedBooking.product}
+          bundle={selectedBooking.bundle}
+          slot={selectedBooking.slot}
+          onClose={() => setSelectedBooking(null)}
+          onSuccess={() => {
+            setSelectedBooking(null);
+            showToast('স্লট সফলভাবে বুক হয়েছে! আপনার বুকিং তালিকায় যুক্ত করা হয়েছে।');
+          }}
+        />
+      )}
+
+      {newBatchTarget && (
+        <StartNewBatchModal
+          product={newBatchTarget.product}
+          preselectedSize={newBatchTarget.preselectedSize}
+          preselectedColor={newBatchTarget.preselectedColor}
+          onClose={() => setNewBatchTarget(null)}
+          onSuccess={(newBatchNum, newBundleId) => {
+            setNewBatchTarget(null);
+            showToast(`ব্যাচ #${newBatchNum} তৈরি হয়েছে এবং আপনার সাইজ নিশ্চিত করা হয়েছে!`);
+            if (newBundleId) {
+              setSelectedBundleIdForDetail(newBundleId);
+            }
+          }}
+        />
+      )}
+
+      {wholeBundleTarget && (
+        <BuyWholeBundleModal
+          product={wholeBundleTarget}
+          onClose={() => setWholeBundleTarget(null)}
+          onSuccess={() => {
+            setWholeBundleTarget(null);
+            showToast('অভিনন্দন! সম্পূর্ণ বান্ডিল অর্ডার সফল হয়েছে।');
+            setMyBookingsOpen(true);
           }}
         />
       )}

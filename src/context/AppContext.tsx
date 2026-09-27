@@ -94,7 +94,7 @@ interface AppContextType {
     buyerName?: string,
     transactionId?: string,
     desiredColor?: string
-  ) => { success: boolean; newBatchNumber: number; message: string };
+  ) => { success: boolean; newBatchNumber: number; newBundleId?: string; message: string };
   buyWholeBundle: (
     productId: string,
     advanceAmount: number,
@@ -899,6 +899,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return {
       success: true,
       newBatchNumber: nextBatchNumber,
+      newBundleId: newBundleId,
       message: `ব্যাচ #${nextBatchNumber} সফলভাবে চালু হয়েছে এবং আপনার সাইজ ${desiredSize || ''} বুক করা হয়েছে!`
     };
   };

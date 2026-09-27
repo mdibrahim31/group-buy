@@ -491,7 +491,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-stone-900/95 backdrop-blur-md flex flex-col w-screen h-[100dvh] overflow-hidden animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[90] bg-stone-900/95 backdrop-blur-md flex flex-col w-screen h-[100dvh] overflow-hidden animate-in fade-in duration-200">
       <div className="bg-stone-100 w-full h-full flex flex-col overflow-hidden">
         {/* Fullscreen Clean Admin Header with Back Button */}
         <div className="bg-stone-900 text-white border-b border-stone-800 shrink-0">

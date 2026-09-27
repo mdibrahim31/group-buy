@@ -478,7 +478,7 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-50 flex flex-col font-sans text-stone-900">
+    <div className="fixed inset-0 z-[90] overflow-y-auto bg-stone-50 flex flex-col font-sans text-stone-900">
       {/* Main Container Workspace */}
       <div className="flex-1 p-4 sm:p-6 md:p-8 bg-stone-50 text-stone-800 flex flex-col">
         {notification && (
