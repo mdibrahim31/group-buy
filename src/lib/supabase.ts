@@ -423,7 +423,6 @@ export async function dbGetAllProducts(): Promise<Product[]> {
         availableSizes: Array.isArray(p.available_sizes) ? p.available_sizes : [],
         availableColors: colors,
         isAvailable: p.is_available !== false && p.isAvailable !== false && p.status !== 'unavailable' && p.status !== 'inactive' && p.is_active !== false,
-        isSingleBuyAvailable: p.is_single_buy_available !== false && p.isSingleBuyAvailable !== false && p.single_buy_status !== 'unavailable' && p.single_buy_status !== 'inactive',
         createdBySubAdminId: p.created_by_sub_admin_id || undefined,
         createdBySubAdminName: p.created_by_sub_admin_name || undefined,
       };
@@ -440,7 +439,6 @@ export async function dbSaveProduct(product: Product): Promise<boolean> {
     const colorsList = product.availableColors || [];
     const colorsJoined = colorsList.join(', ');
     const isAvail = product.isAvailable !== false;
-    const isSingleAvail = product.isSingleBuyAvailable !== false;
 
     const payload: any = {
       id: product.id,
@@ -462,9 +460,7 @@ export async function dbSaveProduct(product: Product): Promise<boolean> {
       color: colorsJoined || null,
       colors: colorsList,
       is_available: isAvail,
-      status: isAvail ? 'active' : 'unavailable',
-      is_single_buy_available: isSingleAvail,
-      single_buy_status: isSingleAvail ? 'active' : 'unavailable',
+      status: isAvail ? 'active' : 'inactive',
       created_by_sub_admin_id: product.createdBySubAdminId || null,
       created_by_sub_admin_name: product.createdBySubAdminName || null,
       updated_at: new Date().toISOString(),
@@ -480,8 +476,6 @@ export async function dbSaveProduct(product: Product): Promise<boolean> {
       delete payload.color;
       delete payload.colors;
       delete payload.is_available;
-      delete payload.is_single_buy_available;
-      delete payload.single_buy_status;
       const fallbackResult = await supabase
         .from('products')
         .upsert(payload, { onConflict: 'id' });
