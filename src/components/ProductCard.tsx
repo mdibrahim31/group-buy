@@ -58,7 +58,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     }).catch(() => {});
   };
 
-  const isAvailable = product.isAvailable !== false;
+  const isAvailable = product.isAvailable !== false && (product as any).status !== 'unavailable' && (product as any).status !== 'inactive';
   const savingsAmount = product.retailPrice - product.groupPrice;
   const savingsPercent = Math.round((savingsAmount / product.retailPrice) * 100);
 

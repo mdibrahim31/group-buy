@@ -12,13 +12,15 @@ interface BookingModalProps {
 }
 
 export const BookingModal: React.FC<BookingModalProps> = ({
-  product,
+  product: initialProduct,
   bundle,
   slot,
   onClose,
   onSuccess,
 }) => {
-  const { user, bookSlot, setAuthModalOpen } = useApp();
+  const { user, products, bookSlot, setAuthModalOpen } = useApp();
+  const product = products.find(p => p.id === initialProduct.id) || initialProduct;
+  const isProductAvailable = product.isAvailable !== false && (product as any).status !== 'unavailable' && (product as any).status !== 'inactive';
 
   const tokenAmount = Math.min(150, product.groupPrice);
   const dueAmount = Math.max(0, product.groupPrice - tokenAmount);
@@ -39,6 +41,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!isProductAvailable) {
+      setError('এই পণ্যটি বর্তমানে আনঅ্যাভেইলেবল (স্টক শেষ)। স্লট বুকিং সম্ভব নয়।');
+      return;
+    }
 
     if (!fullName.trim()) {
       setError('আপনার নাম লিখুন।');

@@ -123,6 +123,7 @@ interface AppContextType {
   addProduct: (product: Omit<Product, 'id'>, bundleColor?: string) => Promise<{ success: boolean; message: string }>;
   updateProduct: (product: Product) => Promise<{ success: boolean; message: string }>;
   toggleProductAvailability: (productId: string) => Promise<{ success: boolean; isAvailable: boolean; message: string }>;
+  toggleSingleBuyAvailability: (productId: string) => Promise<{ success: boolean; isSingleBuyAvailable: boolean; message: string }>;
   deleteProduct: (productId: string) => Promise<{ success: boolean; message: string }>;
   deleteBundle: (bundleId: string) => Promise<{ success: boolean; message: string }>;
   findOrderByIdOrCustomer: (query: string) => Promise<Order[]>;
@@ -668,7 +669,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, message: 'পণ্য খুঁজে পাওয়া যায়নি।' };
     }
 
-    if (product.isAvailable === false) {
+    if (product.isAvailable === false || (product as any).status === 'unavailable' || (product as any).status === 'inactive') {
       return {
         success: false,
         message: 'এই পণ্যটি বর্তমানে আনঅ্যাভেইলেবল (স্টক শেষ)। স্লট বুকিং সম্ভব নয়।'
@@ -808,7 +809,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, newBatchNumber: 0, message: 'পণ্য খুঁজে পাওয়া যায়নি।' };
     }
 
-    if (product.isAvailable === false) {
+    if (product.isAvailable === false || (product as any).status === 'unavailable' || (product as any).status === 'inactive') {
       return {
         success: false,
         newBatchNumber: 0,
@@ -935,7 +936,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, message: 'পণ্য খুঁজে পাওয়া যায়নি।' };
     }
 
-    if (product.isAvailable === false) {
+    if (product.isAvailable === false || (product as any).status === 'unavailable' || (product as any).status === 'inactive') {
       return { success: false, message: 'এই পণ্যটি বর্তমানে আনঅ্যাভেইলেবল (স্টক শেষ)।' };
     }
 
@@ -1042,8 +1043,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, message: 'পণ্য খুঁজে পাওয়া যায়নি।' };
     }
 
-    if (product.isAvailable === false) {
-      return { success: false, message: 'এই পণ্যটি বর্তমানে আনঅ্যাভেইলেবল (স্টক শেষ)। অর্ডার করা সম্ভব নয়।' };
+    if (product.isSingleBuyAvailable === false || (product as any).single_buy_status === 'unavailable' || (product as any).single_buy_status === 'inactive') {
+      return { success: false, message: 'এই পণ্যের একক ক্রয় (Single Buy) বর্তমানে সাময়িকভাবে বন্ধ আছে।' };
     }
 
     const currentCustomerId = user?.id || (user?.phone ? `cust-${user.phone}` : getOrCreateGuestCustomerId());
@@ -1397,8 +1398,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       success: true,
       isAvailable: newAvailability,
       message: newAvailability
-        ? `"${targetProduct.title}" এখন অ্যাভেইলেবল (Available) করা হয়েছে। গ্রাহকরা স্লট বুক করতে পারবেন।`
-        : `"${targetProduct.title}" এখন আনঅ্যাভেইলেবল (Unavailable) করা হয়েছে। গ্রাহকরা তথ্য ও রিভিউ দেখতে পারবেন কিন্তু নতুন বুকিং করতে পারবেন না।`
+        ? `"${targetProduct.title}" এর গ্রুপ-বাই বান্ডিল এখন অ্যাভেইলেবল (Available) করা হয়েছে। গ্রাহকরা স্লট বুক করতে পারবেন।`
+        : `"${targetProduct.title}" এর গ্রুপ-বাই বান্ডিল এখন আনঅ্যাভেইলেবল (Unavailable) করা হয়েছে। গ্রাহকরা তথ্য ও রিভিউ দেখতে পারবেন কিন্তু নতুন বুকিং করতে পারবেন না।`
+    };
+  };
+
+  const toggleSingleBuyAvailability = async (productId: string): Promise<{ success: boolean; isSingleBuyAvailable: boolean; message: string }> => {
+    const targetProduct = products.find(p => p.id === productId);
+    if (!targetProduct) {
+      return { success: false, isSingleBuyAvailable: false, message: 'পণ্য খুঁজে পাওয়া যায়নি।' };
+    }
+
+    const currentSingleAvailability = targetProduct.isSingleBuyAvailable !== false;
+    const newSingleAvailability = !currentSingleAvailability;
+
+    const updatedProduct: Product = {
+      ...targetProduct,
+      isSingleBuyAvailable: newSingleAvailability,
+    };
+
+    setProducts(prev => prev.map(p => p.id === productId ? updatedProduct : p));
+
+    // Persist to Supabase and LocalStorage
+    const saved = await dbSaveProduct(updatedProduct);
+    if (!saved) {
+      console.warn('Warning: Product single buy availability updated locally but Supabase sync returned false.');
+    }
+
+    return {
+      success: true,
+      isSingleBuyAvailable: newSingleAvailability,
+      message: newSingleAvailability
+        ? `"${targetProduct.title}" এর একক ক্রয় (Single Buy) এখন অ্যাভেইলেবল (Available) করা হয়েছে।`
+        : `"${targetProduct.title}" এর একক ক্রয় (Single Buy) এখন আনঅ্যাভেইলেবল (Unavailable) করা হয়েছে।`
     };
   };
 
@@ -1545,6 +1577,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addProduct,
         updateProduct,
         toggleProductAvailability,
+        toggleSingleBuyAvailability,
         deleteProduct,
         deleteBundle,
         findOrderByIdOrCustomer,

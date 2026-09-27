@@ -34,7 +34,8 @@ export interface Product {
   bundleSize: number;
   availableSizes: string[];
   availableColors?: string[];
-  isAvailable?: boolean; // বান্ডিল অ্যাভেইলেবল নাকি আনঅ্যাভেইলেবল (ডিফল্ট: true)
+  isAvailable?: boolean; // বান্ডিল/গ্রুপ-বাই অ্যাভেইলেবল নাকি আনঅ্যাভেইলেবল (ডিফল্ট: true)
+  isSingleBuyAvailable?: boolean; // একক ক্রয় (Single Buy) অ্যাভেইলেবল নাকি আনঅ্যাভেইলেবল (ডিফল্ট: true)
   createdBySubAdminId?: string;
   createdBySubAdminName?: string;
 }

@@ -14,7 +14,7 @@ interface BundleDetailModalProps {
 }
 
 export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
-  product,
+  product: initialProduct,
   initialBundleId,
   onClose,
   onSelectSlot,
@@ -22,7 +22,12 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
   onBuyWholeBundle,
   onSingleBuy,
 }) => {
-  const { bundles, reviews } = useApp();
+  const { products, bundles, reviews } = useApp();
+  // Always use the live product from AppContext state
+  const product = products.find(p => p.id === initialProduct.id) || initialProduct;
+  const isProductAvailable = product.isAvailable !== false && (product as any).status !== 'unavailable' && (product as any).status !== 'inactive';
+  const isSingleBuyAvailable = product.isSingleBuyAvailable !== false && (product as any).single_buy_status !== 'unavailable' && (product as any).single_buy_status !== 'inactive';
+
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [copiedShareLink, setCopiedShareLink] = useState(false);
 
@@ -192,7 +197,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
         <div className="p-4 sm:p-6 space-y-6">
 
           {/* Unavailable Product Notice Banner */}
-          {product.isAvailable === false && (
+          {!isProductAvailable && (
             <div className="p-4 bg-rose-50 border-2 border-rose-300 rounded-2xl flex items-start gap-3 text-rose-900 shadow-sm animate-in fade-in">
               <div className="w-8 h-8 rounded-full bg-rose-200 text-rose-800 flex items-center justify-center shrink-0 mt-0.5 font-bold">
                 ⚠️
@@ -322,7 +327,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                   <p className="text-[11px] text-stone-600">১টি ব্যাচের সব কয়টি পণ্য সম্পূর্ণ একই কালারের হবে</p>
                 </div>
               </div>
-              {product.isAvailable !== false ? (
+              {isProductAvailable ? (
                 <button
                   onClick={() => {
                     onStartNewBatch(product, undefined, selectedColor);
@@ -482,13 +487,13 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                 {/* Slots Grid */}
                 <div className="space-y-2 pt-1 animate-in fade-in duration-200">
                   <span className="text-xs font-bold text-stone-700 block">
-                    {product.isAvailable !== false
+                    {isProductAvailable
                       ? '৩. আপনার সাইজ নির্বাচন করুন ও বুক করুন:'
                       : '৩. সাইজ স্লটসমূহ (বর্তমানে আনঅ্যাভেইলেবল):'}
                   </span>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                     {(activeBundle?.slots || []).map(slot => {
-                      const isSlotActuallyAvailable = slot.status === 'available' && activeBundle?.status !== 'shipped' && product.isAvailable !== false;
+                      const isSlotActuallyAvailable = slot.status === 'available' && activeBundle?.status !== 'shipped' && isProductAvailable;
                       const isDelivered = activeBundle?.status === 'shipped';
                       return (
                         <button
@@ -513,7 +518,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                             ) : (
                               <span className="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded font-bold">
-                                {isDelivered ? 'ডেলিভার্ড' : product.isAvailable === false ? 'স্টক শেষ' : 'বুকড'}
+                                {isDelivered ? 'ডেলিভার্ড' : !isProductAvailable ? 'স্টক শেষ' : 'বুকড'}
                               </span>
                             )}
                           </div>
@@ -524,7 +529,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                               </span>
                             ) : (
                               <span className="text-stone-600 block truncate font-medium">
-                                {product.isAvailable === false && slot.status === 'available'
+                                {!isProductAvailable && slot.status === 'available'
                                   ? '🚫 বুকিং বন্ধ'
                                   : `${slot.userPhoneMasked || 'সংরক্ষিত'} • ${isDelivered ? 'ডেলিভার্ড' : 'বুকড'}`}
                               </span>
@@ -546,12 +551,12 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                   "{selectedColor}" কালারের কোনো সক্রিয় গ্রুপ-বাই ব্যাচ এখনো শুরু হয়নি।
                 </p>
                 <p className="text-[11px] text-stone-500 mt-1">
-                  {product.isAvailable !== false
+                  {isProductAvailable
                     ? `আপনিই প্রথম বুকিং করে "${selectedColor}" কালারের ১ নম্বর ব্যাচটি শুরু করতে পারেন!`
                     : `এই প্রোডাক্টটি বর্তমানে আনঅ্যাভেইলেবল থাকায় নতুন ব্যাচ শুরু করা যাচ্ছে না।`}
                 </p>
               </div>
-              {product.isAvailable !== false && (
+              {isProductAvailable && (
                 <button
                   onClick={() => {
                     onStartNewBatch(product, undefined, selectedColor);
@@ -569,7 +574,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
           {/* Option 2 Direct Purchase Actions (Single Buy) */}
           <div className="pt-2 border-t border-stone-200">
             {/* Option 2: Single Buy */}
-            {product.isAvailable !== false ? (
+            {isSingleBuyAvailable ? (
               <button
                 onClick={() => {
                   onSingleBuy(product);
@@ -599,11 +604,11 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                   <ShoppingBag className="w-4 h-4 text-stone-500" />
                   <div>
                     <span className="text-xs font-bold text-stone-700 block">একক ক্রয় (Single Buy) - ৳{product.retailPrice}</span>
-                    <span className="text-[11px] text-stone-500">বর্তমানে স্টক শেষ থাকায় অর্ডার সাময়িকভাবে বন্ধ আছে।</span>
+                    <span className="text-[11px] text-stone-500">বর্তমানে একক ক্রয় (Single Buy) সাময়িকভাবে বন্ধ আছে।</span>
                   </div>
                 </div>
                 <span className="text-xs font-bold bg-stone-200 text-stone-600 px-3 py-1 rounded-lg">
-                  স্টক শেষ
+                  আনঅ্যাভেইলেবল
                 </span>
               </div>
             )}

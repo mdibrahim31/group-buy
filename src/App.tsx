@@ -387,42 +387,66 @@ const MainContent: React.FC = () => {
 
       {/* Modals */}
       {/* Bundle Detail Modal (Full-screen view) */}
-      {selectedProductForBundle && (
-        <BundleDetailModal
-          product={selectedProductForBundle}
-          initialBundleId={selectedBundleIdForDetail}
-          onClose={() => {
-            setSelectedProductForBundle(null);
-            setSelectedBundleIdForDetail(undefined);
-            try {
-              const url = new URL(window.location.href);
-              url.searchParams.delete('product');
-              url.searchParams.delete('bundle');
-              window.history.replaceState({}, '', url.pathname);
-            } catch {}
-          }}
-          onSelectSlot={(bundle, slot) => {
-            requireAuth(() => {
-              setSelectedBooking({ product: selectedProductForBundle, bundle, slot });
-            });
-          }}
-          onStartNewBatch={(prod, size, color) => {
-            requireAuth(() => {
-              setNewBatchTarget({ product: prod, preselectedSize: size, preselectedColor: color });
-            });
-          }}
-          onBuyWholeBundle={(prod) => {
-            requireAuth(() => {
-              setWholeBundleTarget(prod);
-            });
-          }}
-          onSingleBuy={(prod, size) => {
-            requireAuth(() => {
-              setSingleBuyTarget({ product: prod, desiredSize: size });
-            });
-          }}
-        />
-      )}
+      {selectedProductForBundle && (() => {
+        const liveProduct = products.find(p => p.id === selectedProductForBundle.id) || selectedProductForBundle;
+        const isLiveAvailable = liveProduct.isAvailable !== false && (liveProduct as any).status !== 'unavailable' && (liveProduct as any).status !== 'inactive';
+
+        return (
+          <BundleDetailModal
+            product={liveProduct}
+            initialBundleId={selectedBundleIdForDetail}
+            onClose={() => {
+              setSelectedProductForBundle(null);
+              setSelectedBundleIdForDetail(undefined);
+              try {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('product');
+                url.searchParams.delete('bundle');
+                window.history.replaceState({}, '', url.pathname);
+              } catch {}
+            }}
+            onSelectSlot={(bundle, slot) => {
+              if (!isLiveAvailable) {
+                showToast('⚠️ এই পণ্যটি বর্তমানে আনঅ্যাভেইলেবল (স্টক শেষ)। স্লট বুকিং সম্ভব নয়।');
+                return;
+              }
+              requireAuth(() => {
+                setSelectedBooking({ product: liveProduct, bundle, slot });
+              });
+            }}
+            onStartNewBatch={(prod, size, color) => {
+              const currentProd = products.find(p => p.id === prod.id) || prod;
+              if (currentProd.isAvailable === false || (currentProd as any).status === 'unavailable') {
+                showToast('⚠️ এই পণ্যটি বর্তমানে আনঅ্যাভেইলেবল (স্টক শেষ)। নতুন ব্যাচ শুরু করা সম্ভব নয়।');
+                return;
+              }
+              requireAuth(() => {
+                setNewBatchTarget({ product: currentProd, preselectedSize: size, preselectedColor: color });
+              });
+            }}
+            onBuyWholeBundle={(prod) => {
+              const currentProd = products.find(p => p.id === prod.id) || prod;
+              if (currentProd.isAvailable === false || (currentProd as any).status === 'unavailable') {
+                showToast('⚠️ এই পণ্যটি বর্তমানে আনঅ্যাভেইলেবল (স্টক শেষ)।');
+                return;
+              }
+              requireAuth(() => {
+                setWholeBundleTarget(currentProd);
+              });
+            }}
+            onSingleBuy={(prod, size) => {
+              const currentProd = products.find(p => p.id === prod.id) || prod;
+              if (currentProd.isSingleBuyAvailable === false || (currentProd as any).single_buy_status === 'unavailable') {
+                showToast('⚠️ এই পণ্যের একক ক্রয় (Single Buy) বর্তমানে সাময়িকভাবে বন্ধ আছে।');
+                return;
+              }
+              requireAuth(() => {
+                setSingleBuyTarget({ product: currentProd, desiredSize: size });
+              });
+            }}
+          />
+        );
+      })()}
 
       {/* Action Popups (Rendered on top of BundleDetailModal) */}
       {selectedBooking && (

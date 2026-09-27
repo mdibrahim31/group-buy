@@ -53,6 +53,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
     addProduct,
     updateProduct,
     toggleProductAvailability,
+    toggleSingleBuyAvailability,
     deleteProduct,
     deleteBundle,
     cancelOrder,
@@ -120,6 +121,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
   const [newColorsText, setNewColorsText] = useState('কালো, সাদা, ব্রাউন, নীল, লাল');
   const [newBundleColor, setNewBundleColor] = useState('কালো');
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
+  const [newIsSingleBuyAvailable, setNewIsSingleBuyAvailable] = useState<boolean>(true);
 
   // Sync selectedColors with database colors initially or when colors update
   useEffect(() => {
@@ -463,6 +465,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
         bundleSize: finalSizes.length,
         availableSizes: finalSizes,
         availableColors: finalColors,
+        isAvailable: true,
+        isSingleBuyAvailable: newIsSingleBuyAvailable,
       }, newBundleColor.trim());
 
       if (res && res.success) {
@@ -476,6 +480,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
         setNewGroupPrice('');
         setNewFullBundlePrice('');
         setNewDescription('');
+        setNewIsSingleBuyAvailable(true);
         // Reset selected colors to all db colors
         setSelectedColors(colors);
 
@@ -1769,10 +1774,27 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                                       ? 'bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200'
                                       : 'bg-rose-100 text-rose-800 border-rose-300 hover:bg-rose-200'
                                   }`}
-                                  title="ক্লিক করে স্ট্যাটাস পরিবর্তন করুন"
+                                  title="গ্রুপ-বাই ব্যাচের বুকিং চালু বা বন্ধ করুন"
                                 >
                                   <span className={`w-1.5 h-1.5 rounded-full ${product.isAvailable !== false ? 'bg-emerald-600' : 'bg-rose-600'}`}></span>
-                                  <span>{product.isAvailable !== false ? 'অ্যাভেইলেবল (লাইভ)' : 'আনঅ্যাভেইলেবল (স্টক শেষ)'}</span>
+                                  <span>গ্রুপ-বাই: {product.isAvailable !== false ? 'অ্যাভেইলেবল' : 'আনঅ্যাভেইলেবল'}</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    const res = await toggleSingleBuyAvailability(product.id);
+                                    setCopiedNotification(res.message);
+                                    setTimeout(() => setCopiedNotification(null), 3000);
+                                  }}
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer border ${
+                                    product.isSingleBuyAvailable !== false
+                                      ? 'bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-200'
+                                      : 'bg-stone-200 text-stone-700 border-stone-300 hover:bg-stone-300'
+                                  }`}
+                                  title="একক ক্রয় (Single Buy) চালু বা বন্ধ করুন"
+                                >
+                                  <span className={`w-1.5 h-1.5 rounded-full ${product.isSingleBuyAvailable !== false ? 'bg-blue-600' : 'bg-stone-500'}`}></span>
+                                  <span>একক ক্রয়: {product.isSingleBuyAvailable !== false ? 'অ্যাভেইলেবল' : 'আনঅ্যাভেইলেবল'}</span>
                                 </button>
                                 {isFull ? (
                                   <span className="text-[11px] bg-emerald-600 text-white font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs animate-pulse">
