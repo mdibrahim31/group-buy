@@ -47,6 +47,7 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
     colors: appColors,
     addProduct,
     updateProduct,
+    deleteProduct,
   } = useApp();
 
   // Security Access Verification
@@ -776,13 +777,28 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
                                   বান্ডিল সাইজ: {prod.bundleSize}টি
                                 </span>
                                 {prod.createdBySubAdminId === currentSubAdmin.id && (
-                                  <button
-                                    onClick={() => handleOpenEditForm(prod)}
-                                    className="px-2.5 py-1 bg-stone-50 hover:bg-stone-100 border border-stone-200 rounded-md text-[10px] font-bold text-stone-800 flex items-center gap-1 transition-colors cursor-pointer"
-                                  >
-                                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                                    <span>এডিট</span>
-                                  </button>
+                                  <div className="flex items-center gap-1.5">
+                                    <button
+                                      onClick={() => handleOpenEditForm(prod)}
+                                      className="px-2 py-1 bg-stone-50 hover:bg-stone-100 border border-stone-200 rounded-md text-[10px] font-bold text-stone-800 flex items-center gap-1 transition-colors cursor-pointer"
+                                    >
+                                      <Sparkles className="w-3 h-3 text-emerald-600" />
+                                      <span>এডিট</span>
+                                    </button>
+                                    <button
+                                      onClick={async () => {
+                                        if (confirm(`আপনি কি "${prod.title}" পণ্য ও এর সকল ব্যাচ সম্পূর্ণ মুছে ফেলতে চান?`)) {
+                                          const res = await deleteProduct(prod.id);
+                                          showNotification(res.message);
+                                        }
+                                      }}
+                                      className="px-2 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-md text-[10px] font-bold text-rose-700 flex items-center gap-1 transition-colors cursor-pointer"
+                                      title="মুছে ফেলুন"
+                                    >
+                                      <Trash2 className="w-3 h-3 text-rose-600" />
+                                      <span>ডিলিট</span>
+                                    </button>
+                                  </div>
                                 )}
                               </div>
 
