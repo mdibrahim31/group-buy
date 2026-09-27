@@ -132,13 +132,30 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => {
+              onClick={async () => {
                 const url = new URL(window.location.href);
                 url.searchParams.set('product', product.id);
                 if (activeBundle?.id) {
                   url.searchParams.set('bundle', activeBundle.id);
                 }
-                navigator.clipboard.writeText(url.toString()).then(() => {
+                const shareUrl = url.toString();
+                const shareTitle = `${product.title} - পাইকারি গ্রুপ বাই বান্ডিল`;
+                const shareText = `সরাসরি পাইকারি মূল্যে "${product.title}" কিনুন। গ্রুপ বাই স্লট বুক করুন!`;
+
+                if (navigator.share) {
+                  try {
+                    await navigator.share({
+                      title: shareTitle,
+                      text: shareText,
+                      url: shareUrl,
+                    });
+                    return;
+                  } catch (err: any) {
+                    if (err?.name === 'AbortError') return;
+                  }
+                }
+
+                navigator.clipboard.writeText(shareUrl).then(() => {
                   setCopiedShareLink(true);
                   setTimeout(() => setCopiedShareLink(false), 2500);
                 }).catch(() => {});
@@ -148,7 +165,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                   ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                   : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
               }`}
-              title="এই বান্ডিলের লিংক কপি করুন"
+              title="এই বান্ডিলটি মেসেঞ্জার, হোয়াটসঅ্যাপ বা ফেসবুকে শেয়ার করুন"
             >
               {copiedShareLink ? (
                 <>
@@ -158,7 +175,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
               ) : (
                 <>
                   <Share2 className="w-3.5 h-3.5" />
-                  <span>বান্ডিল শেয়ার করুন</span>
+                  <span>শেয়ার করুন</span>
                 </>
               )}
             </button>

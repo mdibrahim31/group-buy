@@ -26,14 +26,33 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const activeBundle = productBundles.find(b => b.status === 'open') || productBundles[0];
 
-  const handleShareClick = (e: React.MouseEvent) => {
+  const handleShareClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const url = new URL(window.location.href);
     url.searchParams.set('product', product.id);
     if (activeBundle?.id) {
       url.searchParams.set('bundle', activeBundle.id);
     }
-    navigator.clipboard.writeText(url.toString()).then(() => {
+    const shareUrl = url.toString();
+    const shareTitle = `${product.title} - পাইকারি গ্রুপ বাই বান্ডিল`;
+    const shareText = `সরাসরি হোলসেলার থেকে পাইকারি মূল্যে "${product.title}" কিনুন। গ্রুপ বাই স্লট বুক করুন!`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+        return;
+      } catch (err: any) {
+        // If user cancelled, don't fallback to copy
+        if (err?.name === 'AbortError') return;
+      }
+    }
+
+    // Fallback: Copy to clipboard
+    navigator.clipboard.writeText(shareUrl).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2200);
     }).catch(() => {});
