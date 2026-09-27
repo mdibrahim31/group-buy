@@ -53,7 +53,13 @@ export const Navbar: React.FC = () => {
         <div className="flex items-center gap-2">
           {/* My Bookings Button */}
           <button
-            onClick={() => setMyBookingsOpen(true)}
+            onClick={() => {
+              if (!user) {
+                setAuthModalOpen(true);
+              } else {
+                setMyBookingsOpen(true);
+              }
+            }}
             className="relative flex items-center gap-2 px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-lg text-sm font-medium transition-colors cursor-pointer"
           >
             <ShoppingBag className="w-4 h-4 text-stone-700" />

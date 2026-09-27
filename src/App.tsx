@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
 import { ProductCard } from './components/ProductCard';
@@ -8,7 +8,6 @@ import { StartNewBatchModal } from './components/StartNewBatchModal';
 import { BuyWholeBundleModal } from './components/BuyWholeBundleModal';
 import { SingleBuyModal } from './components/SingleBuyModal';
 import { AuthModal } from './components/AuthModal';
-import { AuthScreen } from './components/AuthScreen';
 import { MyBookingsModal } from './components/MyBookingsModal';
 import { ProfileModal } from './components/ProfileModal';
 import { Product, Bundle, BundleSlot } from './types';
@@ -29,6 +28,7 @@ const MainContent: React.FC = () => {
     onlyLastSlotFilter,
     setOnlyLastSlotFilter,
     setMyBookingsOpen,
+    setAuthModalOpen,
   } = useApp();
 
   // Booking Modal State
@@ -58,12 +58,55 @@ const MainContent: React.FC = () => {
   const [selectedProductForBundle, setSelectedProductForBundle] = useState<Product | null>(null);
   const [selectedBundleIdForDetail, setSelectedBundleIdForDetail] = useState<string | undefined>(undefined);
 
+  // Deep Link Handling: Check URL params on initial load or change (?product=xyz&bundle=abc)
+  useEffect(() => {
+    if (products.length === 0) return;
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const productId = params.get('product');
+      const bundleId = params.get('bundle');
+
+      if (bundleId) {
+        const foundBundle = bundles.find(b => b.id === bundleId);
+        if (foundBundle) {
+          const matchedProduct = products.find(p => p.id === foundBundle.productId);
+          if (matchedProduct) {
+            setSelectedProductForBundle(matchedProduct);
+            setSelectedBundleIdForDetail(foundBundle.id);
+            return;
+          }
+        }
+      }
+
+      if (productId) {
+        const matchedProduct = products.find(p => p.id === productId);
+        if (matchedProduct) {
+          setSelectedProductForBundle(matchedProduct);
+          if (bundleId) {
+            setSelectedBundleIdForDetail(bundleId);
+          }
+        }
+      }
+    } catch {}
+  }, [products, bundles]);
+
   // Toast notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  // Auth gate wrapper: If not logged in, prompt AuthModal with clear message
+  const requireAuth = (callback: () => void) => {
+    if (!user) {
+      showToast('⚠️ স্লট বুকিং করতে দয়া করে প্রথমে লগইন অথবা নতুন রেজিস্ট্রেশন সম্পন্ন করুন।');
+      setAuthModalOpen(true);
+      return;
+    }
+    callback();
   };
 
   // Dynamically extract all available unique sizes across all products
@@ -134,11 +177,6 @@ const MainContent: React.FC = () => {
     setSelectedSizeFilter('all');
     setOnlyLastSlotFilter(false);
   };
-
-  // If user is not logged in, gate access with the login/registration page
-  if (!user) {
-    return <AuthScreen />;
-  }
 
   return (
     <div className="min-h-screen bg-stone-100/70 text-stone-900 flex flex-col font-sans">
@@ -312,8 +350,12 @@ const MainContent: React.FC = () => {
                 key={product.id}
                 product={product}
                 onOpenBundleModal={(prod) => setSelectedProductForBundle(prod)}
-                onBuyWholeBundle={(prod) => setWholeBundleTarget(prod)}
-                onSingleBuy={(prod) => setSingleBuyTarget({ product: prod })}
+                onBuyWholeBundle={(prod) => {
+                  requireAuth(() => setWholeBundleTarget(prod));
+                }}
+                onSingleBuy={(prod) => {
+                  requireAuth(() => setSingleBuyTarget({ product: prod }));
+                }}
               />
             ))}
           </div>
@@ -352,18 +394,32 @@ const MainContent: React.FC = () => {
           onClose={() => {
             setSelectedProductForBundle(null);
             setSelectedBundleIdForDetail(undefined);
+            try {
+              const url = new URL(window.location.href);
+              url.searchParams.delete('product');
+              url.searchParams.delete('bundle');
+              window.history.replaceState({}, '', url.pathname);
+            } catch {}
           }}
           onSelectSlot={(bundle, slot) => {
-            setSelectedBooking({ product: selectedProductForBundle, bundle, slot });
+            requireAuth(() => {
+              setSelectedBooking({ product: selectedProductForBundle, bundle, slot });
+            });
           }}
           onStartNewBatch={(prod, size, color) => {
-            setNewBatchTarget({ product: prod, preselectedSize: size, preselectedColor: color });
+            requireAuth(() => {
+              setNewBatchTarget({ product: prod, preselectedSize: size, preselectedColor: color });
+            });
           }}
           onBuyWholeBundle={(prod) => {
-            setWholeBundleTarget(prod);
+            requireAuth(() => {
+              setWholeBundleTarget(prod);
+            });
           }}
           onSingleBuy={(prod, size) => {
-            setSingleBuyTarget({ product: prod, desiredSize: size });
+            requireAuth(() => {
+              setSingleBuyTarget({ product: prod, desiredSize: size });
+            });
           }}
         />
       )}

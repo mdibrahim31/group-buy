@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Product, Bundle, BundleSlot } from '../types';
 import { useApp } from '../context/AppContext';
-import { Users, Clock, PlusCircle, CheckCircle2, Sparkles, TrendingDown, ArrowRight, ShoppingBag, X, ShieldCheck, ExternalLink, Image as ImageIcon } from 'lucide-react';
+import { Users, Clock, PlusCircle, CheckCircle2, Sparkles, TrendingDown, ArrowRight, ShoppingBag, X, ShieldCheck, ExternalLink, Image as ImageIcon, Share2, Check } from 'lucide-react';
 
 interface BundleDetailModalProps {
   product: Product;
@@ -24,6 +24,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
 }) => {
   const { bundles, reviews } = useApp();
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  const [copiedShareLink, setCopiedShareLink] = useState(false);
 
   // Find all active/existing batches for this product
   const productBundles = bundles
@@ -129,12 +130,45 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
               বান্ডিল ও স্লট বুকিং বিস্তারিত
             </h2>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-700 transition-colors cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const url = new URL(window.location.href);
+                url.searchParams.set('product', product.id);
+                if (activeBundle?.id) {
+                  url.searchParams.set('bundle', activeBundle.id);
+                }
+                navigator.clipboard.writeText(url.toString()).then(() => {
+                  setCopiedShareLink(true);
+                  setTimeout(() => setCopiedShareLink(false), 2500);
+                }).catch(() => {});
+              }}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
+                copiedShareLink
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                  : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
+              }`}
+              title="এই বান্ডিলের লিংক কপি করুন"
+            >
+              {copiedShareLink ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  <span>লিংক কপি হয়েছে!</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>বান্ডিল শেয়ার করুন</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-700 transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Modal Body */}

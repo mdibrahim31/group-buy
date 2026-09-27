@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Product } from '../types';
 import { useApp } from '../context/AppContext';
-import { Users, Sparkles, TrendingDown, ArrowRight, ShoppingBag, Layers, Eye } from 'lucide-react';
+import { Users, Sparkles, TrendingDown, ArrowRight, ShoppingBag, Layers, Eye, Share2, Check } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -17,6 +17,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onSingleBuy,
 }) => {
   const { bundles } = useApp();
+  const [copied, setCopied] = useState(false);
   
   // Find all active/existing batches for this product
   const productBundles = bundles
@@ -24,6 +25,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     .sort((a, b) => a.batchNumber - b.batchNumber);
 
   const activeBundle = productBundles.find(b => b.status === 'open') || productBundles[0];
+
+  const handleShareClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = new URL(window.location.href);
+    url.searchParams.set('product', product.id);
+    if (activeBundle?.id) {
+      url.searchParams.set('bundle', activeBundle.id);
+    }
+    navigator.clipboard.writeText(url.toString()).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
+    }).catch(() => {});
+  };
 
   const savingsAmount = product.retailPrice - product.groupPrice;
   const savingsPercent = Math.round((savingsAmount / product.retailPrice) * 100);
@@ -52,9 +66,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <span>৳{savingsAmount.toLocaleString()} সাশ্রয় ({savingsPercent}%)</span>
         </div>
 
-        {/* Category Badge */}
-        <div className="absolute top-3 right-3 bg-stone-900/80 backdrop-blur-md text-white text-[11px] font-medium px-2 py-0.5 rounded-md">
-          {product.category}
+        {/* Category Badge & Share Button */}
+        <div className="absolute top-3 right-3 flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={handleShareClick}
+            className={`p-1.5 rounded-full backdrop-blur-md transition-all cursor-pointer shadow-md ${
+              copied
+                ? 'bg-emerald-600 text-white'
+                : 'bg-stone-900/80 hover:bg-stone-900 text-white'
+            }`}
+            title="বান্ডিলের শেয়ার লিংক কপি করুন"
+          >
+            {copied ? <Check className="w-3.5 h-3.5 text-white" /> : <Share2 className="w-3.5 h-3.5" />}
+          </button>
+          <span className="bg-stone-900/80 backdrop-blur-md text-white text-[11px] font-medium px-2 py-0.5 rounded-md">
+            {product.category}
+          </span>
         </div>
 
         {/* 2 Price Options Overlay Banner */}
