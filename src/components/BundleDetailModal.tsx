@@ -10,7 +10,6 @@ interface BundleDetailModalProps {
   onSelectSlot: (bundle: Bundle, slot: BundleSlot) => void;
   onStartNewBatch: (product: Product, desiredSize?: string, desiredColor?: string) => void;
   onBuyWholeBundle: (product: Product) => void;
-  onSingleBuy: (product: Product, desiredSize?: string) => void;
 }
 
 export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
@@ -20,13 +19,11 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
   onSelectSlot,
   onStartNewBatch,
   onBuyWholeBundle,
-  onSingleBuy,
 }) => {
   const { products, bundles, reviews } = useApp();
   // Always use the live product from AppContext state
   const product = products.find(p => p.id === initialProduct.id) || initialProduct;
   const isProductAvailable = product.isAvailable !== false && (product as any).status !== 'unavailable' && (product as any).status !== 'inactive';
-  const isSingleBuyAvailable = product.isSingleBuyAvailable !== false && (product as any).single_buy_status !== 'unavailable' && (product as any).single_buy_status !== 'inactive';
 
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [copiedShareLink, setCopiedShareLink] = useState(false);
@@ -571,48 +568,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
           )}
         </div>
 
-          {/* Option 2 Direct Purchase Actions (Single Buy) */}
-          <div className="pt-2 border-t border-stone-200">
-            {/* Option 2: Single Buy */}
-            {isSingleBuyAvailable ? (
-              <button
-                onClick={() => {
-                  onSingleBuy(product);
-                  onClose();
-                }}
-                className="w-full p-4 bg-blue-50 hover:bg-blue-100 border border-blue-300 rounded-2xl text-left flex flex-col justify-between transition-all cursor-pointer group/sb shadow-xs"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-extrabold text-blue-900 flex items-center gap-1.5">
-                    <ShoppingBag className="w-4 h-4 text-blue-600" />
-                    <span>সরাসরি অর্ডার: একক ক্রয় (Single Buy)</span>
-                  </span>
-                  <span className="text-xs bg-blue-200 text-blue-900 font-black px-2 py-0.5 rounded-full">
-                    ১ পিস
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-black text-blue-950">৳{product.retailPrice} (কোনো বান্ডিল মেম্বারশিপের প্রয়োজন নেই)</span>
-                  <span className="text-xs font-bold text-blue-800 flex items-center gap-1 group-hover/sb:translate-x-1 transition-transform">
-                    কিনুন <ArrowRight className="w-3.5 h-3.5" />
-                  </span>
-                </div>
-              </button>
-            ) : (
-              <div className="w-full p-4 bg-stone-100 border border-stone-300 rounded-2xl text-left flex items-center justify-between opacity-80">
-                <div className="flex items-center gap-2">
-                  <ShoppingBag className="w-4 h-4 text-stone-500" />
-                  <div>
-                    <span className="text-xs font-bold text-stone-700 block">একক ক্রয় (Single Buy) - ৳{product.retailPrice}</span>
-                    <span className="text-[11px] text-stone-500">বর্তমানে একক ক্রয় (Single Buy) সাময়িকভাবে বন্ধ আছে।</span>
-                  </div>
-                </div>
-                <span className="text-xs font-bold bg-stone-200 text-stone-600 px-3 py-1 rounded-lg">
-                  আনঅ্যাভেইলেবল
-                </span>
-              </div>
-            )}
-          </div>
+
 
           {/* Customer Reviews & Photos Section (Batch Specific) */}
           <div className="pt-4 border-t border-stone-200 space-y-3">

@@ -6,7 +6,7 @@ import { BundleDetailModal } from './components/BundleDetailModal';
 import { BookingModal } from './components/BookingModal';
 import { StartNewBatchModal } from './components/StartNewBatchModal';
 import { BuyWholeBundleModal } from './components/BuyWholeBundleModal';
-import { SingleBuyModal } from './components/SingleBuyModal';
+
 import { AuthModal } from './components/AuthModal';
 import { MyBookingsModal } from './components/MyBookingsModal';
 import { ProfileModal } from './components/ProfileModal';
@@ -48,11 +48,7 @@ const MainContent: React.FC = () => {
   // Buy Whole Bundle Modal State
   const [wholeBundleTarget, setWholeBundleTarget] = useState<Product | null>(null);
 
-  // Single Buy Modal State
-  const [singleBuyTarget, setSingleBuyTarget] = useState<{
-    product: Product;
-    desiredSize?: string;
-  } | null>(null);
+
 
   // Bundle Detail Modal State
   const [selectedProductForBundle, setSelectedProductForBundle] = useState<Product | null>(null);
@@ -353,9 +349,6 @@ const MainContent: React.FC = () => {
                 onBuyWholeBundle={(prod) => {
                   requireAuth(() => setWholeBundleTarget(prod));
                 }}
-                onSingleBuy={(prod) => {
-                  requireAuth(() => setSingleBuyTarget({ product: prod }));
-                }}
               />
             ))}
           </div>
@@ -434,16 +427,6 @@ const MainContent: React.FC = () => {
                 setWholeBundleTarget(currentProd);
               });
             }}
-            onSingleBuy={(prod, size) => {
-              const currentProd = products.find(p => p.id === prod.id) || prod;
-              if (currentProd.isSingleBuyAvailable === false || (currentProd as any).single_buy_status === 'unavailable') {
-                showToast('⚠️ এই পণ্যের একক ক্রয় (Single Buy) বর্তমানে সাময়িকভাবে বন্ধ আছে।');
-                return;
-              }
-              requireAuth(() => {
-                setSingleBuyTarget({ product: currentProd, desiredSize: size });
-              });
-            }}
           />
         );
       })()}
@@ -490,18 +473,7 @@ const MainContent: React.FC = () => {
         />
       )}
 
-      {singleBuyTarget && (
-        <SingleBuyModal
-          product={singleBuyTarget.product}
-          preselectedSize={singleBuyTarget.desiredSize}
-          onClose={() => setSingleBuyTarget(null)}
-          onSuccess={() => {
-            setSingleBuyTarget(null);
-            showToast('অভিনন্দন! আপনার একক অর্ডারটি সফলভাবে গ্রহণ করা হয়েছে।');
-            setMyBookingsOpen(true);
-          }}
-        />
-      )}
+
 
       <AuthModal />
       <MyBookingsModal

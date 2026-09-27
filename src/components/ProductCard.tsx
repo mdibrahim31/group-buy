@@ -7,14 +7,12 @@ interface ProductCardProps {
   product: Product;
   onOpenBundleModal: (product: Product) => void;
   onBuyWholeBundle: (product: Product) => void;
-  onSingleBuy: (product: Product) => void;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   onOpenBundleModal,
   onBuyWholeBundle,
-  onSingleBuy,
 }) => {
   const { bundles } = useApp();
   const [copied, setCopied] = useState(false);
@@ -114,20 +112,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </span>
         </div>
 
-        {/* 2 Price Options Overlay Banner */}
-        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-stone-950/95 via-stone-950/80 to-transparent p-3 pt-6 text-white">
-          <div className="grid grid-cols-2 gap-1.5 text-center">
-            {/* Option 1: Group Buy */}
-            <div className="bg-emerald-950/70 border border-emerald-500/40 rounded-lg p-1.5">
-              <span className="text-[9px] text-emerald-300 font-bold block">১. গ্রুপ বাই</span>
-              <span className="text-xs font-extrabold text-emerald-400">৳{product.groupPrice}<span className="text-[9px] font-normal">/পিস</span></span>
-            </div>
-
-            {/* Option 2: Single Buy */}
-            <div className="bg-blue-950/70 border border-blue-500/40 rounded-lg p-1.5">
-              <span className="text-[9px] text-blue-300 font-bold block">২. একক ক্রয়</span>
-              <span className="text-xs font-extrabold text-blue-300">৳{product.retailPrice}<span className="text-[9px] font-normal">/পিস</span></span>
-            </div>
+        {/* Price Option Overlay Banner */}
+        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-stone-950/95 via-stone-950/80 to-transparent p-3 pt-6 text-white text-center">
+          <div className="bg-emerald-950/80 border border-emerald-500/40 rounded-lg py-1 px-3 inline-block">
+            <span className="text-[10px] text-emerald-300 font-bold block">গ্রুপ বাই পাইকারি মূল্য</span>
+            <span className="text-sm font-extrabold text-emerald-400">৳{product.groupPrice} <span className="text-[10px] font-normal text-stone-300">/পিস (খুচরা ৳{product.retailPrice})</span></span>
           </div>
         </div>
       </div>
