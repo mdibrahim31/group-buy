@@ -58,6 +58,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     }).catch(() => {});
   };
 
+  const isAvailable = product.isAvailable !== false;
   const savingsAmount = product.retailPrice - product.groupPrice;
   const savingsPercent = Math.round((savingsAmount / product.retailPrice) * 100);
 
@@ -68,21 +69,30 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   return (
     <div 
       onClick={() => onOpenBundleModal(product)}
-      className="bg-white rounded-2xl border border-stone-200/90 shadow-sm hover:shadow-lg transition-all overflow-hidden flex flex-col cursor-pointer group"
+      className="bg-white rounded-2xl border border-stone-200/90 shadow-sm hover:shadow-lg transition-all overflow-hidden flex flex-col cursor-pointer group relative"
     >
       {/* Product Image & Badges */}
       <div className="relative aspect-[4/3] bg-stone-100 overflow-hidden">
         <img
           src={product.imageUrl}
           alt={product.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${!isAvailable ? 'grayscale-[40%] opacity-90' : ''}`}
           loading="lazy"
         />
 
-        {/* Savings Badge */}
-        <div className="absolute top-3 left-3 bg-rose-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow flex items-center gap-1">
-          <TrendingDown className="w-3.5 h-3.5" />
-          <span>৳{savingsAmount.toLocaleString()} সাশ্রয় ({savingsPercent}%)</span>
+        {/* Savings Badge / Availability Badge */}
+        <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start">
+          {!isAvailable ? (
+            <span className="bg-rose-700/95 backdrop-blur-xs text-white text-[11px] font-black px-2.5 py-1 rounded-full shadow-md border border-white/20 flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
+              <span>আনঅ্যাভেইলেবল (স্টক শেষ)</span>
+            </span>
+          ) : (
+            <div className="bg-rose-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow flex items-center gap-1">
+              <TrendingDown className="w-3.5 h-3.5" />
+              <span>৳{savingsAmount.toLocaleString()} সাশ্রয় ({savingsPercent}%)</span>
+            </div>
+          )}
         </div>
 
         {/* Category Badge & Share Button */}
@@ -162,10 +172,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <Layers className="w-4 h-4 text-emerald-600" />
             <span>{productBundles.length}টি ব্যাচ উপলব্ধ</span>
           </div>
-          <span className="text-emerald-700 font-bold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-            <span>স্লট বুক করতে ক্লিক করুন</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </span>
+          {isAvailable ? (
+            <span className="text-emerald-700 font-bold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+              <span>স্লট বুক করতে ক্লিক করুন</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </span>
+          ) : (
+            <span className="text-rose-700 font-bold flex items-center gap-1 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+              <span>বিস্তারিত ও রিভিউ দেখুন</span>
+              <Eye className="w-3.5 h-3.5" />
+            </span>
+          )}
         </div>
 
       </div>

@@ -46,9 +46,7 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
     categories,
     colors: appColors,
     addProduct,
-    updateProduct,
-    deleteProduct,
-    deleteBundle,
+    toggleProductAvailability,
   } = useApp();
 
   // Forms auth state
@@ -61,11 +59,10 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
   const [authError, setAuthError] = useState<string | null>(null);
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
 
-  // Dashboard Sub-views: 'list' | 'add' | 'edit'
-  const [dashboardView, setDashboardView] = useState<'list' | 'add' | 'edit'>('list');
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  // Dashboard Sub-views: 'list' | 'add'
+  const [dashboardView, setDashboardView] = useState<'list' | 'add'>('list');
 
-  // Post & Edit Form States (Hubuhu Admin fields)
+  // Post Form States (Hubuhu Admin fields)
   const [prodTitle, setProdTitle] = useState('');
   const [prodCategory, setProdCategory] = useState('জুতা');
   const [prodDescription, setProdDescription] = useState('');
@@ -292,45 +289,6 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
     setDashboardView('add');
   };
 
-  // Open Edit Product form
-  const handleOpenEditForm = (prod: Product) => {
-    if (!currentSubAdmin || prod.createdBySubAdminId !== currentSubAdmin.id) {
-      showNotification('নিরাপত্তা সতর্কতা: আপনি শুধুমাত্র নিজের আপলোড করা বান্ডিল এডিট করতে পারবেন।');
-      return;
-    }
-    setEditingProduct(prod);
-    setProdTitle(prod.title);
-    setProdCategory(prod.category);
-    setProdDescription(prod.description || '');
-    setProdImageUrl(prod.imageUrl);
-    setProdAdditionalImages([
-      prod.additionalImageUrls?.[0] || '',
-      prod.additionalImageUrls?.[1] || '',
-      prod.additionalImageUrls?.[2] || '',
-      prod.additionalImageUrls?.[3] || '',
-      prod.additionalImageUrls?.[4] || '',
-    ]);
-    setProdYoutubeVideoUrl(prod.youtubeVideoUrl || '');
-    setProdRetailPrice(prod.retailPrice);
-    setProdGroupPrice(prod.groupPrice);
-    setProdFullBundlePrice(prod.fullBundlePricePerPiece || prod.groupPrice);
-
-    // Build size configs back from availableSizes array
-    const countsMap = new Map<string, number>();
-    prod.availableSizes.forEach(s => {
-      countsMap.set(s, (countsMap.get(s) || 0) + 1);
-    });
-    const configs: SizeConfigItem[] = [];
-    let idx = 1;
-    countsMap.forEach((qty, size) => {
-      configs.push({ id: String(idx++), size, qty });
-    });
-    setSizeConfigs(configs);
-
-    setProdSelectedColors(prod.availableColors && prod.availableColors.length > 0 ? prod.availableColors : appColors);
-    setDashboardView('edit');
-  };
-
   // Handle product add submit (Hubuhu Admin logics)
   const handleAddProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -392,6 +350,7 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
         bundleSize: finalSizes.length,
         availableSizes: finalSizes,
         availableColors: prodSelectedColors,
+        isAvailable: true,
       }, prodBundleColor.trim());
 
       if (res && res.success) {
@@ -404,82 +363,6 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
       }
     } catch (err: any) {
       setFormError(err.message || 'Error occurred while saving');
-    }
-  };
-
-  // Handle product edit submit (Hubuhu Admin logics)
-  const handleEditProductSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingProduct) return;
-    if (!currentSubAdmin || editingProduct.createdBySubAdminId !== currentSubAdmin.id) {
-      setFormError('নিরাপত্তা ত্রুটি: আপনি শুধুমাত্র নিজের আপলোড করা বান্ডিল এডিট করতে পারবেন।');
-      return;
-    }
-    setFormError(null);
-
-    if (!prodTitle.trim()) {
-      setFormError('দয়া করে পণ্যের নাম লিখুন');
-      return;
-    }
-    if (!prodImageUrl.trim()) {
-      setFormError('পণ্যের ছবির লিংক (Image URL) দিন');
-      return;
-    }
-    if (!prodRetailPrice || !prodGroupPrice) {
-      setFormError('খুচরা মূল্য ও গ্রুপ বাই মূল্যের ঘর সঠিকভাবে পূরণ করুন');
-      return;
-    }
-
-    const finalSizes: string[] = [];
-    sizeConfigs.forEach((sc) => {
-      const cleanSize = sc.size.trim();
-      const count = Number(sc.qty) || 1;
-      if (cleanSize) {
-        for (let i = 0; i < count; i++) {
-          finalSizes.push(cleanSize);
-        }
-      }
-    });
-
-    if (finalSizes.length === 0) {
-      setFormError('কমপক্ষে একটি সাইজ ও পিস সংখ্যা সেট করুন');
-      return;
-    }
-
-    if (prodSelectedColors.length === 0) {
-      setFormError('দয়া করে কমপক্ষে একটি কালার সিলেক্ট করুন');
-      return;
-    }
-
-    const calculatedFullBundlePrice = prodFullBundlePrice
-      ? Number(prodFullBundlePrice)
-      : Math.round(Number(prodGroupPrice) * 0.88);
-
-    const autoWholesalePrice = Math.round(Number(prodGroupPrice) * 0.75);
-
-    const updatedProd: Product = {
-      ...editingProduct,
-      title: prodTitle.trim(),
-      category: prodCategory,
-      description: prodDescription.trim() || `${prodTitle.trim()} - হোলসেল বান্ডিল গ্রুপ বায়িং।`,
-      imageUrl: prodImageUrl.trim(),
-      additionalImageUrls: prodAdditionalImages.filter(u => u.trim().length > 0),
-      youtubeVideoUrl: prodYoutubeVideoUrl.trim() || undefined,
-      retailPrice: Number(prodRetailPrice),
-      groupPrice: Number(prodGroupPrice),
-      wholesalePrice: autoWholesalePrice,
-      fullBundlePricePerPiece: calculatedFullBundlePrice,
-      bundleSize: finalSizes.length,
-      availableSizes: finalSizes,
-      availableColors: prodSelectedColors,
-    };
-
-    const res = await updateProduct(updatedProd);
-    if (res.success) {
-      showNotification('বান্ডিল সফলভাবে আপডেট করা হয়েছে!');
-      setDashboardView('list');
-    } else {
-      setFormError(res.message);
     }
   };
 
@@ -812,29 +695,30 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
                                     </span>
                                   )}
                                 </div>
-                                {prod.createdBySubAdminId === currentSubAdmin.id && (
+                                {prod.createdBySubAdminId === currentSubAdmin.id ? (
                                   <div className="flex items-center gap-1.5">
                                     <button
-                                      onClick={() => handleOpenEditForm(prod)}
-                                      className="px-2 py-1 bg-stone-50 hover:bg-stone-100 border border-stone-200 rounded-md text-[10px] font-bold text-stone-800 flex items-center gap-1 transition-colors cursor-pointer"
-                                    >
-                                      <Sparkles className="w-3 h-3 text-emerald-600" />
-                                      <span>এডিট</span>
-                                    </button>
-                                    <button
                                       onClick={async () => {
-                                        if (confirm(`আপনি কি "${prod.title}" পণ্য ও এর সকল ব্যাচ সম্পূর্ণ মুছে ফেলতে চান?`)) {
-                                          const res = await deleteProduct(prod.id);
-                                          showNotification(res.message);
-                                        }
+                                        const res = await toggleProductAvailability(prod.id);
+                                        showNotification(res.message);
                                       }}
-                                      className="px-2 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-md text-[10px] font-bold text-rose-700 flex items-center gap-1 transition-colors cursor-pointer"
-                                      title="মুছে ফেলুন"
+                                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer border shadow-2xs ${
+                                        prod.isAvailable !== false
+                                          ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
+                                          : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-300'
+                                      }`}
+                                      title={prod.isAvailable !== false ? 'ক্লিক করে আনঅ্যাভেইলেবল করুন' : 'ক্লিক করে অ্যাভেইলেবল করুন'}
                                     >
-                                      <Trash2 className="w-3 h-3 text-rose-600" />
-                                      <span>ডিলিট</span>
+                                      <span className={`w-2 h-2 rounded-full ${prod.isAvailable !== false ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                                      <span>{prod.isAvailable !== false ? 'অ্যাভেইলেবল' : 'আনঅ্যাভেইলেবল'}</span>
                                     </button>
                                   </div>
+                                ) : (
+                                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${
+                                    prod.isAvailable !== false ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'
+                                  }`}>
+                                    {prod.isAvailable !== false ? 'অ্যাভেইলেবল' : 'আনঅ্যাভেইলেবল'}
+                                  </span>
                                 )}
                               </div>
 
@@ -865,20 +749,6 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
                                         </div>
                                         <div className="flex items-center gap-2">
                                           <span className="text-emerald-700 font-extrabold">{b.filledSlots}/{b.totalSlots} স্লট বুকড</span>
-                                          {prod.createdBySubAdminId === currentSubAdmin.id && (
-                                            <button
-                                              onClick={async () => {
-                                                if (confirm(`আপনি কি ব্যাচ #${b.batchNumber} মুছে ফেলতে চান?`)) {
-                                                  const res = await deleteBundle(b.id);
-                                                  showNotification(res.message);
-                                                }
-                                              }}
-                                              className="text-stone-400 hover:text-rose-600 p-0.5 rounded transition-colors cursor-pointer"
-                                              title="এই ব্যাচটি মুছুন"
-                                            >
-                                              <Trash2 className="w-3 h-3" />
-                                            </button>
-                                          )}
                                         </div>
                                       </div>
 
@@ -923,12 +793,10 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
                     </div>
                     <div>
                       <h3 className="text-sm font-bold text-stone-900">
-                        {dashboardView === 'add' ? 'নতুন হোলসেল বান্ডিল পোস্ট করুন' : 'বান্ডিল তথ্য সংশোধন/এডিট'}
+                        নতুন হোলসেল বান্ডিল পোস্ট করুন
                       </h3>
                       <p className="text-[11px] text-stone-500">
-                        {dashboardView === 'add' 
-                          ? 'নতুন পণ্য ও সাইজ স্লট পোস্ট করুন। পোস্ট করার সাথে সাথে ব্যাচ #১ স্বয়ংক্রিয়ভাবে চালু হবে।' 
-                          : 'সরাসরি বান্ডিলের সাইজ, ডেসক্রিপশন এবং প্রাইসিং সংশোধন করুন।'}
+                        নতুন পণ্য ও সাইজ স্লট পোস্ট করুন। পোস্ট করার সাথে সাথে ব্যাচ #১ স্বয়ংক্রিয়ভাবে চালু হবে।
                       </p>
                     </div>
                   </div>
@@ -949,7 +817,7 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
                   </div>
                 )}
 
-                <form onSubmit={dashboardView === 'add' ? handleAddProductSubmit : handleEditProductSubmit} className="space-y-4">
+                <form onSubmit={handleAddProductSubmit} className="space-y-4">
                   {/* Title */}
                   <div>
                     <label className="block text-xs font-bold text-stone-700 mb-1.5">
@@ -1386,9 +1254,7 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
                       className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
                     >
                       <Check className="w-4 h-4" />
-                      <span>
-                        {dashboardView === 'add' ? 'বান্ডিল আপলোড সম্পন্ন করুন' : 'বান্ডিল তথ্য সংশোধন করুন'}
-                      </span>
+                      <span>বান্ডিল আপলোড সম্পন্ন করুন</span>
                     </button>
                   </div>
                 </form>

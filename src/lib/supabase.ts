@@ -422,6 +422,7 @@ export async function dbGetAllProducts(): Promise<Product[]> {
         bundleSize: Number(p.bundle_size || 6),
         availableSizes: Array.isArray(p.available_sizes) ? p.available_sizes : [],
         availableColors: colors,
+        isAvailable: p.is_available !== false && p.isAvailable !== false,
         createdBySubAdminId: p.created_by_sub_admin_id || undefined,
         createdBySubAdminName: p.created_by_sub_admin_name || undefined,
       };
@@ -457,7 +458,8 @@ export async function dbSaveProduct(product: Product): Promise<boolean> {
       available_color: colorsJoined || null,
       color: colorsJoined || null,
       colors: colorsList,
-      status: 'active',
+      is_available: product.isAvailable !== false,
+      status: product.isAvailable === false ? 'unavailable' : 'active',
       created_by_sub_admin_id: product.createdBySubAdminId || null,
       created_by_sub_admin_name: product.createdBySubAdminName || null,
       updated_at: new Date().toISOString(),

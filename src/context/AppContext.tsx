@@ -122,6 +122,7 @@ interface AppContextType {
   cancelOrder: (orderId: string) => Promise<{ success: boolean; message: string }>;
   addProduct: (product: Omit<Product, 'id'>, bundleColor?: string) => Promise<{ success: boolean; message: string }>;
   updateProduct: (product: Product) => Promise<{ success: boolean; message: string }>;
+  toggleProductAvailability: (productId: string) => Promise<{ success: boolean; isAvailable: boolean; message: string }>;
   deleteProduct: (productId: string) => Promise<{ success: boolean; message: string }>;
   deleteBundle: (bundleId: string) => Promise<{ success: boolean; message: string }>;
   findOrderByIdOrCustomer: (query: string) => Promise<Order[]>;
@@ -667,6 +668,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, message: 'পণ্য খুঁজে পাওয়া যায়নি।' };
     }
 
+    if (product.isAvailable === false) {
+      return {
+        success: false,
+        message: 'এই পণ্যটি বর্তমানে আনঅ্যাভেইলেবল (স্টক শেষ)। স্লট বুকিং সম্ভব নয়।'
+      };
+    }
+
     const currentCustomerId = user?.id || (user?.phone ? `cust-${user.phone}` : getOrCreateGuestCustomerId());
     const currentCustomerName = buyerName || user?.fullName || 'গ্রাহক';
     const currentPhone = contactPhone || user?.phone || '01700000000';
@@ -800,6 +808,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, newBatchNumber: 0, message: 'পণ্য খুঁজে পাওয়া যায়নি।' };
     }
 
+    if (product.isAvailable === false) {
+      return {
+        success: false,
+        newBatchNumber: 0,
+        message: 'এই পণ্যটি বর্তমানে আনঅ্যাভেইলেবল (স্টক শেষ)। নতুন ব্যাচ চালু করা সম্ভব নয়।'
+      };
+    }
+
     const currentCustomerId = user?.id || (user?.phone ? `cust-${user.phone}` : getOrCreateGuestCustomerId());
     const currentCustomerName = buyerName || user?.fullName || 'গ্রাহক';
     const currentPhone = contactPhone || user?.phone || '01700000000';
@@ -919,6 +935,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, message: 'পণ্য খুঁজে পাওয়া যায়নি।' };
     }
 
+    if (product.isAvailable === false) {
+      return { success: false, message: 'এই পণ্যটি বর্তমানে আনঅ্যাভেইলেবল (স্টক শেষ)।' };
+    }
+
     const currentCustomerId = user?.id || (user?.phone ? `cust-${user.phone}` : getOrCreateGuestCustomerId());
     const currentCustomerName = buyerName || user?.fullName || 'সম্পূর্ণ বান্ডিল ক্রেতা';
     const currentPhone = contactPhone || user?.phone || '01700000000';
@@ -1020,6 +1040,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const product = products.find(p => p.id === productId);
     if (!product) {
       return { success: false, message: 'পণ্য খুঁজে পাওয়া যায়নি।' };
+    }
+
+    if (product.isAvailable === false) {
+      return { success: false, message: 'এই পণ্যটি বর্তমানে আনঅ্যাভেইলেবল (স্টক শেষ)। অর্ডার করা সম্ভব নয়।' };
     }
 
     const currentCustomerId = user?.id || (user?.phone ? `cust-${user.phone}` : getOrCreateGuestCustomerId());
@@ -1347,6 +1371,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { success: true, message: 'বান্ডিলটি সফলভাবে আপডেট করা হয়েছে!' };
   };
 
+  const toggleProductAvailability = async (productId: string): Promise<{ success: boolean; isAvailable: boolean; message: string }> => {
+    const targetProduct = products.find(p => p.id === productId);
+    if (!targetProduct) {
+      return { success: false, isAvailable: false, message: 'পণ্য খুঁজে পাওয়া যায়নি।' };
+    }
+
+    const currentAvailability = targetProduct.isAvailable !== false;
+    const newAvailability = !currentAvailability;
+
+    const updatedProduct: Product = {
+      ...targetProduct,
+      isAvailable: newAvailability,
+    };
+
+    setProducts(prev => prev.map(p => p.id === productId ? updatedProduct : p));
+
+    // Persist to Supabase and LocalStorage
+    const saved = await dbSaveProduct(updatedProduct);
+    if (!saved) {
+      console.warn('Warning: Product availability updated locally but Supabase sync returned false.');
+    }
+
+    return {
+      success: true,
+      isAvailable: newAvailability,
+      message: newAvailability
+        ? `"${targetProduct.title}" এখন অ্যাভেইলেবল (Available) করা হয়েছে। গ্রাহকরা স্লট বুক করতে পারবেন।`
+        : `"${targetProduct.title}" এখন আনঅ্যাভেইলেবল (Unavailable) করা হয়েছে। গ্রাহকরা তথ্য ও রিভিউ দেখতে পারবেন কিন্তু নতুন বুকিং করতে পারবেন না।`
+    };
+  };
+
   const deleteProduct = async (productId: string): Promise<{ success: boolean; message: string }> => {
     setProducts(prev => prev.filter(p => p.id !== productId));
     setBundles(prev => prev.filter(b => b.productId !== productId));
@@ -1489,6 +1544,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         cancelOrder,
         addProduct,
         updateProduct,
+        toggleProductAvailability,
         deleteProduct,
         deleteBundle,
         findOrderByIdOrCustomer,
