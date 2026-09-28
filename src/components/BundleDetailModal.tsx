@@ -82,6 +82,14 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
     }
   }, [productBundles, displayBundles, selectedBatchId]);
 
+  useEffect(() => {
+    const origOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = origOverflow;
+    };
+  }, []);
+
   const activeBundle = productBundles.find(b => b.id === selectedBatchId) || displayBundles[0];
 
   // Specific reviews for this active batch
@@ -102,33 +110,33 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
   const progressPercent = Math.min(100, Math.round((filledSlots / totalSlots) * 100));
 
   return (
-    <div className="fixed inset-0 z-50 w-screen h-screen bg-white flex flex-col overflow-y-auto animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] w-full h-full bg-white flex flex-col overflow-y-auto overflow-x-hidden animate-in fade-in duration-150">
         
         {/* Modal Header */}
-        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-md px-4 sm:px-5 py-3.5 border-b border-stone-200 flex items-center justify-between gap-2">
+        <div className="sticky top-0 z-20 bg-white px-3 sm:px-5 py-3 border-b border-stone-200 flex items-center justify-between gap-1.5 shadow-2xs">
           {/* Left: Back Arrow Button & Title */}
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
             <button
               onClick={onClose}
-              className="p-2 -ml-1 hover:bg-stone-100 rounded-full text-stone-800 transition-colors flex items-center gap-1 font-bold text-xs cursor-pointer shrink-0"
+              className="p-1.5 sm:p-2 -ml-1 hover:bg-stone-100 rounded-full text-stone-800 transition-colors flex items-center gap-1 font-bold text-xs cursor-pointer shrink-0"
               title="হোমে ফিরে যান"
             >
               <ArrowLeft className="w-5 h-5 text-stone-900" />
               <span className="hidden sm:inline">পেছনে</span>
             </button>
             <div className="h-4 w-px bg-stone-300 hidden sm:block shrink-0" />
-            <h2 className="text-sm sm:text-base font-black text-stone-900 tracking-tight truncate">
+            <h2 className="text-xs sm:text-base font-black text-stone-900 tracking-tight truncate">
               বান্ডিল বুকিং বিস্তারিত
             </h2>
           </div>
 
           {/* Right: Save & Share & Close Buttons */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {/* Save Button */}
             <button
               type="button"
               onClick={() => toggleSaveProduct(product.id)}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
+              className={`p-2 sm:px-3 sm:py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
                 isSaved
                   ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
                   : 'bg-stone-100 hover:bg-stone-200 text-stone-800 border-stone-200'
@@ -136,7 +144,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
               title={isSaved ? "সেভ তালিকা থেকে সরান" : "বান্ডিলটি সেভ করুন"}
             >
               <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-white' : ''}`} />
-              <span>{isSaved ? 'সেভ করা' : 'সেভ করুন'}</span>
+              <span className="hidden sm:inline">{isSaved ? 'সেভ করা' : 'সেভ করুন'}</span>
             </button>
 
             {/* Share Button */}
@@ -169,7 +177,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                   setTimeout(() => setCopiedShareLink(false), 2500);
                 }).catch(() => {});
               }}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
+              className={`p-2 sm:px-3 sm:py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
                 copiedShareLink
                   ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                   : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
@@ -191,7 +199,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
 
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-700 transition-colors cursor-pointer"
+              className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-700 transition-colors cursor-pointer shrink-0"
               title="বন্ধ করুন"
             >
               <X className="w-4 h-4" />
