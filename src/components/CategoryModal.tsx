@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { X, ChevronDown, ChevronUp, Check } from 'lucide-react';
-import { Category } from '../types';
 
 interface CategoryModalProps {
   isOpen: boolean;
@@ -9,57 +8,6 @@ interface CategoryModalProps {
   onSelectCategory: (categoryName: string) => void;
   selectedCategoryName?: string;
 }
-
-// Preset parent groups and sample subcategories matching the reference interface
-const SAMPLE_CATEGORY_GROUPS: { parent: string; defaultSubs: string[] }[] = [
-  {
-    parent: 'Electric Equipment Component & Telecom',
-    defaultSubs: [
-      'Solar Energy Products',
-      'Motors, Generators & Transformers',
-      'Connectors & Terminals',
-      'Batteries',
-      'Wires,Cables and Accessories',
-      'Power Accessories',
-    ],
-  },
-  {
-    parent: 'Agriculture & Food',
-    defaultSubs: ['Fresh Food & Grain', 'Farm Machinery', 'Food Processing'],
-  },
-  {
-    parent: 'Auto & Transportation',
-    defaultSubs: ['Auto Parts & Accessories', 'Vehicles & Motorcycles'],
-  },
-  {
-    parent: 'Machinery, Industrial Parts & Tools',
-    defaultSubs: ['Hardware Tools', 'Industrial Machinery', 'Pumps & Fittings'],
-  },
-  {
-    parent: 'Gift Sports & Toys',
-    defaultSubs: ['Sports Gear & Shoes', 'Toys & Hobbies', 'Gift Items'],
-  },
-  {
-    parent: 'Office ,Packaging & Advertising',
-    defaultSubs: ['Office Stationery', 'Packaging Boxes & Bags'],
-  },
-  {
-    parent: 'Home & Lights',
-    defaultSubs: ['LED Lighting', 'home & lights', 'Kitchenware & Decor'],
-  },
-  {
-    parent: 'Health & Beauty',
-    defaultSubs: ['health & beauty', 'Skincare & Cosmetics', 'Personal Care'],
-  },
-  {
-    parent: 'Bag & Shoes',
-    defaultSubs: ['shoes', 'bags', 'Backpacks & Luggage'],
-  },
-  {
-    parent: 'Apparel & Accessories',
-    defaultSubs: ['cloth', 'panjabi', 't-shirt', 'Fashion Accessories'],
-  },
-];
 
 export const CategoryModal: React.FC<CategoryModalProps> = ({
   isOpen,
@@ -71,9 +19,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   
   // Track open/closed state for parent category accordions
-  const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({
-    'Electric Equipment Component & Telecom': true,
-  });
+  const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({});
 
   // Touch Swipe & Pull-Down gesture states
   const [dragY, setDragY] = useState(0);
@@ -95,19 +41,15 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
-  // Build merged category list from database categoryObjects + presets
+  // Build dynamic category list ONLY from database categoryObjects
   const groupedCategoryMap: Record<string, string[]> = {};
 
-  // First seed presets
-  SAMPLE_CATEGORY_GROUPS.forEach(g => {
-    groupedCategoryMap[g.parent] = [...g.defaultSubs];
-  });
-
-  // Then populate with live categoryObjects from AppContext/DB
   categoryObjects.forEach(cat => {
-    const parent = cat.parentCategory || 'সাধারণ ক্যাটাগরি';
+    // Treat empty/unspecified parent as 'অন্যান্য ক্যাটাগরি'
+    const parent = (cat.parentCategory && cat.parentCategory.trim()) 
+      ? cat.parentCategory.trim() 
+      : 'অন্যান্য ক্যাটাগরি';
+    
     if (!groupedCategoryMap[parent]) {
       groupedCategoryMap[parent] = [];
     }
@@ -117,6 +59,15 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
   });
 
   const parentList = Object.keys(groupedCategoryMap);
+
+  // Expand the first parent category by default once loaded
+  useEffect(() => {
+    if (parentList.length > 0 && Object.keys(expandedParents).length === 0) {
+      setExpandedParents({ [parentList[0]]: true });
+    }
+  }, [categoryObjects, parentList.length]);
+
+  if (!isOpen) return null;
 
   const toggleExpand = (parentName: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -174,7 +125,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
           transform: `translateY(${dragY}px)`,
           transition: isDragging ? 'none' : 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
-        className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full max-h-[85vh] sm:max-h-[80vh] flex flex-col shadow-2xl border-t border-stone-200 overflow-hidden select-none"
+        className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full h-[92vh] max-h-[92vh] sm:h-auto sm:max-h-[88vh] flex flex-col shadow-2xl border-t border-stone-200 overflow-hidden select-none animate-in slide-in-from-bottom duration-300"
       >
         {/* Top Swipe Drag Pill Handle */}
         <div className="pt-2.5 pb-1 flex justify-center cursor-grab active:cursor-grabbing shrink-0 bg-white">

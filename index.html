@@ -3,7 +3,7 @@
   <head>
     
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>GroupBuy Wholesale - সরাসরি পাইকারি মূল্যে গ্রুপ বায়িং</title>
     <meta name="description" content="ডাইনামিক ব্যাচ স্লট বুকিং ও গ্রুপ বায়িং প্ল্যাটফর্ম - হোলসেলার থেকে সরাসরি গ্রাহকদের কাছে পাইকারি মূল্যে পণ্য।" />
     <meta property="og:title" content="GroupBuy Wholesale - সরাসরি পাইকারি মূল্যে গ্রুপ বায়িং" />
@@ -11,6 +11,36 @@
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="google-site-verification" content="LGUu-sZDpSn-o3P3xgq7PgASe1HcQLi-iomOD44pbWM" />
+    <script>
+      // Disable pinch-to-zoom gestures on touch devices
+      document.addEventListener('touchstart', function (event) {
+        if (event.touches.length > 1) {
+          event.preventDefault();
+        }
+      }, { passive: false });
+
+      document.addEventListener('touchmove', function (event) {
+        if (event.touches.length > 1) {
+          event.preventDefault();
+        }
+      }, { passive: false });
+
+      // Disable Ctrl+Wheel zoom and Cmd/Ctrl + +/- zoom on keyboard
+      document.addEventListener('wheel', function (event) {
+        if (event.ctrlKey) {
+          event.preventDefault();
+        }
+      }, { passive: false });
+
+      document.addEventListener('keydown', function (event) {
+        if (event.ctrlKey && (event.key === '+' || event.key === '-' || event.key === '=' || event.key === '_' || event.key === '0')) {
+          event.preventDefault();
+        }
+        if (event.metaKey && (event.key === '+' || event.key === '-' || event.key === '=' || event.key === '_' || event.key === '0')) {
+          event.preventDefault();
+        }
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>
