@@ -218,7 +218,7 @@ const MainContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-stone-100/70 text-stone-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-stone-100/70 text-stone-900 flex flex-col font-sans overflow-x-hidden w-full">
       {/* Spectacular Entrance Splash Animation Screen */}
       {showSplash && (
         <div
