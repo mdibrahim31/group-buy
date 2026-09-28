@@ -12,9 +12,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   onOpenBundleModal,
 }) => {
-  const { bundles, toggleSaveProduct, isProductSaved } = useApp();
+  const { bundles, toggleSaveProduct, isProductSaved, calculateCustomerPrice } = useApp();
   const [copied, setCopied] = useState(false);
   const isSaved = isProductSaved(product.id);
+  
+  // Base wholesale price & calculated customer price with category markup
+  const baseWholesale = product.wholesalePrice || product.groupPrice;
+  const effectivePrice = calculateCustomerPrice(baseWholesale, product.category);
   
   // Find all active/existing batches for this product
   const productBundles = bundles
@@ -56,7 +60,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   };
 
   const isAvailable = product.isAvailable !== false && (product as any).status !== 'unavailable' && (product as any).status !== 'inactive';
-  const savingsAmount = product.retailPrice - product.groupPrice;
+  const savingsAmount = Math.max(0, product.retailPrice - effectivePrice);
   const savingsPercent = Math.round((savingsAmount / product.retailPrice) * 100);
 
   const totalSlots = activeBundle?.totalSlots || product.bundleSize;
@@ -130,7 +134,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-stone-950/95 via-stone-950/80 to-transparent p-3 pt-6 text-white text-center">
           <div className="bg-emerald-950/80 border border-emerald-500/40 rounded-lg py-1 px-3 inline-block">
             <span className="text-[10px] text-emerald-300 font-bold block">গ্রুপ বাই পাইকারি মূল্য</span>
-            <span className="text-sm font-extrabold text-emerald-400">৳{product.groupPrice} <span className="text-[10px] font-normal text-stone-300">/পিস (খুচরা ৳{product.retailPrice})</span></span>
+            <span className="text-sm font-extrabold text-emerald-400">৳{effectivePrice} <span className="text-[10px] font-normal text-stone-300">/পিস (খুচরা ৳{product.retailPrice})</span></span>
           </div>
         </div>
       </div>

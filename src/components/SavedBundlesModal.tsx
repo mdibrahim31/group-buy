@@ -15,6 +15,7 @@ export const SavedBundlesModal: React.FC<SavedBundlesModalProps> = ({ onViewBund
     products,
     bundles,
     toggleSaveProduct,
+    calculateCustomerPrice,
   } = useApp();
 
   if (!savedModalOpen) return null;
@@ -79,7 +80,9 @@ export const SavedBundlesModal: React.FC<SavedBundlesModalProps> = ({ onViewBund
                 const totalSlots = activeBundle?.totalSlots || product.bundleSize;
                 const filledSlots = activeBundle?.filledSlots || 0;
                 const progressPercent = Math.min(100, Math.round((filledSlots / totalSlots) * 100));
-                const savingsAmount = product.retailPrice - product.groupPrice;
+                const basePrice = product.wholesalePrice || product.groupPrice;
+                const effectivePrice = calculateCustomerPrice(basePrice, product.category);
+                const savingsAmount = Math.max(0, product.retailPrice - effectivePrice);
 
                 return (
                   <div
@@ -106,7 +109,7 @@ export const SavedBundlesModal: React.FC<SavedBundlesModalProps> = ({ onViewBund
                           {product.title}
                         </h4>
                         <div className="text-xs font-black text-emerald-700">
-                          ৳{product.groupPrice} <span className="text-[10px] font-normal text-stone-500">/পিস (খুচরা ৳{product.retailPrice})</span>
+                          ৳{effectivePrice} <span className="text-[10px] font-normal text-stone-500">/পিস (খুচরা ৳{product.retailPrice})</span>
                         </div>
 
                         {/* Batch summary */}

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { User, Product, Bundle, Order, BundleSlot, Customer, AppNotification, SubAdmin, Review } from '../types';
+import { User, Product, Bundle, Order, BundleSlot, Customer, AppNotification, SubAdmin, Review, Category } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_BUNDLES, INITIAL_NOTIFICATIONS } from '../data/initialData';
 import {
   dbGetCustomerByPhone,
@@ -17,6 +17,7 @@ import {
   dbUpdateBundleSlot,
   dbUpdateBundleStatus,
   dbGetAllCategories,
+  dbGetAllCategoryItems,
   dbSaveCategory,
   dbDeleteCategory,
   dbGetAllColors,
@@ -60,9 +61,15 @@ interface AppContextType {
   addNotification: (notification: Omit<AppNotification, 'id' | 'createdAt' | 'read'>) => void;
   authModalOpen: boolean;
   setAuthModalOpen: (open: boolean) => void;
+  categoryObjects: Category[];
+  categoryModalOpen: boolean;
+  setCategoryModalOpen: (open: boolean) => void;
   categories: string[];
-  addCategory: (name: string) => { success: boolean; message: string };
+  addCategory: (name: string, markupPercentage?: number, parentCategory?: string) => { success: boolean; message: string };
+  updateCategory: (name: string, markupPercentage: number, parentCategory?: string) => { success: boolean; message: string };
   deleteCategory: (name: string) => { success: boolean; message: string };
+  getCategoryMarkup: (categoryName: string) => number;
+  calculateCustomerPrice: (basePrice: number, categoryName: string) => number;
   colors: string[];
   addColor: (name: string) => { success: boolean; message: string };
   deleteColor: (name: string) => { success: boolean; message: string };
@@ -170,9 +177,19 @@ export const getOrCreateGuestCustomerId = (): string => {
   }
 };
 
-const DEFAULT_CATEGORIES = ['জুতা', 'কাপড়'];
-const DEFAULT_COLORS = ['কালো', 'সাদা', 'ব্রাউন', 'নীল', 'লাল', 'হলুদ', 'সবুজ', 'গ্রে'];
+const DEFAULT_CATEGORY_OBJECTS: Category[] = [
+  { id: 'cat-shoes', name: 'shoes', markupPercentage: 15, parentCategory: 'Bag & Shoes' },
+  { id: 'cat-bags', name: 'bags', markupPercentage: 10, parentCategory: 'Bag & Shoes' },
+  { id: 'cat-cloth', name: 'cloth', markupPercentage: 15, parentCategory: 'Apparel & Accessories' },
+  { id: 'cat-panjabi', name: 'panjabi', markupPercentage: 20, parentCategory: 'Apparel & Accessories' },
+  { id: 'cat-tshirt', name: 't-shirt', markupPercentage: 15, parentCategory: 'Apparel & Accessories' },
+  { id: 'cat-solar', name: 'solar products', markupPercentage: 10, parentCategory: 'Electric Equipment Component & Telecom' },
+  { id: 'cat-beauty', name: 'health & beauty', markupPercentage: 15, parentCategory: 'Health & Beauty' },
+  { id: 'cat-home', name: 'home & lights', markupPercentage: 12, parentCategory: 'Home & Lights' },
+];
 
+const DEFAULT_CATEGORIES = ['shoes', 'bags', 'cloth', 'panjabi', 't-shirt'];
+const DEFAULT_COLORS = ['কালো', 'সাদা', 'ব্রাউন', 'নীল', 'লাল', 'হলুদ', 'সবুজ', 'গ্রে'];
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
@@ -193,16 +210,85 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
-  const [categories, setCategories] = useState<string[]>(() => {
+  const [categoryObjects, setCategoryObjects] = useState<Category[]>(() => {
     try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY_CATEGORIES);
-      if (!saved) return DEFAULT_CATEGORIES;
+      const saved = localStorage.getItem('groupbuy_category_objects_v2');
+      if (!saved) return DEFAULT_CATEGORY_OBJECTS;
       const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_CATEGORIES;
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_CATEGORY_OBJECTS;
     } catch {
-      return DEFAULT_CATEGORIES;
+      return DEFAULT_CATEGORY_OBJECTS;
     }
   });
+
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('groupbuy_category_objects_v2', JSON.stringify(categoryObjects));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [categoryObjects]);
+
+  const categories = useMemo(() => {
+    return Array.from(new Set(categoryObjects.map(c => c.name)));
+  }, [categoryObjects]);
+
+  const getCategoryMarkup = (categoryName: string): number => {
+    if (!categoryName) return 0;
+    const clean = categoryName.trim().toLowerCase();
+    const found = categoryObjects.find(c => c.name.trim().toLowerCase() === clean);
+    return found ? Number(found.markupPercentage || 0) : 0;
+  };
+
+  const calculateCustomerPrice = (basePrice: number, categoryName: string): number => {
+    if (!basePrice || isNaN(Number(basePrice))) return 0;
+    const markup = getCategoryMarkup(categoryName);
+    if (markup <= 0) return Math.round(Number(basePrice));
+    return Math.round(Number(basePrice) * (1 + markup / 100));
+  };
+
+  const addCategory = (name: string, markupPercentage: number = 0, parentCategory: string = '') => {
+    const cleanName = name.trim();
+    if (!cleanName) return { success: false, message: 'ক্যাটাগরির নাম দেওয়া বাধ্যতামূলক' };
+    const exists = categoryObjects.some(c => c.name.toLowerCase() === cleanName.toLowerCase());
+    if (exists) {
+      return updateCategory(cleanName, markupPercentage, parentCategory);
+    }
+    const newCat: Category = {
+      id: `cat-${Date.now()}`,
+      name: cleanName,
+      markupPercentage: Number(markupPercentage) || 0,
+      parentCategory: parentCategory || 'অন্যান্য',
+    };
+    setCategoryObjects(prev => [...prev, newCat]);
+    dbSaveCategory(cleanName, Number(markupPercentage) || 0, parentCategory || '');
+    return { success: true, message: `ক্যাটাগরি "${cleanName}" (${markupPercentage}% মার্কআপসহ) সফলভাবে যোগ হয়েছে` };
+  };
+
+  const updateCategory = (name: string, markupPercentage: number, parentCategory?: string) => {
+    const cleanName = name.trim();
+    setCategoryObjects(prev => prev.map(c => {
+      if (c.name.toLowerCase() === cleanName.toLowerCase()) {
+        return {
+          ...c,
+          markupPercentage: Number(markupPercentage) || 0,
+          parentCategory: parentCategory !== undefined ? parentCategory : c.parentCategory,
+        };
+      }
+      return c;
+    }));
+    dbSaveCategory(cleanName, Number(markupPercentage) || 0, parentCategory || '');
+    return { success: true, message: `ক্যাটাগরি "${cleanName}" এর পার্সেন্টেজ (${markupPercentage}%) আপডেট হয়েছে` };
+  };
+
+  const deleteCategory = (name: string) => {
+    const cleanName = name.trim();
+    setCategoryObjects(prev => prev.filter(c => c.name.toLowerCase() !== cleanName.toLowerCase()));
+    dbDeleteCategory(cleanName);
+    return { success: true, message: `ক্যাটাগরি "${cleanName}" মুছে ফেলা হয়েছে` };
+  };
 
   const [colors, setColors] = useState<string[]>(() => {
     try {
@@ -411,7 +497,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const [remoteProducts, remoteBundles, remoteCategories, remoteColors, remoteOrders, remoteReviews] = await Promise.all([
           dbGetAllProducts(),
           dbGetAllBundles(),
-          dbGetAllCategories(),
+          dbGetAllCategoryItems(),
           dbGetAllColors(),
           dbGetAllOrders(),
           dbGetAllReviews(),
@@ -419,7 +505,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         setProducts(remoteProducts);
         setBundles(remoteBundles);
-        if (remoteCategories.length > 0) setCategories(remoteCategories);
+        if (remoteCategories.length > 0) setCategoryObjects(remoteCategories);
         if (remoteColors.length > 0) setColors(remoteColors);
         setOrders(remoteOrders);
         setReviews(remoteReviews);
@@ -489,8 +575,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         'postgres_changes',
         { event: '*', schema: 'public', table: 'categories' },
         async () => {
-          const remoteCategories = await dbGetAllCategories();
-          if (remoteCategories.length > 0) setCategories(remoteCategories);
+          const remoteCategories = await dbGetAllCategoryItems();
+          if (remoteCategories.length > 0) setCategoryObjects(remoteCategories);
         }
       )
       .on(
@@ -1313,46 +1399,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   };
 
-  // Add new category
-  const addCategory = (name: string): { success: boolean; message: string } => {
-    const clean = name.trim();
-    if (!clean) return { success: false, message: 'ক্যাটাগরির নাম লিখুন' };
-    if (categories.includes(clean)) {
-      return { success: false, message: 'এই ক্যাটাগরি ইতিমধ্যে বিদ্যমান আছে' };
-    }
-    const updated = [...categories, clean];
-    setCategories(updated);
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY_CATEGORIES, JSON.stringify(updated));
-    } catch (e) {
-      console.error(e);
-    }
-    // Save to Supabase Database
-    dbSaveCategory(clean);
-
-    return { success: true, message: `"${clean}" ক্যাটাগরি সফলভাবে যুক্ত ও সেভ হয়েছে` };
-  };
-
-  // Delete category
-  const deleteCategory = (name: string): { success: boolean; message: string } => {
-    const clean = name.trim();
-    if (!clean) return { success: false, message: 'ক্যাটাগরির নাম পাওয়া যায়নি' };
-    const updated = categories.filter(c => c !== clean);
-    setCategories(updated);
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY_CATEGORIES, JSON.stringify(updated));
-    } catch (e) {
-      console.error(e);
-    }
-    // Delete from Supabase Database
-    dbDeleteCategory(clean);
-
-    if (selectedCategory === clean) {
-      setSelectedCategory('সব');
-    }
-    return { success: true, message: `"${clean}" ক্যাটাগরি মুছে ফেলা হয়েছে` };
-  };
-
   // Add new color
   const addColor = (name: string): { success: boolean; message: string } => {
     const clean = name.trim();
@@ -1571,9 +1617,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addNotification,
         authModalOpen,
         setAuthModalOpen,
+        categoryObjects,
+        categoryModalOpen,
+        setCategoryModalOpen,
         categories,
         addCategory,
+        updateCategory,
         deleteCategory,
+        getCategoryMarkup,
+        calculateCustomerPrice,
         colors,
         addColor,
         deleteColor,

@@ -1,3 +1,11 @@
+export interface Category {
+  id: string;
+  name: string;
+  markupPercentage: number;
+  parentCategory?: string;
+  subcategories?: string[];
+}
+
 export interface Customer {
   id: string;
   phone: string;

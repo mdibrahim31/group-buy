@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Customer, Order, Product, Bundle, BundleSlot } from '../types';
+import { Customer, Order, Product, Bundle, BundleSlot, Category } from '../types';
 
 const getConfig = () => {
   const envUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim().replace(/^["']|["']$/g, '');
@@ -732,29 +732,44 @@ export async function dbUpdateBundleStatus(bundleId: string, status: string, fil
 
 // ======================= CATEGORIES DB =======================
 
-export async function dbGetAllCategories(): Promise<string[]> {
+export async function dbGetAllCategoryItems(): Promise<Category[]> {
   if (!supabase) return [];
   try {
     const { data, error } = await supabase
       .from('categories')
-      .select('name')
+      .select('*')
       .order('name', { ascending: true });
 
     if (error || !data) return [];
-    return data.map((d: any) => d.name).filter(Boolean);
+    return data.map((d: any) => ({
+      id: d.id || `cat-${d.name}`,
+      name: d.name,
+      markupPercentage: Number(d.markup_percentage || 0),
+      parentCategory: d.parent_category || '',
+    }));
   } catch (err) {
     console.warn('Supabase categories fetch notice:', err);
     return [];
   }
 }
 
-export async function dbSaveCategory(name: string): Promise<boolean> {
+export async function dbGetAllCategories(): Promise<string[]> {
+  const items = await dbGetAllCategoryItems();
+  return items.map(i => i.name).filter(Boolean);
+}
+
+export async function dbSaveCategory(name: string, markupPercentage: number = 0, parentCategory: string = ''): Promise<boolean> {
   if (!supabase || !name.trim()) return false;
   try {
     const cleanName = name.trim();
     const { error } = await supabase
       .from('categories')
-      .upsert({ name: cleanName }, { onConflict: 'name' });
+      .upsert({
+        id: `cat-${cleanName.toLowerCase().replace(/\s+/g, '-')}`,
+        name: cleanName,
+        markup_percentage: markupPercentage,
+        parent_category: parentCategory,
+      }, { onConflict: 'name' });
 
     if (error) {
       console.warn('Supabase dbSaveCategory error:', error.message);

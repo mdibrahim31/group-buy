@@ -18,12 +18,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const { user, products, bookSlot, setAuthModalOpen } = useApp();
+  const { user, products, bookSlot, setAuthModalOpen, calculateCustomerPrice } = useApp();
   const product = products.find(p => p.id === initialProduct.id) || initialProduct;
   const isProductAvailable = product.isAvailable !== false && (product as any).status !== 'unavailable' && (product as any).status !== 'inactive';
 
-  const tokenAmount = Math.min(150, product.groupPrice);
-  const dueAmount = Math.max(0, product.groupPrice - tokenAmount);
+  const basePrice = product.wholesalePrice || product.groupPrice;
+  const effectivePrice = calculateCustomerPrice(basePrice, product.category);
+
+  const tokenAmount = Math.min(150, effectivePrice);
+  const dueAmount = Math.max(0, effectivePrice - tokenAmount);
 
   const defaultColors = product.availableColors && product.availableColors.length > 0
     ? product.availableColors
@@ -134,7 +137,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </span>
               </div>
               <div className="text-xs text-stone-600 mt-1">
-                গ্রুপ বাই মূল্য: <strong className="text-emerald-700 font-bold">৳{product.groupPrice}</strong>
+                গ্রুপ বাই মূল্য: <strong className="text-emerald-700 font-bold">৳{effectivePrice}</strong>
                 <span className="text-stone-400 line-through ml-2">৳{product.retailPrice}</span>
               </div>
             </div>
@@ -144,7 +147,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           <div className="bg-emerald-50/50 rounded-xl p-3 border border-emerald-100 text-xs space-y-1.5">
             <div className="flex justify-between items-center text-stone-700 font-bold">
               <span>গ্রুপ বাই মোট মূল্য:</span>
-              <span className="text-sm font-black text-emerald-800">৳{product.groupPrice}</span>
+              <span className="text-sm font-black text-emerald-800">৳{effectivePrice}</span>
             </div>
             <p className="text-[11px] text-stone-500 pt-1">
               * বান্ডিলের সবকটি সাইজ বুকড হওয়া মাত্র হোলসেলার থেকে মাল সরবরাহ প্রক্রিয়া শুরু হবে।

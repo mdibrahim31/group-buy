@@ -18,11 +18,15 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
   onSelectSlot,
   onStartNewBatch,
 }) => {
-  const { products, bundles, reviews, toggleSaveProduct, isProductSaved } = useApp();
+  const { products, bundles, reviews, toggleSaveProduct, isProductSaved, calculateCustomerPrice } = useApp();
   // Always use the live product from AppContext state
   const product = products.find(p => p.id === initialProduct.id) || initialProduct;
   const isProductAvailable = product.isAvailable !== false && (product as any).status !== 'unavailable' && (product as any).status !== 'inactive';
   const isSaved = isProductSaved(product.id);
+
+  // Calculate customer selling price with category markup
+  const baseWholesale = product.wholesalePrice || product.groupPrice;
+  const effectivePrice = calculateCustomerPrice(baseWholesale, product.category);
 
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [copiedShareLink, setCopiedShareLink] = useState(false);
@@ -101,7 +105,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
     return false;
   });
 
-  const savingsAmount = product.retailPrice - product.groupPrice;
+  const savingsAmount = Math.max(0, product.retailPrice - effectivePrice);
   const savingsPercent = Math.round((savingsAmount / product.retailPrice) * 100);
 
   const totalSlots = activeBundle?.totalSlots || product.bundleSize;
@@ -263,7 +267,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
               <div className="mt-3 pt-3 border-t border-stone-200 text-center sm:text-left">
                 <div className="bg-emerald-50 border border-emerald-300 rounded-xl py-2 px-4 inline-block">
                   <span className="text-[10px] text-emerald-800 font-bold block">গ্রুপ বাই পাইকারি মূল্য</span>
-                  <span className="text-sm font-black text-emerald-700">৳{product.groupPrice} <span className="text-[10px] font-normal text-stone-600">/পিস (খুচরা বাজার মূল্য: ৳{product.retailPrice})</span></span>
+                  <span className="text-sm font-black text-emerald-700">৳{effectivePrice} <span className="text-[10px] font-normal text-stone-600">/পিস (খুচরা বাজার মূল্য: ৳{product.retailPrice})</span></span>
                 </div>
               </div>
             </div>

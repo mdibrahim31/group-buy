@@ -6,6 +6,7 @@ import { BundleDetailModal } from './components/BundleDetailModal';
 import { BookingModal } from './components/BookingModal';
 import { StartNewBatchModal } from './components/StartNewBatchModal';
 import { SavedBundlesModal } from './components/SavedBundlesModal';
+import { CategoryModal } from './components/CategoryModal';
 import { AuthModal } from './components/AuthModal';
 import { MyBookingsModal } from './components/MyBookingsModal';
 import { ProfileModal } from './components/ProfileModal';
@@ -22,10 +23,8 @@ const MainContent: React.FC = () => {
     setSelectedCategory,
     searchQuery,
     setSearchQuery,
-    selectedSizeFilter,
-    setSelectedSizeFilter,
-    onlyLastSlotFilter,
-    setOnlyLastSlotFilter,
+    categoryModalOpen,
+    setCategoryModalOpen,
     setMyBookingsOpen,
     setAuthModalOpen,
   } = useApp();
@@ -192,32 +191,15 @@ const MainContent: React.FC = () => {
         product.category.toLowerCase().includes(cleanQuery) ||
         product.availableSizes.some(s => s.toLowerCase().includes(cleanQuery));
 
-      // 3. Size Filter
-      const matchesSize =
-        selectedSizeFilter === 'all' ||
-        product.availableSizes.includes(selectedSizeFilter);
-
-      // 4. Last Slot Filter (Only bundle with 1 slot remaining)
-      let matchesLastSlot = true;
-      if (onlyLastSlotFilter) {
-        const productBundles = bundles.filter(b => b.productId === product.id);
-        const hasOneSlotRemaining = productBundles.some(
-          b => b.status === 'open' && (b.totalSlots - b.filledSlots) === 1
-        );
-        matchesLastSlot = hasOneSlotRemaining;
-      }
-
-      return matchesCategory && matchesSearch && matchesSize && matchesLastSlot;
+      return matchesCategory && matchesSearch;
     });
-  }, [products, bundles, selectedCategory, searchQuery, selectedSizeFilter, onlyLastSlotFilter]);
+  }, [products, selectedCategory, searchQuery]);
 
-  const hasActiveFilters = selectedCategory !== 'সব' || searchQuery.trim() !== '' || selectedSizeFilter !== 'all' || onlyLastSlotFilter;
+  const hasActiveFilters = selectedCategory !== 'সব' || searchQuery.trim() !== '';
 
   const resetFilters = () => {
     setSelectedCategory('সব');
     setSearchQuery('');
-    setSelectedSizeFilter('all');
-    setOnlyLastSlotFilter(false);
   };
 
   return (
@@ -239,128 +221,22 @@ const MainContent: React.FC = () => {
       )}
 
       <main className="max-w-7xl mx-auto px-4 py-4 sm:py-6 flex-1 w-full">
-        {/* Section Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
-              <h2 className="text-xl sm:text-2xl font-black text-stone-900 tracking-tight">
-                সরাসরি হোলসেলার ব্যাচ ও পণ্যের তালিকা
-              </h2>
+        {/* Active Category Header Filter Badge */}
+        {selectedCategory !== 'সব' && (
+          <div className="mb-4 flex items-center justify-between bg-white px-4 py-2.5 rounded-2xl border border-stone-200 shadow-2xs">
+            <div className="flex items-center gap-2 text-xs font-bold text-stone-800">
+              <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+              <span>ক্যাটাগরি: <span className="text-emerald-700 uppercase">{selectedCategory}</span></span>
             </div>
-            <p className="text-xs sm:text-sm text-stone-500 mt-1">
-              পছন্দের সাইজে ক্লিক করে স্লট বুক করুন। স্লট পূর্ণ হলে সরাসরি হোলসেলার থেকে মাল সরবরাহ করা হবে।
-            </p>
+            <button
+              onClick={() => setSelectedCategory('সব')}
+              className="text-xs text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>সব ফিল্টার সরান</span>
+            </button>
           </div>
-
-          <div className="flex items-center gap-2 text-xs text-stone-600 bg-white px-3 py-1.5 rounded-lg border border-stone-200 self-start sm:self-auto shadow-xs">
-            <span className="font-semibold text-stone-800">{filteredProducts.length} টি পণ্য</span>
-            <span>উপলব্ধ</span>
-          </div>
-        </div>
-
-        {/* Filter Controls Toolbar: Size filter & Last Slot filter */}
-        <div className="bg-white border border-stone-200/90 rounded-2xl p-3 sm:p-4 mb-6 shadow-xs space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2.5">
-            {/* Filter title and Last Slot Toggle */}
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold text-stone-700 flex items-center gap-1.5 mr-1">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600" />
-                <span>ফিল্টার:</span>
-              </span>
-
-              {/* 🔥 Last Slot Filter Button */}
-              <button
-                onClick={() => setOnlyLastSlotFilter(prev => !prev)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer border ${
-                  onlyLastSlotFilter
-                    ? 'bg-amber-500 text-stone-950 border-amber-600 shadow-sm ring-2 ring-amber-400/40 animate-pulse'
-                    : 'bg-amber-50/80 hover:bg-amber-100 text-amber-900 border-amber-200 hover:border-amber-300'
-                }`}
-                title="যেসব বান্ডিলে মাত্র ১টি স্লট খালি আছে সেগুলো ফিল্টার করুন"
-              >
-                <Flame className={`w-4 h-4 ${onlyLastSlotFilter ? 'text-stone-950 fill-stone-950' : 'text-amber-600 fill-amber-500'}`} />
-                <span>শেষ ১টি স্লট বাকি</span>
-                {lastSlotProductsCount > 0 && (
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                    onlyLastSlotFilter ? 'bg-stone-950 text-amber-300' : 'bg-amber-200 text-amber-900'
-                  }`}>
-                    {lastSlotProductsCount}
-                  </span>
-                )}
-              </button>
-            </div>
-
-            {/* Active Filters Clear Button */}
-            {hasActiveFilters && (
-              <button
-                onClick={resetFilters}
-                className="text-xs text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1 hover:underline cursor-pointer ml-auto"
-              >
-                <X className="w-3.5 h-3.5" />
-                <span>ফিল্টার রিসেট</span>
-              </button>
-            )}
-          </div>
-
-          {/* Size Filter Pills */}
-          {allAvailableSizes.length > 0 && (
-            <div className="flex items-center gap-1.5 overflow-x-auto pt-2 border-t border-stone-100 text-xs">
-              <span className="text-stone-500 font-semibold shrink-0 mr-1">সাইজ ফিল্টার:</span>
-              <button
-                onClick={() => setSelectedSizeFilter('all')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer shrink-0 ${
-                  selectedSizeFilter === 'all'
-                    ? 'bg-emerald-700 text-white shadow-xs'
-                    : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
-                }`}
-              >
-                সব সাইজ
-              </button>
-
-              {allAvailableSizes.map(size => (
-                <button
-                  key={size}
-                  onClick={() => setSelectedSizeFilter(size === selectedSizeFilter ? 'all' : size)}
-                  className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer shrink-0 ${
-                    selectedSizeFilter === size
-                      ? 'bg-emerald-700 text-white shadow-xs ring-1 ring-emerald-800'
-                      : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
-                  }`}
-                >
-                  {size}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Active filter notice if filtered */}
-          {hasActiveFilters && (
-            <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px] text-stone-500">
-              <span>সক্রিয় ফিল্টার:</span>
-              {selectedCategory !== 'সব' && (
-                <span className="bg-stone-100 text-stone-800 px-2 py-0.5 rounded-md font-semibold border border-stone-200">
-                  ক্যাটাগরি: {selectedCategory}
-                </span>
-              )}
-              {selectedSizeFilter !== 'all' && (
-                <span className="bg-stone-100 text-stone-800 px-2 py-0.5 rounded-md font-semibold border border-stone-200">
-                  সাইজ: {selectedSizeFilter}
-                </span>
-              )}
-              {onlyLastSlotFilter && (
-                <span className="bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md font-semibold border border-amber-300">
-                  🔥 শেষ ১টি স্লট বাকি
-                </span>
-              )}
-              {searchQuery.trim() && (
-                <span className="bg-stone-100 text-stone-800 px-2 py-0.5 rounded-md font-semibold border border-stone-200">
-                  খোঁজা হচ্ছে: "{searchQuery}"
-                </span>
-              )}
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Products Grid */}
         {filteredProducts.length === 0 ? (
@@ -422,6 +298,14 @@ const MainContent: React.FC = () => {
       <WhatsAppSupport phoneNumber="01882208531" />
 
       {/* Modals */}
+      {/* Category Modal */}
+      <CategoryModal
+        isOpen={categoryModalOpen}
+        onClose={() => setCategoryModalOpen(false)}
+        onSelectCategory={(catName) => setSelectedCategory(catName)}
+        selectedCategoryName={selectedCategory}
+      />
+
       {/* Saved Bundles Modal */}
       <SavedBundlesModal onViewBundle={(prod) => openBundleModal(prod)} />
 

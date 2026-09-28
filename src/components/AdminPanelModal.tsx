@@ -58,9 +58,13 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
     cancelOrder,
     updateBatchStatus,
     removeCustomerSlot,
+    categoryObjects,
     categories,
     addCategory,
+    updateCategory,
     deleteCategory,
+    getCategoryMarkup,
+    calculateCustomerPrice,
     colors,
     addColor,
     deleteColor,
@@ -93,6 +97,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
 
   // Category management state
   const [categoryInput, setCategoryInput] = useState('');
+  const [categoryMarkupInput, setCategoryMarkupInput] = useState<number | ''>(15);
+  const [parentCategoryInput, setParentCategoryInput] = useState('');
   const [categoryMsg, setCategoryMsg] = useState<{ text: string; isError: boolean } | null>(null);
   const [inlineCategoryInput, setInlineCategoryInput] = useState('');
   const [showInlineCatAdd, setShowInlineCatAdd] = useState(false);
@@ -960,7 +966,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                       />
                     </div>
 
-                    {/* Pricing Grid - Clean (Wholesale cost removed as requested) */}
+                    {/* Pricing Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <div>
                         <label className="block text-[11px] font-bold text-stone-700 mb-1">
@@ -981,13 +987,13 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
 
                       <div>
                         <label className="block text-[11px] font-bold text-emerald-800 mb-1">
-                          গ্রুপ বাই মূল্য/পিস *
+                          মূল কেনা/পাইকারি দাম (Base Price) *
                         </label>
                         <div className="relative">
                           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-emerald-600 text-xs">৳</span>
                           <input
                             type="number"
-                            placeholder="890"
+                            placeholder="100"
                             value={newGroupPrice}
                             onChange={(e) => setNewGroupPrice(e.target.value === '' ? '' : Number(e.target.value))}
                             className="w-full pl-6 pr-2 py-2 bg-emerald-50 border border-emerald-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-emerald-900"
@@ -996,6 +1002,21 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                         </div>
                       </div>
                     </div>
+
+                    {/* Live Category Markup Calculation Preview Box */}
+                    {newGroupPrice !== '' && Number(newGroupPrice) > 0 && (
+                      <div className="p-3 bg-emerald-50/90 border border-emerald-300 rounded-xl text-xs space-y-1 shadow-2xs">
+                        <div className="flex items-center justify-between font-bold text-emerald-900">
+                          <span>কাস্টমারকে দেখানো হবে (Customer Price):</span>
+                          <span className="text-sm font-black text-emerald-700">
+                            ৳{calculateCustomerPrice(Number(newGroupPrice), newCategory)} /পিস
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-stone-600 font-medium">
+                          মূল কেনা দাম: ৳{newGroupPrice} + ক্যাটাগরি ({newCategory.toUpperCase()}) মার্কআপ: +{getCategoryMarkup(newCategory)}%
+                        </p>
+                      </div>
+                    )}
 
                     {/* Size & Quantity Breakdown Builder (Supports multiple pcs of the same size) */}
                     <div className="p-3.5 bg-stone-50 border border-stone-200 rounded-2xl space-y-3">
@@ -1257,33 +1278,57 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                       onSubmit={(e) => {
                         e.preventDefault();
                         if (!categoryInput.trim()) return;
-                        const res = addCategory(categoryInput);
+                        const res = addCategory(categoryInput, Number(categoryMarkupInput) || 0, parentCategoryInput);
                         setCategoryMsg({ text: res.message, isError: !res.success });
                         if (res.success) {
                           setCategoryInput('');
                           setTimeout(() => setCategoryMsg(null), 3500);
                         }
                       }}
-                      className="flex flex-col sm:flex-row gap-2.5"
+                      className="grid grid-cols-1 sm:grid-cols-3 gap-2.5"
                     >
-                      <div className="relative flex-1">
+                      <div className="relative sm:col-span-1">
                         <Tag className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         <input
                           type="text"
-                          placeholder="নতুন ক্যাটাগরির নাম লিখুন (যেমন: ঘড়ি, ব্যাগ, ইলেকট্রনিক্স, কসমেটিকস)..."
+                          placeholder="ক্যাটাগরির নাম (যেমন: shoes)..."
                           value={categoryInput}
                           onChange={(e) => setCategoryInput(e.target.value)}
-                          className="w-full pl-9 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none font-semibold text-stone-900"
+                          className="w-full pl-9 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-semibold text-stone-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                           required
                         />
                       </div>
-                      <button
-                        type="submit"
-                        className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm shrink-0"
-                      >
-                        <PlusCircle className="w-4 h-4" />
-                        <span>ক্যাটাগরি যুক্ত করুন</span>
-                      </button>
+
+                      <div className="sm:col-span-1">
+                        <input
+                          type="text"
+                          placeholder="প্যারেন্ট গ্রুপ (যেমন: Bag & Shoes)..."
+                          value={parentCategoryInput}
+                          onChange={(e) => setParentCategoryInput(e.target.value)}
+                          className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-semibold text-stone-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="flex gap-2 sm:col-span-1">
+                        <div className="relative flex-1">
+                          <input
+                            type="number"
+                            placeholder="মার্কআপ % (যেমন: 15)"
+                            value={categoryMarkupInput}
+                            onChange={(e) => setCategoryMarkupInput(e.target.value === '' ? '' : Number(e.target.value))}
+                            className="w-full px-3 py-2.5 bg-emerald-50 border border-emerald-300 rounded-xl text-xs font-extrabold text-emerald-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                            required
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-700">%</span>
+                        </div>
+                        <button
+                          type="submit"
+                          className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm shrink-0"
+                        >
+                          <PlusCircle className="w-4 h-4" />
+                          <span>সেভ</span>
+                        </button>
+                      </div>
                     </form>
                   </div>
 
@@ -1291,43 +1336,60 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                   <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-xs">
                     <div className="flex items-center justify-between mb-4 pb-3 border-b border-stone-200">
                       <div>
-                        <h3 className="text-sm font-bold text-stone-900">বর্তমান সক্রিয় ক্যাটাগরিসমূহ ({categories.length})</h3>
-                        <p className="text-xs text-stone-500">গ্রাহকরা হোমপেজে এই ক্যাটাগরিগুলো দিয়ে ফিল্টার করতে পারবেন।</p>
+                        <h3 className="text-sm font-bold text-stone-900">বর্তমান সক্রিয় ক্যাটাগরিসমূহ ও মার্কআপ % ({categoryObjects.length})</h3>
+                        <p className="text-xs text-stone-500">প্রতিটি ক্যাটাগরির পাশে থাকা % বক্সে মান পরিবর্তন করলে অটোমেটিক প্রাইস হিসাব হবে।</p>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {categories.map((cat) => {
-                        const productCount = products.filter(p => p.category === cat).length;
+                      {categoryObjects.map((catObj) => {
+                        const productCount = products.filter(p => p.category.toLowerCase() === catObj.name.toLowerCase()).length;
                         return (
                           <div
-                            key={cat}
-                            className="p-3.5 bg-stone-50 hover:bg-stone-100/80 border border-stone-200 rounded-xl flex items-center justify-between transition-colors"
+                            key={catObj.id || catObj.name}
+                            className="p-3.5 bg-stone-50 hover:bg-stone-100/80 border border-stone-200 rounded-xl flex items-center justify-between transition-colors gap-2"
                           >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="w-8 h-8 rounded-lg bg-emerald-100/70 text-emerald-800 flex items-center justify-center shrink-0">
-                                <Folder className="w-4 h-4" />
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                              <div className="w-8 h-8 rounded-lg bg-emerald-100/70 text-emerald-800 flex items-center justify-center shrink-0 font-bold text-xs">
+                                %
                               </div>
-                              <div className="min-w-0">
-                                <p className="text-xs font-bold text-stone-900 truncate">{cat}</p>
-                                <p className="text-[11px] text-stone-500 font-medium">
-                                  {productCount} টি পণ্য
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-bold text-stone-900 truncate uppercase">{catObj.name}</p>
+                                <p className="text-[10px] text-stone-500 font-medium">
+                                  {catObj.parentCategory || 'সাধারণ'} • {productCount} টি পণ্য
                                 </p>
                               </div>
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const res = deleteCategory(cat);
-                                setCategoryMsg({ text: res.message, isError: !res.success });
-                                setTimeout(() => setCategoryMsg(null), 3500);
-                              }}
-                              className="p-2 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                              title="ক্যাটাগরি মুছে ফেলুন"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {/* Percentage input for quick edit */}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <div className="flex items-center bg-white border border-emerald-300 rounded-lg px-2 py-1 text-xs font-black text-emerald-800 shadow-2xs" title="মার্কআপ শতাংশ">
+                                <span className="text-[10px] text-stone-400 mr-1">+</span>
+                                <input
+                                  type="number"
+                                  value={catObj.markupPercentage}
+                                  onChange={(e) => {
+                                    const val = Number(e.target.value) || 0;
+                                    updateCategory(catObj.name, val, catObj.parentCategory);
+                                  }}
+                                  className="w-9 text-center focus:outline-none bg-transparent font-extrabold text-emerald-900"
+                                />
+                                <span>%</span>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const res = deleteCategory(catObj.name);
+                                  setCategoryMsg({ text: res.message, isError: !res.success });
+                                  setTimeout(() => setCategoryMsg(null), 3500);
+                                }}
+                                className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                title="ক্যাটাগরি মুছে ফেলুন"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         );
                       })}
