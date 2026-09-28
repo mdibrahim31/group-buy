@@ -398,3 +398,22 @@ CREATE POLICY "Anyone can insert categories" ON public.categories FOR INSERT WIT
 CREATE POLICY "Anyone can update categories" ON public.categories FOR UPDATE USING (true);
 CREATE POLICY "Anyone can delete categories" ON public.categories FOR DELETE USING (true);
 
+
+-- ১৩. সেভড প্রোডাক্টস টেবিল (Saved Products / Favorites Table)
+CREATE TABLE IF NOT EXISTS public.saved_products (
+    id TEXT PRIMARY KEY,
+    customer_id TEXT NOT NULL,
+    product_id TEXT NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.saved_products ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Anyone can read saved_products" ON public.saved_products;
+CREATE POLICY "Anyone can read saved_products" ON public.saved_products FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Anyone can insert saved_products" ON public.saved_products;
+CREATE POLICY "Anyone can insert saved_products" ON public.saved_products FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Anyone can update saved_products" ON public.saved_products;
+CREATE POLICY "Anyone can update saved_products" ON public.saved_products FOR UPDATE USING (true);
+DROP POLICY IF EXISTS "Anyone can delete saved_products" ON public.saved_products;
+CREATE POLICY "Anyone can delete saved_products" ON public.saved_products FOR DELETE USING (true);
+

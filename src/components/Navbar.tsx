@@ -24,24 +24,24 @@ export const Navbar: React.FC = () => {
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200">
       {/* Main Nav */}
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-        {/* Brand */}
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm shrink-0">
-            <Users className="w-5 h-5 sm:w-6 sm:h-6" />
-          </div>
-          <div>
-            <h1 className="text-sm sm:text-xl font-bold tracking-tight text-stone-900 leading-none">
-              GroupBuy<span className="text-emerald-600 font-extrabold">MarketPlaceBD</span>
-            </h1>
-            <p className="text-[9px] sm:text-xs text-stone-500 font-medium mt-0.5">
-              হোলসেল বান্ডিল • সাইজ স্লট বুকিং
-            </p>
-          </div>
+      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-2 sm:gap-4">
+        {/* Left: Group Icon */}
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm shrink-0">
+          <Users className="w-5 h-5 sm:w-6 sm:h-6" />
         </div>
 
-        {/* Search */}
-        <div className="hidden md:flex flex-1 max-w-md relative">
+        {/* Center: Brand Name (Centered between group icon and profile) */}
+        <div className="flex-1 flex flex-col items-center justify-center text-center px-1 sm:px-4">
+          <h1 className="text-base sm:text-2xl font-black tracking-tight text-stone-900 leading-none">
+            GroupBuy<span className="text-emerald-600 font-extrabold">MarketPlaceBD</span>
+          </h1>
+          <p className="text-[9px] sm:text-xs text-stone-500 font-bold mt-1 whitespace-nowrap">
+            হোলসেল বান্ডিল • সাইজ স্লট বুকিং
+          </p>
+        </div>
+
+        {/* Search (Desktop Only) */}
+        <div className="hidden md:flex flex-1 max-w-xs lg:max-w-md relative mx-2">
           <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"

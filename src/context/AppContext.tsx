@@ -361,18 +361,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [user?.id]);
 
   const toggleSaveProduct = (productId: string) => {
-    setSavedProductIds(prev => {
-      const exists = prev.includes(productId);
-      const next = exists ? prev.filter(id => id !== productId) : [...prev, productId];
-      if (user?.id) {
-        if (exists) {
-          dbRemoveFavoriteProduct(user.id, productId);
-        } else {
-          dbSaveFavoriteProduct(user.id, productId);
-        }
+    const exists = savedProductIds.includes(productId);
+    
+    // Update local state directly
+    setSavedProductIds(prev =>
+      exists ? prev.filter(id => id !== productId) : [...prev, productId]
+    );
+
+    // Safely trigger database mutation side effects outside of the React state setter callback
+    if (user?.id) {
+      if (exists) {
+        dbRemoveFavoriteProduct(user.id, productId);
+      } else {
+        dbSaveFavoriteProduct(user.id, productId);
       }
-      return next;
-    });
+    }
   };
 
   const isProductSaved = (productId: string) => savedProductIds.includes(productId);

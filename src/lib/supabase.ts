@@ -1083,13 +1083,24 @@ export async function dbSaveFavoriteProduct(customerId: string, productId: strin
 export async function dbRemoveFavoriteProduct(customerId: string, productId: string): Promise<boolean> {
   if (!supabase || !customerId || !productId) return false;
   try {
+    // Highly robust delete targeting the primary key as well as the column pairs
     const { error } = await supabase
       .from('saved_products')
       .delete()
-      .eq('customer_id', customerId)
-      .eq('product_id', productId);
-    return !error;
-  } catch {
+      .or(`id.eq.saved-${customerId}-${productId},and(customer_id.eq.${customerId},product_id.eq.${productId})`);
+
+    if (error) {
+      console.warn('dbRemoveFavoriteProduct error, trying direct fallback eq delete:', error.message);
+      const { error: fallbackErr } = await supabase
+        .from('saved_products')
+        .delete()
+        .eq('customer_id', customerId)
+        .eq('product_id', productId);
+      return !fallbackErr;
+    }
+    return true;
+  } catch (err) {
+    console.error('dbRemoveFavoriteProduct exception:', err);
     return false;
   }
 }
