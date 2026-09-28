@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { X, Search, ChevronDown, ChevronUp, Folder, Check } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, Check } from 'lucide-react';
 import { Category } from '../types';
 
 interface CategoryModalProps {
@@ -10,6 +10,57 @@ interface CategoryModalProps {
   selectedCategoryName?: string;
 }
 
+// Preset parent groups and sample subcategories matching the reference interface
+const SAMPLE_CATEGORY_GROUPS: { parent: string; defaultSubs: string[] }[] = [
+  {
+    parent: 'Electric Equipment Component & Telecom',
+    defaultSubs: [
+      'Solar Energy Products',
+      'Motors, Generators & Transformers',
+      'Connectors & Terminals',
+      'Batteries',
+      'Wires,Cables and Accessories',
+      'Power Accessories',
+    ],
+  },
+  {
+    parent: 'Agriculture & Food',
+    defaultSubs: ['Fresh Food & Grain', 'Farm Machinery', 'Food Processing'],
+  },
+  {
+    parent: 'Auto & Transportation',
+    defaultSubs: ['Auto Parts & Accessories', 'Vehicles & Motorcycles'],
+  },
+  {
+    parent: 'Machinery, Industrial Parts & Tools',
+    defaultSubs: ['Hardware Tools', 'Industrial Machinery', 'Pumps & Fittings'],
+  },
+  {
+    parent: 'Gift Sports & Toys',
+    defaultSubs: ['Sports Gear & Shoes', 'Toys & Hobbies', 'Gift Items'],
+  },
+  {
+    parent: 'Office ,Packaging & Advertising',
+    defaultSubs: ['Office Stationery', 'Packaging Boxes & Bags'],
+  },
+  {
+    parent: 'Home & Lights',
+    defaultSubs: ['LED Lighting', 'home & lights', 'Kitchenware & Decor'],
+  },
+  {
+    parent: 'Health & Beauty',
+    defaultSubs: ['health & beauty', 'Skincare & Cosmetics', 'Personal Care'],
+  },
+  {
+    parent: 'Bag & Shoes',
+    defaultSubs: ['shoes', 'bags', 'Backpacks & Luggage'],
+  },
+  {
+    parent: 'Apparel & Accessories',
+    defaultSubs: ['cloth', 'panjabi', 't-shirt', 'Fashion Accessories'],
+  },
+];
+
 export const CategoryModal: React.FC<CategoryModalProps> = ({
   isOpen,
   onClose,
@@ -18,148 +69,225 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
 }) => {
   const { categoryObjects } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Track open/closed state for parent category accordions
   const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({
-    'Bag & Shoes': true,
-    'Apparel & Accessories': true,
-    'Electric Equipment Component & Telecom': false,
+    'Electric Equipment Component & Telecom': true,
   });
+
+  // Touch Swipe & Pull-Down gesture states
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const touchStartY = useRef<number>(0);
+  const sheetRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setDragY(0);
+      setIsDragging(false);
+      // Disable body overflow scroll while modal is open
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const toggleExpand = (parentName: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  // Build merged category list from database categoryObjects + presets
+  const groupedCategoryMap: Record<string, string[]> = {};
+
+  // First seed presets
+  SAMPLE_CATEGORY_GROUPS.forEach(g => {
+    groupedCategoryMap[g.parent] = [...g.defaultSubs];
+  });
+
+  // Then populate with live categoryObjects from AppContext/DB
+  categoryObjects.forEach(cat => {
+    const parent = cat.parentCategory || 'সাধারণ ক্যাটাগরি';
+    if (!groupedCategoryMap[parent]) {
+      groupedCategoryMap[parent] = [];
+    }
+    if (!groupedCategoryMap[parent].includes(cat.name)) {
+      groupedCategoryMap[parent].push(cat.name);
+    }
+  });
+
+  const parentList = Object.keys(groupedCategoryMap);
+
+  const toggleExpand = (parentName: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     setExpandedParents(prev => ({
       ...prev,
       [parentName]: !prev[parentName],
     }));
   };
 
-  // Group categoryObjects by parentCategory or top level
-  const groupedCategories: { parent: string; items: Category[] }[] = [];
-  const parentMap: Record<string, Category[]> = {};
+  // Touch Handlers for Drag Down to Close
+  const handleTouchStart = (e: React.TouchEvent) => {
+    // Only allow drag-to-close if scroll is at the top of the content or touching handle
+    if (sheetRef.current && sheetRef.current.scrollTop > 0) return;
+    touchStartY.current = e.touches[0].clientY;
+    setIsDragging(true);
+  };
 
-  categoryObjects.forEach(cat => {
-    const parent = cat.parentCategory || 'সাধারণ ক্যাটাগরি';
-    if (!parentMap[parent]) parentMap[parent] = [];
-    parentMap[parent].push(cat);
-  });
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - touchStartY.current;
 
-  Object.keys(parentMap).forEach(parent => {
-    groupedCategories.push({
-      parent,
-      items: parentMap[parent],
-    });
-  });
+    // Only allow pulling downwards
+    if (deltaY > 0) {
+      setDragY(deltaY);
+    }
+  };
 
-  // Filter based on search query
+  const handleTouchEnd = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    // If pulled down by more than 90px, dismiss the modal
+    if (dragY > 90) {
+      onClose();
+    } else {
+      setDragY(0);
+    }
+  };
+
   const cleanSearch = searchQuery.trim().toLowerCase();
 
   return (
-    <div className="fixed inset-0 z-[110] bg-stone-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden animate-in slide-in-from-bottom duration-300">
-        
+    <div
+      className="fixed inset-0 z-[110] bg-stone-900/60 backdrop-blur-xs flex items-end justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      {/* Bottom Sheet Container */}
+      <div
+        ref={sheetRef}
+        onClick={(e) => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{
+          transform: `translateY(${dragY}px)`,
+          transition: isDragging ? 'none' : 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+        }}
+        className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full max-h-[85vh] sm:max-h-[80vh] flex flex-col shadow-2xl border-t border-stone-200 overflow-hidden select-none"
+      >
+        {/* Top Swipe Drag Pill Handle */}
+        <div className="pt-2.5 pb-1 flex justify-center cursor-grab active:cursor-grabbing shrink-0 bg-white">
+          <div className="w-12 h-1.5 bg-stone-300 rounded-full" />
+        </div>
+
         {/* Modal Header */}
-        <div className="p-4 sm:p-5 border-b border-stone-100 flex items-center justify-between shrink-0 bg-white">
-          <h3 className="text-lg font-black text-stone-900 tracking-tight">
-            Product Category <span className="text-xs font-normal text-stone-500">(পণ্যের ক্যাটাগরি)</span>
+        <div className="px-5 py-2.5 flex items-center justify-between shrink-0 bg-white">
+          <h3 className="text-xl font-bold text-stone-900 tracking-tight">
+            Product Category
           </h3>
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-700 transition-colors cursor-pointer"
+            className="w-9 h-9 rounded-full hover:bg-stone-100 flex items-center justify-center text-stone-700 transition-colors cursor-pointer"
+            title="বন্ধ করুন"
           >
-            <X className="w-5 h-5" />
+            <X className="w-6 h-6 text-stone-800" />
           </button>
         </div>
 
-        {/* Search Bar Input */}
-        <div className="p-4 border-b border-stone-100 bg-stone-50/80 shrink-0">
-          <div className="relative">
-            <Search className="w-4 h-4 text-emerald-600 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        {/* Search Bar Input - Green Outlined (Matching reference photo) */}
+        <div className="px-5 py-2 shrink-0 bg-white">
+          <div className="relative border-2 border-emerald-600 rounded-xl bg-white overflow-hidden shadow-2xs focus-within:ring-2 focus-within:ring-emerald-600/30">
             <input
               type="text"
-              placeholder="Product Category খুঁজুন..."
+              placeholder="Product Category"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-emerald-600/40 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all font-medium placeholder:text-stone-400"
+              className="w-full px-4 py-3 bg-transparent text-sm sm:text-base font-normal text-stone-900 focus:outline-none placeholder:text-stone-400"
             />
           </div>
         </div>
 
-        {/* Category List */}
-        <div className="p-2 sm:p-4 overflow-y-auto flex-1 divide-y divide-stone-100">
+        {/* Category Accordion Tree List */}
+        <div className="px-5 py-3 overflow-y-auto flex-1 space-y-1 divide-y divide-stone-100/60">
           
-          {/* 'All Categories' Option */}
+          {/* 'All Products' Option */}
           <button
             onClick={() => {
               onSelectCategory('সব');
               onClose();
             }}
-            className={`w-full py-3 px-4 rounded-xl text-left font-bold text-sm flex items-center justify-between transition-all cursor-pointer ${
-              selectedCategoryName === 'সব'
-                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                : 'hover:bg-stone-50 text-stone-800'
+            className={`w-full py-3 text-left font-bold text-sm sm:text-base flex items-center justify-between transition-colors cursor-pointer ${
+              selectedCategoryName === 'সব' ? 'text-emerald-700 font-extrabold' : 'text-stone-800 hover:text-emerald-700'
             }`}
           >
-            <span>সব ক্যাটাগরি (All Products)</span>
-            {selectedCategoryName === 'সব' && <Check className="w-4 h-4 text-emerald-600" />}
+            <span>All Products (সব ক্যাটাগরি)</span>
+            {selectedCategoryName === 'সব' && <Check className="w-5 h-5 text-emerald-600" />}
           </button>
 
-          {/* Grouped Expandable Categories */}
-          {groupedCategories.map(group => {
-            const isExpanded = !!expandedParents[group.parent] || !!cleanSearch;
-            const filteredItems = group.items.filter(item =>
+          {/* Grouped Parent Accordion Items */}
+          {parentList.map((parentName) => {
+            const subItems = groupedCategoryMap[parentName] || [];
+            const isExpanded = !!expandedParents[parentName] || !!cleanSearch;
+
+            // Filter subItems or parent if searching
+            const filteredSubs = subItems.filter(sub =>
               !cleanSearch ||
-              item.name.toLowerCase().includes(cleanSearch) ||
-              group.parent.toLowerCase().includes(cleanSearch)
+              sub.toLowerCase().includes(cleanSearch) ||
+              parentName.toLowerCase().includes(cleanSearch)
             );
 
-            if (cleanSearch && filteredItems.length === 0) return null;
+            if (cleanSearch && filteredSubs.length === 0 && !parentName.toLowerCase().includes(cleanSearch)) {
+              return null;
+            }
 
             return (
-              <div key={group.parent} className="py-2">
-                {/* Parent Header */}
+              <div key={parentName} className="py-2.5">
+                {/* Parent Row */}
                 <div
-                  onClick={(e) => toggleExpand(group.parent, e)}
-                  className="w-full py-2.5 px-3 rounded-lg flex items-center justify-between hover:bg-stone-50 cursor-pointer font-bold text-stone-800 text-sm sm:text-base"
+                  onClick={() => toggleExpand(parentName)}
+                  className="w-full flex items-center justify-between py-1 cursor-pointer group"
                 >
-                  <div className="flex items-center gap-2">
-                    <Folder className="w-4 h-4 text-emerald-600" />
-                    <span>{group.parent}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs text-stone-400 font-normal">({filteredItems.length})</span>
+                  <span className="text-sm sm:text-base font-semibold text-stone-900 group-hover:text-emerald-700 transition-colors leading-snug">
+                    {parentName}
+                  </span>
+                  <button
+                    type="button"
+                    className="p-1 text-stone-600 group-hover:text-stone-900 transition-colors"
+                  >
                     {isExpanded ? (
-                      <ChevronUp className="w-4 h-4 text-stone-400" />
+                      <ChevronUp className="w-5 h-5 text-stone-700" />
                     ) : (
-                      <ChevronDown className="w-4 h-4 text-stone-400" />
+                      <ChevronDown className="w-5 h-5 text-stone-700" />
                     )}
-                  </div>
+                  </button>
                 </div>
 
-                {/* Subcategories List */}
+                {/* Subcategories Dropdown List */}
                 {isExpanded && (
-                  <div className="pl-6 pt-1 space-y-1">
-                    {filteredItems.map(item => {
-                      const isSelected = selectedCategoryName === item.name;
+                  <div className="pl-4 pt-2 space-y-2">
+                    {filteredSubs.map((subName) => {
+                      const isSelected = selectedCategoryName.toLowerCase() === subName.toLowerCase();
                       return (
-                        <button
-                          key={item.id}
+                        <div
+                          key={subName}
                           onClick={() => {
-                            onSelectCategory(item.name);
+                            onSelectCategory(subName);
                             onClose();
                           }}
-                          className={`w-full py-2 px-3 rounded-lg text-left text-xs sm:text-sm font-semibold flex items-center justify-between transition-all cursor-pointer ${
-                            isSelected
-                              ? 'bg-emerald-600 text-white shadow-2xs font-extrabold'
-                              : 'hover:bg-stone-100 text-stone-700'
-                          }`}
+                          className="w-full flex items-center justify-between py-1.5 cursor-pointer group/sub"
                         >
-                          <div className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
-                            <span className="capitalize">{item.name}</span>
-                          </div>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
-                        </button>
+                          <span
+                            className={`text-sm sm:text-base transition-colors ${
+                              isSelected
+                                ? 'text-emerald-700 font-extrabold underline'
+                                : 'text-stone-800 hover:text-emerald-700 font-normal'
+                            }`}
+                          >
+                            {subName}
+                          </span>
+                          <ChevronDown className="w-4 h-4 text-stone-400 group-hover/sub:text-emerald-600 transition-colors" />
+                        </div>
                       );
                     })}
                   </div>
@@ -169,11 +297,9 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
           })}
         </div>
 
-        {/* Footer */}
-        <div className="p-3 border-t border-stone-100 bg-stone-50 text-center shrink-0">
-          <p className="text-xs text-stone-500 font-medium">
-            পছন্দের ক্যাটাগরি বেছে নিয়ে সহজেই পণ্য খুঁজুন
-          </p>
+        {/* Footer info bar */}
+        <div className="px-5 py-2.5 bg-stone-50 border-t border-stone-100 text-center text-[11px] text-stone-400 shrink-0">
+          <span>নিচের দিকে সোয়াইপ বা ড্র্যাগ (Swipe down) করে উইন্ডো বন্ধ করুন</span>
         </div>
 
       </div>

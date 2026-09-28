@@ -1370,7 +1370,9 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                                   value={catObj.markupPercentage}
                                   onChange={(e) => {
                                     const val = Number(e.target.value) || 0;
-                                    updateCategory(catObj.name, val, catObj.parentCategory);
+                                    const res = updateCategory(catObj.name, val, catObj.parentCategory);
+                                    setCategoryMsg({ text: res.message, isError: false });
+                                    setTimeout(() => setCategoryMsg(null), 3000);
                                   }}
                                   className="w-9 text-center focus:outline-none bg-transparent font-extrabold text-emerald-900"
                                 />

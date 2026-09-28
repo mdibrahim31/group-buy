@@ -132,10 +132,18 @@ CREATE TABLE public.admin_settings (
 );
 
 -- ৯. ক্যাটাগরি ও কালার টেবিল (Categories & Colors Table)
-CREATE TABLE public.categories (
-    name TEXT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS public.categories (
+    id TEXT PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL,
+    markup_percentage NUMERIC DEFAULT 0,
+    parent_category TEXT DEFAULT 'সাধারণ',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- পূর্বের ক্যাটাগরি টেবিলে নতুন কলাম যোগ করার কোড (Migration query for existing DB)
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS id TEXT;
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS markup_percentage NUMERIC DEFAULT 0;
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS parent_category TEXT DEFAULT 'সাধারণ';
 
 CREATE TABLE public.colors (
     name TEXT PRIMARY KEY,
