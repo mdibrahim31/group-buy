@@ -1,12 +1,11 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
 import { ProductCard } from './components/ProductCard';
 import { BundleDetailModal } from './components/BundleDetailModal';
 import { BookingModal } from './components/BookingModal';
 import { StartNewBatchModal } from './components/StartNewBatchModal';
-
-
+import { SavedBundlesModal } from './components/SavedBundlesModal';
 import { AuthModal } from './components/AuthModal';
 import { MyBookingsModal } from './components/MyBookingsModal';
 import { ProfileModal } from './components/ProfileModal';
@@ -49,9 +48,45 @@ const MainContent: React.FC = () => {
 
 
 
-  // Bundle Detail Modal State
+  // Bundle Detail Modal State & Scroll Position Retention
   const [selectedProductForBundle, setSelectedProductForBundle] = useState<Product | null>(null);
   const [selectedBundleIdForDetail, setSelectedBundleIdForDetail] = useState<string | undefined>(undefined);
+  const scrollPosRef = useRef<number>(0);
+
+  const openBundleModal = (product: Product, bundleId?: string) => {
+    // Record current scroll position before opening
+    scrollPosRef.current = window.scrollY || document.documentElement.scrollTop || 0;
+
+    setSelectedProductForBundle(product);
+    setSelectedBundleIdForDetail(bundleId);
+
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('product', product.id);
+      if (bundleId) {
+        url.searchParams.set('bundle', bundleId);
+      }
+      window.history.pushState({ modalOpen: true, productId: product.id }, '', url.toString());
+    } catch {}
+  };
+
+  const closeBundleModal = () => {
+    setSelectedProductForBundle(null);
+    setSelectedBundleIdForDetail(undefined);
+
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('product');
+      url.searchParams.delete('bundle');
+      window.history.replaceState({}, '', url.pathname + url.search);
+    } catch {}
+
+    // Restore scroll position after closing modal
+    const savedPos = scrollPosRef.current;
+    setTimeout(() => {
+      window.scrollTo({ top: savedPos, behavior: 'instant' });
+    }, 0);
+  };
 
   // Deep Link Handling: Check URL params on initial load or change (?product=xyz&bundle=abc)
   useEffect(() => {
@@ -62,29 +97,41 @@ const MainContent: React.FC = () => {
       const productId = params.get('product');
       const bundleId = params.get('bundle');
 
-      if (bundleId) {
-        const foundBundle = bundles.find(b => b.id === bundleId);
-        if (foundBundle) {
-          const matchedProduct = products.find(p => p.id === foundBundle.productId);
-          if (matchedProduct) {
-            setSelectedProductForBundle(matchedProduct);
-            setSelectedBundleIdForDetail(foundBundle.id);
-            return;
-          }
-        }
-      }
-
       if (productId) {
         const matchedProduct = products.find(p => p.id === productId);
         if (matchedProduct) {
           setSelectedProductForBundle(matchedProduct);
-          if (bundleId) {
-            setSelectedBundleIdForDetail(bundleId);
-          }
+          setSelectedBundleIdForDetail(bundleId || undefined);
         }
       }
     } catch {}
   }, [products, bundles]);
+
+  // Browser Back Button (popstate) Handler to close modal without losing scroll
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const productId = params.get('product');
+
+      if (!productId) {
+        setSelectedProductForBundle(null);
+        setSelectedBundleIdForDetail(undefined);
+        const savedPos = scrollPosRef.current;
+        setTimeout(() => {
+          window.scrollTo({ top: savedPos, behavior: 'instant' });
+        }, 0);
+      } else {
+        const matchedProduct = products.find(p => p.id === productId);
+        if (matchedProduct) {
+          setSelectedProductForBundle(matchedProduct);
+          setSelectedBundleIdForDetail(params.get('bundle') || undefined);
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [products]);
 
   // Toast notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -344,8 +391,7 @@ const MainContent: React.FC = () => {
               <ProductCard
                 key={product.id}
                 product={product}
-                onOpenBundleModal={(prod) => setSelectedProductForBundle(prod)}
-
+                onOpenBundleModal={(prod) => openBundleModal(prod)}
               />
             ))}
           </div>
@@ -376,6 +422,9 @@ const MainContent: React.FC = () => {
       <WhatsAppSupport phoneNumber="01882208531" />
 
       {/* Modals */}
+      {/* Saved Bundles Modal */}
+      <SavedBundlesModal onViewBundle={(prod) => openBundleModal(prod)} />
+
       {/* Bundle Detail Modal (Full-screen view) */}
       {selectedProductForBundle && (() => {
         const liveProduct = products.find(p => p.id === selectedProductForBundle.id) || selectedProductForBundle;
@@ -385,16 +434,7 @@ const MainContent: React.FC = () => {
           <BundleDetailModal
             product={liveProduct}
             initialBundleId={selectedBundleIdForDetail}
-            onClose={() => {
-              setSelectedProductForBundle(null);
-              setSelectedBundleIdForDetail(undefined);
-              try {
-                const url = new URL(window.location.href);
-                url.searchParams.delete('product');
-                url.searchParams.delete('bundle');
-                window.history.replaceState({}, '', url.pathname);
-              } catch {}
-            }}
+            onClose={closeBundleModal}
             onSelectSlot={(bundle, slot) => {
               if (!isLiveAvailable) {
                 showToast('⚠️ এই পণ্যটি বর্তমানে আনঅ্যাভেইলেবল (স্টক শেষ)। স্লট বুকিং সম্ভব নয়।');
@@ -414,7 +454,6 @@ const MainContent: React.FC = () => {
                 setNewBatchTarget({ product: currentProd, preselectedSize: size, preselectedColor: color });
               });
             }}
-
           />
         );
       })()}
@@ -456,8 +495,7 @@ const MainContent: React.FC = () => {
       <AuthModal />
       <MyBookingsModal
         onViewBundle={(product, bundleId) => {
-          setSelectedBundleIdForDetail(bundleId);
-          setSelectedProductForBundle(product);
+          openBundleModal(product, bundleId);
         }}
       />
       <ProfileModal />

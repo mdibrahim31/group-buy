@@ -34,10 +34,18 @@ import {
   dbDeleteReview,
   dbUploadImage,
   dbUpdateOrderStatus,
+  dbGetSavedProductIds,
+  dbSaveFavoriteProduct,
+  dbRemoveFavoriteProduct,
 } from '../lib/supabase';
 
 interface AppContextType {
   user: User | null;
+  savedProductIds: string[];
+  savedModalOpen: boolean;
+  setSavedModalOpen: (open: boolean) => void;
+  toggleSaveProduct: (productId: string) => void;
+  isProductSaved: (productId: string) => boolean;
   products: Product[];
   bundles: Bundle[];
   orders: Order[];
@@ -230,10 +238,58 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [myBookingsOpen, setMyBookingsOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [savedModalOpen, setSavedModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('সব');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSizeFilter, setSelectedSizeFilter] = useState('all');
   const [onlyLastSlotFilter, setOnlyLastSlotFilter] = useState(false);
+
+  const [savedProductIds, setSavedProductIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('groupbuy_saved_products_v2');
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('groupbuy_saved_products_v2', JSON.stringify(savedProductIds));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [savedProductIds]);
+
+  // Sync saved items with Supabase when user is logged in
+  useEffect(() => {
+    if (user?.id) {
+      dbGetSavedProductIds(user.id).then(remoteIds => {
+        if (remoteIds && remoteIds.length > 0) {
+          setSavedProductIds(prev => Array.from(new Set([...prev, ...remoteIds])));
+        }
+      });
+    }
+  }, [user?.id]);
+
+  const toggleSaveProduct = (productId: string) => {
+    setSavedProductIds(prev => {
+      const exists = prev.includes(productId);
+      const next = exists ? prev.filter(id => id !== productId) : [...prev, productId];
+      if (user?.id) {
+        if (exists) {
+          dbRemoveFavoriteProduct(user.id, productId);
+        } else {
+          dbSaveFavoriteProduct(user.id, productId);
+        }
+      }
+      return next;
+    });
+  };
+
+  const isProductSaved = (productId: string) => savedProductIds.includes(productId);
 
   // Sync state to local storage
   useEffect(() => {
@@ -1533,6 +1589,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setMyBookingsOpen,
         profileModalOpen,
         setProfileModalOpen,
+        savedProductIds,
+        savedModalOpen,
+        setSavedModalOpen,
+        toggleSaveProduct,
+        isProductSaved,
         login,
         register,
         logout,

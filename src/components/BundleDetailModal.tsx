@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Product, Bundle, BundleSlot } from '../types';
 import { useApp } from '../context/AppContext';
-import { Users, Clock, PlusCircle, CheckCircle2, Sparkles, TrendingDown, ArrowRight, ShoppingBag, X, ShieldCheck, ExternalLink, Image as ImageIcon, Share2, Check } from 'lucide-react';
+import { Users, Clock, PlusCircle, CheckCircle2, Sparkles, TrendingDown, ArrowRight, ShoppingBag, X, ShieldCheck, ExternalLink, Image as ImageIcon, Share2, Check, ArrowLeft, Bookmark } from 'lucide-react';
 
 interface BundleDetailModalProps {
   product: Product;
@@ -18,10 +18,11 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
   onSelectSlot,
   onStartNewBatch,
 }) => {
-  const { products, bundles, reviews } = useApp();
+  const { products, bundles, reviews, toggleSaveProduct, isProductSaved } = useApp();
   // Always use the live product from AppContext state
   const product = products.find(p => p.id === initialProduct.id) || initialProduct;
   const isProductAvailable = product.isAvailable !== false && (product as any).status !== 'unavailable' && (product as any).status !== 'inactive';
+  const isSaved = isProductSaved(product.id);
 
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [copiedShareLink, setCopiedShareLink] = useState(false);
@@ -104,14 +105,41 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
     <div className="fixed inset-0 z-50 w-screen h-screen bg-white flex flex-col overflow-y-auto animate-in fade-in duration-200">
         
         {/* Modal Header */}
-        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-md px-5 py-4 border-b border-stone-200 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
-            <h2 className="text-base sm:text-lg font-black text-stone-900 tracking-tight">
-              বান্ডিল ও স্লট বুকিং বিস্তারিত
+        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-md px-4 sm:px-5 py-3.5 border-b border-stone-200 flex items-center justify-between gap-2">
+          {/* Left: Back Arrow Button & Title */}
+          <div className="flex items-center gap-2 min-w-0">
+            <button
+              onClick={onClose}
+              className="p-2 -ml-1 hover:bg-stone-100 rounded-full text-stone-800 transition-colors flex items-center gap-1 font-bold text-xs cursor-pointer shrink-0"
+              title="হোমে ফিরে যান"
+            >
+              <ArrowLeft className="w-5 h-5 text-stone-900" />
+              <span className="hidden sm:inline">পেছনে</span>
+            </button>
+            <div className="h-4 w-px bg-stone-300 hidden sm:block shrink-0" />
+            <h2 className="text-sm sm:text-base font-black text-stone-900 tracking-tight truncate">
+              বান্ডিল বুকিং বিস্তারিত
             </h2>
           </div>
-          <div className="flex items-center gap-2">
+
+          {/* Right: Save & Share & Close Buttons */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Save Button */}
+            <button
+              type="button"
+              onClick={() => toggleSaveProduct(product.id)}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
+                isSaved
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                  : 'bg-stone-100 hover:bg-stone-200 text-stone-800 border-stone-200'
+              }`}
+              title={isSaved ? "সেভ তালিকা থেকে সরান" : "বান্ডিলটি সেভ করুন"}
+            >
+              <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-white' : ''}`} />
+              <span>{isSaved ? 'সেভ করা' : 'সেভ করুন'}</span>
+            </button>
+
+            {/* Share Button */}
             <button
               onClick={async () => {
                 const url = new URL(window.location.href);
@@ -151,18 +179,20 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
               {copiedShareLink ? (
                 <>
                   <Check className="w-3.5 h-3.5" />
-                  <span>লিংক কপি হয়েছে!</span>
+                  <span className="hidden sm:inline">লিংক কপি হয়েছে!</span>
                 </>
               ) : (
                 <>
                   <Share2 className="w-3.5 h-3.5" />
-                  <span>শেয়ার করুন</span>
+                  <span className="hidden sm:inline">শেয়ার করুন</span>
                 </>
               )}
             </button>
+
             <button
               onClick={onClose}
               className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-700 transition-colors cursor-pointer"
+              title="বন্ধ করুন"
             >
               <X className="w-4 h-4" />
             </button>

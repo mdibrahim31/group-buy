@@ -371,3 +371,19 @@ CREATE POLICY "Anyone can insert reviews" ON public.reviews
 -- Delete policy: anyone can delete reviews (simplified for preview env)
 CREATE POLICY "Anyone can delete reviews" ON public.reviews
     FOR DELETE USING (true);
+
+-- ১১. কাস্টমার সেভড প্রোডাক্টস / বুকমার্ক টেবিল (Customer Saved Products Table)
+CREATE TABLE IF NOT EXISTS public.saved_products (
+    id TEXT PRIMARY KEY,
+    customer_id TEXT NOT NULL,
+    product_id TEXT REFERENCES public.products(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE(customer_id, product_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_saved_products_customer ON public.saved_products(customer_id);
+
+ALTER TABLE public.saved_products ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can read saved_products" ON public.saved_products FOR SELECT USING (true);
+CREATE POLICY "Anyone can insert saved_products" ON public.saved_products FOR INSERT WITH CHECK (true);
+CREATE POLICY "Anyone can delete saved_products" ON public.saved_products FOR DELETE USING (true);

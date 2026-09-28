@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { ShoppingBag, User as UserIcon, Search, Users } from 'lucide-react';
+import { ShoppingBag, User as UserIcon, Search, Users, Bookmark } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const {
@@ -9,6 +9,8 @@ export const Navbar: React.FC = () => {
     setProfileModalOpen,
     myOrders,
     setMyBookingsOpen,
+    savedProductIds,
+    setSavedModalOpen,
     selectedCategory,
     setSelectedCategory,
     searchQuery,
@@ -51,6 +53,21 @@ export const Navbar: React.FC = () => {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
+          {/* Saved Bundles Button */}
+          <button
+            onClick={() => setSavedModalOpen(true)}
+            className="relative flex items-center gap-1.5 px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+            title="সেভ করা বান্ডিলসমূহ দেখুন"
+          >
+            <Bookmark className={`w-4 h-4 ${savedProductIds.length > 0 ? 'text-emerald-700 fill-emerald-700' : 'text-stone-700'}`} />
+            <span className="hidden sm:inline">সেভ করা</span>
+            {savedProductIds.length > 0 && (
+              <span className="bg-emerald-600 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full min-w-[18px] text-center">
+                {savedProductIds.length}
+              </span>
+            )}
+          </button>
+
           {/* My Bookings Button */}
           <button
             onClick={() => {

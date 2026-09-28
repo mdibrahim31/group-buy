@@ -1029,4 +1029,55 @@ export async function dbDeleteReview(reviewId: string): Promise<boolean> {
   }
 }
 
+// ==========================================
+// CUSTOMER SAVED PRODUCTS (FAVORITES) HELPERS
+// ==========================================
+
+export async function dbGetSavedProductIds(customerId: string): Promise<string[]> {
+  if (!supabase || !customerId) return [];
+  try {
+    const { data, error } = await supabase
+      .from('saved_products')
+      .select('product_id')
+      .eq('customer_id', customerId);
+
+    if (error || !data) return [];
+    return data.map((item: any) => item.product_id);
+  } catch {
+    return [];
+  }
+}
+
+export async function dbSaveFavoriteProduct(customerId: string, productId: string): Promise<boolean> {
+  if (!supabase || !customerId || !productId) return false;
+  try {
+    const { error } = await supabase
+      .from('saved_products')
+      .upsert({
+        id: `saved-${customerId}-${productId}`,
+        customer_id: customerId,
+        product_id: productId,
+        created_at: new Date().toISOString(),
+      });
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+export async function dbRemoveFavoriteProduct(customerId: string, productId: string): Promise<boolean> {
+  if (!supabase || !customerId || !productId) return false;
+  try {
+    const { error } = await supabase
+      .from('saved_products')
+      .delete()
+      .eq('customer_id', customerId)
+      .eq('product_id', productId);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+
 

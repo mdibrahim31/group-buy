@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Product } from '../types';
 import { useApp } from '../context/AppContext';
-import { Users, Sparkles, TrendingDown, ArrowRight, ShoppingBag, Layers, Eye, Share2, Check } from 'lucide-react';
+import { Users, Sparkles, TrendingDown, ArrowRight, ShoppingBag, Layers, Eye, Share2, Check, Bookmark } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -12,8 +12,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   onOpenBundleModal,
 }) => {
-  const { bundles } = useApp();
+  const { bundles, toggleSaveProduct, isProductSaved } = useApp();
   const [copied, setCopied] = useState(false);
+  const isSaved = isProductSaved(product.id);
   
   // Find all active/existing batches for this product
   const productBundles = bundles
@@ -91,8 +92,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           )}
         </div>
 
-        {/* Category Badge & Share Button */}
+        {/* Category Badge & Bookmark & Share Buttons */}
         <div className="absolute top-3 right-3 flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleSaveProduct(product.id);
+            }}
+            className={`p-1.5 rounded-full backdrop-blur-md transition-all cursor-pointer shadow-md ${
+              isSaved
+                ? 'bg-emerald-600 text-white'
+                : 'bg-stone-900/80 hover:bg-stone-900 text-white'
+            }`}
+            title={isSaved ? "সেভ করা তালিকা থেকে সরান" : "পরে দেখার জন্য সেভ করুন"}
+          >
+            <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-white' : ''}`} />
+          </button>
           <button
             type="button"
             onClick={handleShareClick}
