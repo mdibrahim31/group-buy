@@ -219,76 +219,65 @@ export const MyBookingsModal: React.FC<MyBookingsModalProps> = ({ onViewBundle }
                   <div
                     key={order.id}
                     onClick={handleNavigateToBundle}
-                    className={`border border-stone-200 rounded-2xl p-4 bg-stone-50/50 hover:bg-white hover:border-emerald-400 hover:shadow-md transition-all space-y-3 ${
+                    className={`bg-white rounded-2xl p-4 sm:p-5 border border-stone-200/90 shadow-2xs hover:shadow-md hover:border-emerald-500/50 transition-all space-y-3.5 relative overflow-hidden ${
                       matchedProduct && onViewBundle ? 'cursor-pointer group/card' : ''
                     }`}
                   >
-                    {/* Top Row: Item Details */}
-                    <div className="flex gap-3 items-center justify-between">
-                      <div className="flex gap-3 items-center min-w-0 flex-1">
-                        <img
-                          src={order.productImage}
-                          alt={order.productTitle}
-                          className="w-14 h-14 rounded-xl object-cover border border-stone-200 shrink-0 group-hover/card:scale-105 transition-transform"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                            <h4 className="font-bold text-stone-900 text-sm truncate group-hover/card:text-emerald-800 transition-colors">
-                              {order.productTitle}
-                            </h4>
-                            {isSingleBuy ? (
-                              <span className="bg-blue-100 text-blue-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-blue-200">
-                                একক ক্রয়
-                              </span>
-                            ) : isFullBundle ? (
-                              <span className="bg-amber-100 text-amber-900 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-amber-200">
-                                সম্পূর্ণ বান্ডিল
-                              </span>
-                            ) : (
-                              <span className="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-200">
-                                গ্রুপ বাই স্লট
-                              </span>
-                            )}
-                          </div>
+                    {/* Accent Top Bar */}
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 opacity-90" />
 
-                          <div className="flex flex-wrap items-center gap-2 text-xs">
-                            <span className="bg-stone-900 text-white px-2 py-0.5 rounded font-bold">
-                              সাইজ: {order.size}
+                    {/* Top Row: Item Details */}
+                    <div className="flex gap-3.5 items-start justify-between">
+                      <img
+                        src={order.productImage}
+                        alt={order.productTitle}
+                        className="w-16 h-16 rounded-xl object-cover border border-stone-100 shrink-0 shadow-2xs group-hover/card:scale-105 transition-transform"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="font-bold text-stone-900 text-sm sm:text-base truncate group-hover/card:text-emerald-700 transition-colors">
+                            {order.productTitle}
+                          </h4>
+                          <span className="text-sm font-extrabold text-emerald-700 shrink-0">
+                            ৳{order.groupPrice}
+                          </span>
+                        </div>
+
+                        {/* Clean Metadata Badges */}
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1.5 text-xs">
+                          <span className="bg-stone-100 text-stone-800 font-semibold px-2.5 py-0.5 rounded-md border border-stone-200/60">
+                            সাইজ: {order.size}
+                          </span>
+                          {order.color && (
+                            <span className="bg-stone-100 text-stone-800 font-semibold px-2.5 py-0.5 rounded-md border border-stone-200/60">
+                              কালার: {order.color}
                             </span>
-                            {order.color && (
-                              <span className="bg-emerald-700 text-white px-2 py-0.5 rounded font-bold">
-                                কালার: {order.color}
-                              </span>
-                            )}
-                            {!isSingleBuy && (
-                              <span className="text-stone-700 font-bold bg-stone-100 px-2 py-0.5 rounded border border-stone-200">
-                                ব্যাচ #{order.batchNumber}
-                              </span>
-                            )}
-                            <span className="text-emerald-700 font-bold">
-                              মোট: ৳{order.groupPrice}
+                          )}
+                          {!isSingleBuy && (
+                            <span className="bg-emerald-50 text-emerald-800 font-semibold px-2.5 py-0.5 rounded-md border border-emerald-200/60">
+                              ব্যাচ #{order.batchNumber}
                             </span>
-                          </div>
+                          )}
                         </div>
                       </div>
                     </div>
 
                     {/* Progress / Status Block */}
                     {isSingleBuy ? (
-                      <div className="bg-blue-50/70 p-3 rounded-lg border border-blue-200 text-xs flex items-center justify-between">
+                      <div className="bg-blue-50/60 p-2.5 rounded-xl border border-blue-100 text-xs flex items-center justify-between">
                         <div className="flex items-center gap-2 text-blue-900 font-medium">
-                          <Truck className="w-4 h-4 text-blue-700 shrink-0" />
-                          <span>তাত্ক্ষণিক একক অর্ডার — কোনো গ্রুপ ব্যাচ অপেক্ষা নেই, সরাসরি কুরিয়ার প্রস্তুত হচ্ছে।</span>
+                          <Truck className="w-4 h-4 text-blue-600 shrink-0" />
+                          <span>একক অর্ডার — সরাসরি কুরিয়ার প্রস্তুত হচ্ছে।</span>
                         </div>
                         <span className="text-[10px] font-mono bg-white text-blue-800 px-2 py-0.5 rounded border border-blue-200 shrink-0">
                           {order.paymentMethod}
                         </span>
                       </div>
                     ) : isFullBundle ? (
-                      <div className="bg-amber-50/70 p-3 rounded-lg border border-amber-200 text-xs flex items-center justify-between">
+                      <div className="bg-amber-50/60 p-2.5 rounded-xl border border-amber-100 text-xs flex items-center justify-between">
                         <div className="flex items-center gap-2 text-amber-900 font-medium">
                           <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
-                          <span>সম্পূর্ণ পাইকারি বান্ডিল নিশ্চিত — সরাসরি কারখানা/হোলসেলার প্যাকেজিং সম্পন্ন।</span>
+                          <span>সম্পূর্ণ পাইকারি বান্ডিল — প্যাকেজিং সম্পন্ন।</span>
                         </div>
                         <span className="text-[10px] font-mono bg-white text-amber-800 px-2 py-0.5 rounded border border-amber-200 shrink-0">
                           {order.paymentMethod}
@@ -296,53 +285,53 @@ export const MyBookingsModal: React.FC<MyBookingsModalProps> = ({ onViewBundle }
                       </div>
                     ) : (
                       /* Batch Progress Bar for Group Buy */
-                      <div className="bg-white p-3 rounded-lg border border-stone-200 text-xs space-y-1.5">
-                        <div className="flex justify-between items-center text-stone-700 font-medium">
-                          <span className="flex items-center gap-1.5">
+                      <div className="bg-stone-50/80 rounded-xl p-3 border border-stone-100 space-y-2">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-medium text-stone-600 flex items-center gap-1.5">
                             <Users className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>ব্যাচ #{order.batchNumber} প্রগ্রেস:</span>
+                            <span>ব্যাচ #{order.batchNumber} প্রগ্রেস</span>
                           </span>
-                          <span className="font-bold text-stone-900">
-                            {filledSlots} / {totalSlots} স্লট বুকড ({progressPercent}%)
+                          <span className="font-bold text-stone-800">
+                            {filledSlots}/{totalSlots} স্লট ({progressPercent}%)
                           </span>
                         </div>
 
-                        <div className="w-full h-2 bg-stone-100 rounded-full overflow-hidden">
+                        <div className="w-full h-1.5 bg-stone-200/80 rounded-full overflow-hidden">
                           <div
-                            className={`h-full rounded-full transition-all duration-500 ${
-                              isCompleted ? 'bg-emerald-600' : 'bg-emerald-500'
-                            }`}
+                            className="h-full rounded-full bg-emerald-600 transition-all duration-500"
                             style={{ width: `${progressPercent}%` }}
                           />
                         </div>
 
-                        <div className="flex items-center justify-between text-[11px] pt-1">
+                        <div className="flex items-center justify-between text-[11px] pt-0.5">
                           {isCompleted ? (
-                            <span className="text-emerald-700 font-semibold flex items-center gap-1">
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              দল পূর্ণ! হোলসেলার থেকে প্রস্তুত হচ্ছে।
+                            <span className="text-emerald-700 font-medium flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              দল পূর্ণ! হোলসেলার অর্ডার প্রসেস হচ্ছে
                             </span>
                           ) : (
                             <span className="text-stone-500 flex items-center gap-1">
                               <Clock className="w-3.5 h-3.5 text-amber-500" />
-                              আর মাত্র {totalSlots - filledSlots} জন গ্রাহক জয়েন করলেই হোলসেলার অর্ডার শুরু হবে।
+                              আর {totalSlots - filledSlots} টি স্লট বাকি
                             </span>
                           )}
 
-                          {/* Share button */}
                           <button
-                            onClick={() => handleCopyShare(order.id, order.productTitle, order.batchNumber)}
-                            className="text-emerald-700 hover:text-emerald-800 font-semibold flex items-center gap-1 cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopyShare(order.id, order.productTitle, order.batchNumber);
+                            }}
+                            className="text-emerald-700 hover:text-emerald-800 font-semibold flex items-center gap-1 cursor-pointer hover:underline"
                           >
                             {copiedId === order.id ? (
                               <>
-                                <Check className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>লিংক কপি হয়েছে!</span>
+                                <Check className="w-3 h-3 text-emerald-600" />
+                                <span>কপি হয়েছে</span>
                               </>
                             ) : (
                               <>
-                                <Share2 className="w-3.5 h-3.5" />
-                                <span>ইনভাইট শেয়ার করুন</span>
+                                <Share2 className="w-3 h-3" />
+                                <span>শেয়ার</span>
                               </>
                             )}
                           </button>
@@ -351,42 +340,36 @@ export const MyBookingsModal: React.FC<MyBookingsModalProps> = ({ onViewBundle }
                     )}
 
                     {/* Address & Status row & Remove Button */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-stone-500 pt-2 border-t border-stone-200">
-                      <div>
-                        পার্সেল পাঠানোর ঠিকানা: <span className="text-stone-700 font-medium">{order.deliveryAddress}</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2.5 border-t border-stone-100 text-xs">
+                      <div className="text-stone-500 truncate text-[11px]">
+                        📍 ঠিকানা: <span className="text-stone-700 font-medium">{order.deliveryAddress}</span>
                       </div>
-                      <div className="flex flex-wrap items-center gap-2">
+
+                      <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
                         {(() => {
                           const isCompletedOrder = order.status === 'delivered' || isOrderReviewed(order.id);
                           const isShippedBatch = targetBundle?.status === 'shipped';
 
                           return (
                             <>
-                              <div className={`flex items-center gap-1.5 font-semibold px-2.5 py-1 rounded-md border ${
+                              <span className={`inline-flex items-center gap-1 font-semibold px-2.5 py-1 rounded-lg text-[11px] ${
                                 isCompletedOrder
-                                  ? 'text-emerald-900 bg-emerald-100 border-emerald-300'
+                                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                                   : isShippedBatch
-                                  ? 'text-blue-900 bg-blue-50 border-blue-200'
-                                  : 'text-emerald-800 bg-emerald-50 border-emerald-200'
+                                  ? 'bg-blue-50 text-blue-800 border border-blue-200'
+                                  : 'bg-amber-50 text-amber-800 border border-amber-200'
                               }`}>
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>
-                                  স্ট্যাটাস:{' '}
-                                  {isCompletedOrder
-                                    ? '✓ অর্ডার সম্পন্ন (Completed)'
-                                    : isShippedBatch
-                                    ? 'কুরিয়ারে পাঠানো হয়েছে'
-                                    : isSingleBuy
-                                    ? 'একক অর্ডার কনফার্মড'
-                                    : isFullBundle
-                                    ? 'বান্ডিল কুরিয়ার প্রসেসিং'
-                                    : isCompleted
-                                    ? 'হোলসেলার প্রসেসিং'
-                                    : 'স্লট নিশ্চিত (দল গঠন চলছে)'}
-                                </span>
-                              </div>
+                                <CheckCircle2 className="w-3 h-3 text-current" />
+                                {isCompletedOrder
+                                  ? 'অর্ডার সম্পন্ন'
+                                  : isShippedBatch
+                                  ? 'কুরিয়ারে প্রেরিত'
+                                  : isCompleted
+                                  ? 'প্রসেসিং চলছে'
+                                  : 'দল গঠন চলছে'}
+                              </span>
 
-                              {/* Received and review/refund button: ONLY if shipped and not yet reviewed */}
+                              {/* Received button */}
                               {isShippedBatch && !isCompletedOrder && (
                                 <button
                                   type="button"
@@ -399,21 +382,21 @@ export const MyBookingsModal: React.FC<MyBookingsModalProps> = ({ onViewBundle }
                                     setErrorMsg('');
                                     setSuccessMsg('');
                                   }}
-                                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-extrabold flex items-center gap-1 shadow-sm transition-all cursor-pointer text-xs animate-pulse"
+                                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold flex items-center gap-1 shadow-xs transition-all cursor-pointer text-[11px]"
                                 >
-                                  <CheckCheck className="w-3.5 h-3.5 text-white" />
+                                  <CheckCheck className="w-3 h-3" />
                                   <span>রিসিভ করেছি</span>
                                 </button>
                               )}
 
-                              {/* Remove / Withdraw button: Disabled/Locked if shipped or completed */}
+                              {/* Remove / Withdraw button */}
                               {isShippedBatch || isCompletedOrder ? (
                                 <span
-                                  className="px-2.5 py-1 bg-stone-100 text-stone-500 border border-stone-200 rounded-md text-[11px] font-semibold flex items-center gap-1 select-none cursor-not-allowed"
-                                  title={isCompletedOrder ? "অর্ডার সম্পন্ন হয়েছে, এখন আর স্লট বাতিলযোগ্য নয়" : "কুরিয়ারে পাঠানো হয়েছে, এখন আর স্লট বাতিল করা সম্ভব নয়"}
+                                  className="px-2 py-1 text-stone-400 bg-stone-100 rounded-lg text-[11px] font-medium flex items-center gap-1 select-none cursor-not-allowed"
+                                  title={isCompletedOrder ? "অর্ডার সম্পন্ন হয়েছে" : "কুরিয়ারে প্রেরিত"}
                                 >
-                                  <Lock className="w-3.5 h-3.5 text-stone-400" />
-                                  <span>লকড ({isCompletedOrder ? 'অর্ডার সম্পন্ন' : 'কুরিয়ারে প্রেরিত'})</span>
+                                  <Lock className="w-3 h-3 text-stone-400" />
+                                  <span>লকড</span>
                                 </span>
                               ) : (
                                 <button
@@ -421,11 +404,11 @@ export const MyBookingsModal: React.FC<MyBookingsModalProps> = ({ onViewBundle }
                                     e.stopPropagation();
                                     handleRemoveFromSlot(order.id, order.productTitle, order.size, targetBundle?.status, order.status);
                                   }}
-                                  className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-200 rounded-md font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                                  className="px-2 py-1 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-[11px]"
                                   title="স্লট থেকে বের হউন ও অর্ডার বাতিল করুন"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
-                                  <span>স্লট থেকে রিমুভ</span>
+                                  <span>বাতিল</span>
                                 </button>
                               )}
                             </>
