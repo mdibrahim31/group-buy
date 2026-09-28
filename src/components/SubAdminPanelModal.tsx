@@ -900,27 +900,7 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
                       required
                     />
 
-                    {/* Quick preset selector (only show on Add) */}
-                    {dashboardView === 'add' && (
-                      <div className="mt-2 flex flex-wrap gap-1.5 items-center">
-                        <span className="text-[10px] text-stone-500 font-semibold">কুইক স্যাম্পল ছবি:</span>
-                        {imagePresets.map((preset, idx) => (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => {
-                              setProdImageUrl(preset.url);
-                              setProdTitle(preset.label);
-                              setProdCategory(preset.category);
-                              setSizeConfigs(preset.sizes);
-                            }}
-                            className="px-2 py-0.5 bg-white border border-stone-200 hover:border-emerald-500 rounded text-[10px] text-stone-600 transition-colors cursor-pointer shadow-3xs"
-                          >
-                            + {preset.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+
 
                     {/* Image Preview */}
                     {prodImageUrl && (

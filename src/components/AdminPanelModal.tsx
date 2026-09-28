@@ -894,25 +894,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                         required
                       />
 
-                      {/* Quick preset selector */}
-                      <div className="mt-2 flex flex-wrap gap-1.5 items-center">
-                        <span className="text-[10px] text-stone-500 font-semibold">কুইক স্যাম্পল ছবি:</span>
-                        {imagePresets.map((preset, idx) => (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => {
-                              setNewImageUrl(preset.url);
-                              setNewTitle(preset.label);
-                              setNewCategory(preset.category);
-                              setSizeConfigs(preset.sizes);
-                            }}
-                            className="px-2 py-0.5 bg-white border border-stone-200 hover:border-emerald-400 rounded text-[10px] text-stone-600 transition-colors cursor-pointer"
-                          >
-                            + {preset.label}
-                          </button>
-                        ))}
-                      </div>
+
 
                       {/* Image Preview */}
                       {newImageUrl && (

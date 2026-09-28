@@ -206,12 +206,12 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
             </div>
           )}
           
-          {/* Product Banner & Summary */}
+          {/* Product Banner & Summary Header */}
           <div className="flex flex-col sm:flex-row gap-4 bg-stone-50 rounded-2xl p-4 border border-stone-200">
             <img
               src={product.imageUrl}
               alt={product.title}
-              className="w-full sm:w-36 h-36 object-cover rounded-xl border border-stone-200 shrink-0"
+              className="w-full sm:w-28 h-28 object-cover rounded-xl border border-stone-200 shrink-0"
             />
             <div className="flex-1 flex flex-col justify-between">
               <div>
@@ -238,18 +238,10 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                     ))}
                   </div>
                 )}
-
-                {/* Product Description */}
-                <div className="mt-2 text-xs text-stone-700 bg-white p-2.5 rounded-xl border border-stone-200 space-y-1">
-                  <span className="font-bold text-stone-900 block text-[11px] uppercase tracking-wider text-emerald-800">পণ্যের বিবরণ (Description):</span>
-                  <p className="leading-relaxed whitespace-pre-line text-xs font-medium text-stone-800">
-                    {product.description || 'পণ্যের বিস্তারিত বিবরণ পেতে সহায়তা প্রয়োজন হলে মেসেজ দিন।'}
-                  </p>
-                </div>
               </div>
 
               {/* Group Buy Pricing Details */}
-              <div className="mt-3 pt-3 border-t border-stone-200 text-center">
+              <div className="mt-3 pt-3 border-t border-stone-200 text-center sm:text-left">
                 <div className="bg-emerald-50 border border-emerald-300 rounded-xl py-2 px-4 inline-block">
                   <span className="text-[10px] text-emerald-800 font-bold block">গ্রুপ বাই পাইকারি মূল্য</span>
                   <span className="text-sm font-black text-emerald-700">৳{product.groupPrice} <span className="text-[10px] font-normal text-stone-600">/পিস (খুচরা বাজার মূল্য: ৳{product.retailPrice})</span></span>
@@ -258,20 +250,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Sample YouTube Video Button */}
-          {product.youtubeVideoUrl && (
-            <a
-              href={product.youtubeVideoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-3.5 px-4 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
-            >
-              <ExternalLink className="w-4 h-4 shrink-0" />
-              <span>▶ স্যাম্পল ভিডিও দেখুন (YouTube-এ ওপেন হবে)</span>
-            </a>
-          )}
-
-          {/* Vertical Scrolling Image List (Main Image + Additional Images) */}
+          {/* Vertical Scrolling Image List (PROTHOME ALL IMAGES) */}
           <div className="space-y-3 bg-stone-100 p-4 rounded-2xl border border-stone-200">
             <h4 className="text-xs font-bold text-stone-800 flex items-center gap-1.5 mb-2">
               <ImageIcon className="w-4 h-4 text-emerald-700" />
@@ -307,6 +286,19 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
               ))}
             </div>
           </div>
+
+          {/* Sample YouTube Video Button */}
+          {product.youtubeVideoUrl && (
+            <a
+              href={product.youtubeVideoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-3.5 px-4 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+            >
+              <ExternalLink className="w-4 h-4 shrink-0" />
+              <span>▶ স্যাম্পল ভিডিও দেখুন (YouTube-এ ওপেন হবে)</span>
+            </a>
+          )}
 
           {/* Option 1: Group Buy Batches & Slots Section */}
           <div className="bg-emerald-50/50 border border-emerald-200 rounded-2xl p-4 sm:p-5 space-y-4">
@@ -562,7 +554,16 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
           )}
         </div>
 
-
+          {/* Product Description Section (Placed below images & slots at the bottom) */}
+          <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 sm:p-5 space-y-2">
+            <h4 className="text-xs font-black text-stone-900 uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
+              <span>📝</span>
+              <span>পণ্যের বিবরণ (DESCRIPTION):</span>
+            </h4>
+            <div className="bg-white p-3.5 rounded-xl border border-stone-200 text-xs font-medium text-stone-800 leading-relaxed whitespace-pre-line shadow-2xs">
+              {product.description || 'পণ্যের বিস্তারিত বিবরণ পেতে সহায়তা প্রয়োজন হলে মেসেজ দিন।'}
+            </div>
+          </div>
 
           {/* Customer Reviews & Photos Section (Batch Specific) */}
           <div className="pt-4 border-t border-stone-200 space-y-3">
