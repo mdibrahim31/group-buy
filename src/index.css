@@ -1,1 +1,10 @@
 @import "tailwindcss";
+
+@keyframes slideLoading {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.animate-infinite-loading {
+  animation: slideLoading 1.5s infinite linear;
+}

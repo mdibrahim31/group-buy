@@ -11,7 +11,7 @@ import { AuthModal } from './components/AuthModal';
 import { MyBookingsModal } from './components/MyBookingsModal';
 import { ProfileModal } from './components/ProfileModal';
 import { Product, Bundle, BundleSlot } from './types';
-import { Sparkles, CheckCircle2, Bell, ChevronRight, Flame, SlidersHorizontal, X, Tag } from 'lucide-react';
+import { Sparkles, CheckCircle2, Bell, ChevronRight, Flame, SlidersHorizontal, X, Tag, Users } from 'lucide-react';
 import { WhatsAppSupport, WhatsAppIcon } from './components/WhatsAppSupport';
 
 const MainContent: React.FC = () => {
@@ -28,6 +28,21 @@ const MainContent: React.FC = () => {
     setMyBookingsOpen,
     setAuthModalOpen,
   } = useApp();
+
+  const [showSplash, setShowSplash] = useState(true);
+  const [fadeOutSplash, setFadeOutSplash] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFadeOutSplash(true);
+      const hideTimer = setTimeout(() => {
+        setShowSplash(false);
+      }, 600);
+      return () => clearTimeout(hideTimer);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Booking Modal State
   const [selectedBooking, setSelectedBooking] = useState<{
@@ -204,6 +219,37 @@ const MainContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-stone-100/70 text-stone-900 flex flex-col font-sans">
+      {/* Spectacular Entrance Splash Animation Screen */}
+      {showSplash && (
+        <div
+          className={`fixed inset-0 z-[9999] bg-stone-950 flex flex-col items-center justify-center transition-all duration-700 ease-out select-none ${
+            fadeOutSplash ? 'opacity-0 scale-105 pointer-events-none' : 'opacity-100'
+          }`}
+        >
+          <div className="text-center space-y-5 px-6">
+            {/* Animated Logo Icon */}
+            <div className="w-16 h-16 rounded-2xl bg-emerald-600 text-white flex items-center justify-center mx-auto shadow-lg animate-bounce duration-1000">
+              <Users className="w-9 h-9" />
+            </div>
+
+            {/* Glowing Brand Name with tracking expansion animation */}
+            <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-wider leading-none">
+              GroupBuy<span className="text-emerald-500 font-black animate-pulse">MarketPlaceBD</span>
+            </h1>
+
+            {/* Subtext */}
+            <p className="text-xs sm:text-sm text-stone-400 font-semibold tracking-wide animate-pulse">
+              সরাসরি পাইকারি মূল্যে গ্রুপ বায়িং প্ল্যাটফর্ম
+            </p>
+
+            {/* Minimalist animated progress line */}
+            <div className="w-32 h-1 bg-stone-850 rounded-full mx-auto mt-6 overflow-hidden relative">
+              <div className="absolute top-0 left-0 h-full bg-emerald-500 rounded-full animate-infinite-loading w-1/2" />
+            </div>
+          </div>
+        </div>
+      )}
+
       <Navbar />
 
       {/* Toast Notification */}
@@ -277,7 +323,7 @@ const MainContent: React.FC = () => {
       {/* Footer */}
       <footer className="bg-stone-900 text-stone-400 py-6 border-t border-stone-800 text-xs mt-12">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
-          <p>© 2026 GroupBuy Wholesale. সরাসরি কারখানা ও পাইকারি বাজার থেকে গ্রাহকের কাছে।</p>
+          <p>© 2026 GroupBuyMarketPlaceBD. সরাসরি কারখানা ও পাইকারি বাজার থেকে গ্রাহকের কাছে।</p>
           <div className="flex flex-wrap items-center justify-center gap-4 text-stone-400">
             <a
               href="https://wa.me/8801882208531"

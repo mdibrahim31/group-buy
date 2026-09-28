@@ -32,7 +32,7 @@ export const Navbar: React.FC = () => {
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight text-stone-900 leading-none">
-              GroupBuy <span className="text-emerald-600">Wholesale</span>
+              GroupBuy<span className="text-emerald-600 font-extrabold">MarketPlaceBD</span>
             </h1>
             <p className="text-xs text-stone-500 font-medium mt-0.5">
               হোলসেল বান্ডিল • সাইজ স্লট বুকিং
