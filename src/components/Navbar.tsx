@@ -120,7 +120,7 @@ export const Navbar: React.FC = () => {
 
       {/* Category Modal Trigger & Mobile Search */}
       <div className="max-w-7xl mx-auto px-4 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-stone-100">
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+        <div className="flex items-center gap-2 pb-1 sm:pb-0">
           {/* Main Category Modal Trigger Button */}
           <button
             onClick={() => setCategoryModalOpen(true)}
@@ -130,25 +130,6 @@ export const Navbar: React.FC = () => {
             <span>Product Category</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
-
-          <span className="text-stone-300">|</span>
-
-          {/* Quick Category Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto">
-            {['সব', ...appCategories].map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
-                  selectedCategory === cat
-                    ? 'bg-stone-900 text-white shadow-2xs'
-                    : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Mobile Search input */}
