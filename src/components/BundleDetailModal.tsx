@@ -45,17 +45,9 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
     return defaultColors[0] || 'কালো';
   });
 
-  // Batches matching selected color (or batches without specific color)
-  const colorBundles = productBundles.filter(b => !b.color || b.color === selectedColor);
-
-  // Delivered batches of this product
+  // Display list: all batches of this product sorted by batch number
+  const displayBundles = productBundles;
   const deliveredBatches = productBundles.filter(b => b.status === 'shipped');
-
-  // Display list: color batches + any delivered batches of this product
-  const displayBundles = [
-    ...colorBundles,
-    ...deliveredBatches.filter(db => !colorBundles.some(cb => cb.id === db.id))
-  ].sort((a, b) => a.batchNumber - b.batchNumber);
 
   // Active selected batch tab
   const [selectedBatchId, setSelectedBatchId] = useState<string>(() => {
@@ -63,7 +55,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
       const found = productBundles.find(b => b.id === initialBundleId);
       if (found) return initialBundleId;
     }
-    const firstOpen = colorBundles.find(b => b.status === 'open');
+    const firstOpen = productBundles.find(b => b.status === 'open');
     if (firstOpen) return firstOpen.id;
     return displayBundles[0]?.id || '';
   });
@@ -72,7 +64,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
     if (initialBundleId) {
       setSelectedBatchId(initialBundleId);
       const found = productBundles.find(b => b.id === initialBundleId);
-      if (found?.color && defaultColors.includes(found.color)) {
+      if (found?.color) {
         setSelectedColor(found.color);
       }
     }
@@ -80,27 +72,16 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
 
   useEffect(() => {
     if (!selectedBatchId || !productBundles.some(b => b.id === selectedBatchId)) {
-      const firstOpen = colorBundles.find(b => b.status === 'open');
+      const firstOpen = productBundles.find(b => b.status === 'open');
       if (firstOpen) {
         setSelectedBatchId(firstOpen.id);
       } else if (displayBundles.length > 0) {
         setSelectedBatchId(displayBundles[0].id);
       }
     }
-  }, [productBundles, colorBundles, displayBundles, selectedBatchId]);
+  }, [productBundles, displayBundles, selectedBatchId]);
 
-  const handleColorChange = (color: string) => {
-    setSelectedColor(color);
-    const matchingBundles = productBundles.filter(b => !b.color || b.color === color);
-    const firstOpen = matchingBundles.find(b => b.status === 'open');
-    if (firstOpen) {
-      setSelectedBatchId(firstOpen.id);
-    } else if (matchingBundles.length > 0) {
-      setSelectedBatchId(matchingBundles[0].id);
-    }
-  };
-
-  const activeBundle = productBundles.find(b => b.id === selectedBatchId) || displayBundles[0] || colorBundles[0];
+  const activeBundle = productBundles.find(b => b.id === selectedBatchId) || displayBundles[0];
 
   // Specific reviews for this active batch
   const activeBatchReviews = reviews.filter(r => {
@@ -327,57 +308,22 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
               )}
             </div>
 
-            {/* Step 1: Color Selection Filter */}
-            <div className="space-y-2">
-              <label className="text-xs font-extrabold text-stone-800 flex items-center gap-1">
-                <span className="w-1.5 h-3 bg-emerald-600 rounded-full inline-block"></span>
-                <span>১. কালার সিলেক্ট করুন (যে কালারের ব্যাচে জয়েন করতে চান):</span>
-              </label>
-              <div className="flex flex-wrap gap-2 bg-white p-2.5 rounded-xl border border-stone-200">
-                {defaultColors.map((col) => {
-                  const isActive = selectedColor === col;
-                  const matchingCount = productBundles.filter(b => b.color === col).length;
-                  return (
-                    <button
-                      key={col}
-                      type="button"
-                      onClick={() => handleColorChange(col)}
-                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                        isActive
-                          ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-500'
-                          : 'border-stone-200 bg-stone-50 text-stone-700 hover:bg-stone-100'
-                      }`}
-                    >
-                      <span>{col}</span>
-                      {matchingCount > 0 ? (
-                        <span className={`text-[9px] px-1.5 py-0.2 rounded-md ${
-                          isActive ? 'bg-emerald-800 text-emerald-100' : 'bg-emerald-100 text-emerald-800 font-bold'
-                        }`}>
-                          {matchingCount} ব্যাচ
-                        </span>
-                      ) : (
-                        <span className="text-[8px] px-1 bg-stone-200 text-stone-500 rounded font-normal">নতুন</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Step 2: Show Batch list & Slots */}
+            {/* Show Batch list & Slots */}
             {displayBundles.length > 0 ? (
               <div className="space-y-4 pt-1">
-                {/* Batch Tabs */}
+                {/* Batch Tabs (Horizontal Scrollable) */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-stone-500 block">২. ব্যাচ নির্বাচন করুন:</span>
+                    <span className="text-[11px] font-bold text-stone-600 flex items-center gap-1">
+                      <span>ব্যাচ নির্বাচন করুন (ডানে/বামে স্লাইড করুন):</span>
+                    </span>
                     {deliveredBatches.length > 0 && (
                       <span className="text-[10px] text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
                         🚚 {deliveredBatches.length}টি ব্যাচ ডেলিভার্ড
                       </span>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin pt-1 -mx-1 px-1">
                     {displayBundles.map(bundle => {
                       const isSelected = bundle.id === activeBundle?.id;
                       const isCompleted = bundle.filledSlots >= bundle.totalSlots;
@@ -389,32 +335,41 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                           key={bundle.id}
                           onClick={() => {
                             setSelectedBatchId(bundle.id);
-                            if (bundle.color && bundle.color !== selectedColor) {
+                            if (bundle.color) {
                               setSelectedColor(bundle.color);
                             }
                           }}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                          className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shrink-0 border ${
                             isSelected
-                              ? 'bg-stone-900 text-white shadow-md ring-2 ring-stone-900'
+                              ? 'bg-stone-900 text-white shadow-md ring-2 ring-stone-900 border-stone-900'
                               : isShipped
-                              ? 'bg-blue-50 text-blue-900 border border-blue-300 hover:bg-blue-100'
+                              ? 'bg-blue-50 text-blue-900 border-blue-300 hover:bg-blue-100'
                               : isCompleted
-                              ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                              : 'bg-white text-stone-700 hover:bg-stone-100 border border-stone-200'
+                              ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                              : 'bg-white text-stone-700 hover:bg-stone-100 border-stone-200'
                           }`}
                         >
                           <span>ব্যাচ #{bundle.batchNumber}</span>
+                          {bundle.color && (
+                            <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
+                              isSelected
+                                ? 'bg-stone-800 text-emerald-300 border border-stone-700'
+                                : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                            }`}>
+                              {bundle.color}
+                            </span>
+                          )}
                           {isShipped ? (
                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 ${
                               isSelected ? 'bg-blue-700 text-white' : 'bg-blue-600 text-white'
                             }`}>
-                              🚚 ডেলিভার্ড {bRevCount > 0 ? `(${bRevCount})` : ''}
+                              🚚 {bRevCount > 0 ? `(${bRevCount})` : ''}
                             </span>
                           ) : (
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                              isSelected ? 'bg-stone-700 text-white' : 'bg-emerald-200 text-emerald-900'
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                              isSelected ? 'bg-stone-800 text-stone-200' : 'bg-emerald-200 text-emerald-900'
                             }`}>
-                              {bundle.filledSlots}/{bundle.totalSlots} পূর্ণ
+                              {bundle.filledSlots}/{bundle.totalSlots}
                             </span>
                           )}
                         </button>
