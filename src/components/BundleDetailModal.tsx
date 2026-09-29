@@ -309,7 +309,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Sample YouTube Video Button */}
+          {/* Sample Video Button */}
           {product.youtubeVideoUrl && (
             <a
               href={product.youtubeVideoUrl}
@@ -318,7 +318,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
               className="w-full py-3.5 px-4 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
             >
               <ExternalLink className="w-4 h-4 shrink-0" />
-              <span>▶ স্যাম্পল ভিডিও দেখুন (YouTube-এ ওপেন হবে)</span>
+              <span>▶ স্যাম্পল ভিডিও দেখুন</span>
             </a>
           )}
 

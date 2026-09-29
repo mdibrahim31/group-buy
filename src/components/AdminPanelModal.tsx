@@ -1056,17 +1056,17 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                       </div>
                     </div>
 
-                    {/* YouTube Sample Video Link */}
+                    {/* Sample Video Link */}
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <label className="text-xs font-bold text-stone-700">
-                          স্যাম্পল ইউটিউব ভিডিও লিংক (YouTube Video URL - Optional)
+                          স্যাম্পল ভিডিও লিংক (Sample Video URL - Optional)
                         </label>
-                        <span className="text-[11px] text-stone-400">কাস্টমার ভিডিওতে ক্লিক করলে ইউটিউবে ওপেন হবে</span>
+                        <span className="text-[11px] text-stone-400">কাস্টমার ভিডিওতে ক্লিক করলে ভিডিওটি ওপেন হবে</span>
                       </div>
                       <input
                         type="url"
-                        placeholder="https://www.youtube.com/watch?v=..."
+                        placeholder="ভিডিও লিংক পেস্ট করুন (যেমন: ইউটিউব, ড্রাইভ, ফেসবুক ইত্যাদি)..."
                         value={newYoutubeVideoUrl}
                         onChange={(e) => setNewYoutubeVideoUrl(e.target.value)}
                         className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono"
@@ -2603,14 +2603,14 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                   </div>
                 </div>
 
-                {/* YouTube Video URL */}
+                {/* Video URL */}
                 <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1">ইউটিউব ভিডিও লিংক (Optional)</label>
+                  <label className="block text-xs font-bold text-stone-700 mb-1">স্যাম্পল ভিডিও লিংক (Optional)</label>
                   <input
                     type="url"
                     value={editYoutubeVideoUrl}
                     onChange={(e) => setEditYoutubeVideoUrl(e.target.value)}
-                    placeholder="https://www.youtube.com/watch?v=..."
+                    placeholder="ভিডিও লিংক পেস্ট করুন (যেমন: ইউটিউব, ড্রাইভ, ফেসবুক ইত্যাদি)..."
                     className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-mono focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>

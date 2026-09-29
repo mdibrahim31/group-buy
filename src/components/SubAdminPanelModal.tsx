@@ -1057,17 +1057,17 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
                     </div>
                   </div>
 
-                  {/* YouTube Sample Video Link */}
+                  {/* Sample Video Link */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="text-xs font-bold text-stone-700">
-                        স্যাম্পল ইউটিউব ভিডিও লিংক (Optional)
+                        স্যাম্পল ভিডিও লিংক (Optional)
                       </label>
-                      <span className="text-[10px] text-stone-500">ইউটিউব ভিডিওর সম্পূর্ণ লিংক দিন</span>
+                      <span className="text-[10px] text-stone-500">ভিডিওর সম্পূর্ণ লিংক দিন</span>
                     </div>
                     <input
                       type="url"
-                      placeholder="https://www.youtube.com/watch?v=..."
+                      placeholder="ভিডিও লিংক পেস্ট করুন (যেমন: ইউটিউব, ড্রাইভ, ফেসবুক ইত্যাদি)..."
                       value={prodYoutubeVideoUrl}
                       onChange={(e) => setProdYoutubeVideoUrl(e.target.value)}
                       className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono placeholder-stone-400"
