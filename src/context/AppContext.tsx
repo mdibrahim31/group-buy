@@ -38,6 +38,7 @@ import {
   dbGetSavedProductIds,
   dbSaveFavoriteProduct,
   dbRemoveFavoriteProduct,
+  dbDeleteBundleFolder,
 } from '../lib/supabase';
 
 interface AppContextType {
@@ -1509,6 +1510,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteProduct = async (productId: string): Promise<{ success: boolean; message: string }> => {
+    const product = products.find(p => p.id === productId);
+    if (product) {
+      await dbDeleteBundleFolder(product.title);
+    }
     setProducts(prev => prev.filter(p => p.id !== productId));
     setBundles(prev => prev.filter(b => b.productId !== productId));
     setOrders(prev => prev.filter(o => o.productId !== productId));
@@ -1520,6 +1525,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteBundle = async (bundleId: string): Promise<{ success: boolean; message: string }> => {
+    const bundle = bundles.find(b => b.id === bundleId);
+    if (bundle) {
+      const product = products.find(p => p.id === bundle.productId);
+      if (product) {
+        await dbDeleteBundleFolder(product.title);
+      }
+    }
     setBundles(prev => prev.filter(b => b.id !== bundleId));
     setOrders(prev => prev.filter(o => o.bundleId !== bundleId));
     const deleted = await dbDeleteBundle(bundleId);
