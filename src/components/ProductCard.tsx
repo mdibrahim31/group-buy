@@ -17,8 +17,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const isSaved = isProductSaved(product.id);
   
   // Base wholesale price & calculated customer price with category markup
-  const baseWholesale = product.wholesalePrice || product.groupPrice;
-  const effectivePrice = calculateCustomerPrice(baseWholesale, product.category);
+  const effectivePrice = product.groupPrice || calculateCustomerPrice(product.wholesalePrice || product.groupPrice, product.category);
   
   // Find all active/existing batches for this product
   const productBundles = bundles

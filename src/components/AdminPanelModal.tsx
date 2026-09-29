@@ -121,6 +121,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
   const [additionalImages, setAdditionalImages] = useState<string[]>(['', '', '', '', '']);
   const [newYoutubeVideoUrl, setNewYoutubeVideoUrl] = useState('');
   const [newRetailPrice, setNewRetailPrice] = useState<number | ''>('');
+  const [newWholesalePrice, setNewWholesalePrice] = useState<number | ''>('');
   const [newGroupPrice, setNewGroupPrice] = useState<number | ''>('');
   const [newFullBundlePrice, setNewFullBundlePrice] = useState<number | ''>('');
   const [newColorsText, setNewColorsText] = useState('কালো, সাদা, ব্রাউন, নীল, লাল');
@@ -169,6 +170,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
   const [editAdditionalImages, setEditAdditionalImages] = useState<string[]>(['', '', '', '', '']);
   const [editYoutubeVideoUrl, setEditYoutubeVideoUrl] = useState('');
   const [editRetailPrice, setEditRetailPrice] = useState<number | ''>('');
+  const [editWholesalePrice, setEditWholesalePrice] = useState<number | ''>('');
   const [editGroupPrice, setEditGroupPrice] = useState<number | ''>('');
   const [editFullBundlePrice, setEditFullBundlePrice] = useState<number | ''>('');
   const [editSizesText, setEditSizesText] = useState('');
@@ -191,6 +193,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
     ]);
     setEditYoutubeVideoUrl(prod.youtubeVideoUrl || '');
     setEditRetailPrice(prod.retailPrice);
+    setEditWholesalePrice(prod.wholesalePrice || prod.groupPrice);
     setEditGroupPrice(prod.groupPrice);
     setEditFullBundlePrice(prod.fullBundlePricePerPiece || prod.groupPrice);
     setEditSizesText((prod.availableSizes || []).join(', '));
@@ -221,6 +224,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
       additionalImageUrls: editAdditionalImages.filter(u => u.trim().length > 0),
       youtubeVideoUrl: editYoutubeVideoUrl.trim() || undefined,
       retailPrice: Number(editRetailPrice) || editingProduct.retailPrice,
+      wholesalePrice: Number(editWholesalePrice) || Number(editGroupPrice) || editingProduct.wholesalePrice,
       groupPrice: Number(editGroupPrice) || editingProduct.groupPrice,
       fullBundlePricePerPiece: Number(editFullBundlePrice) || Number(editGroupPrice) || editingProduct.fullBundlePricePerPiece,
       availableSizes: finalSizes.length > 0 ? finalSizes : editingProduct.availableSizes,
@@ -423,8 +427,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
       setPostError('পণ্যের ছবির লিংক (Image URL) দিন');
       return;
     }
-    if (!newRetailPrice || !newGroupPrice) {
-      setPostError('খুচরা মূল্য ও গ্রুপ বাই মূল্যের ঘর সঠিকভাবে পূরণ করুন');
+    if (!newRetailPrice || !newWholesalePrice || !newGroupPrice) {
+      setPostError('খুচরা মূল্য, বেস প্রাইজ ও গ্রুপ বাই মূল্যের ঘর সঠিকভাবে পূরণ করুন');
       return;
     }
 
@@ -449,7 +453,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
       ? Number(newFullBundlePrice)
       : Math.round(Number(newGroupPrice) * 0.88);
 
-    const autoWholesalePrice = Math.round(Number(newGroupPrice) * 0.75);
+    const autoWholesalePrice = Number(newWholesalePrice);
 
     const finalColors = selectedColors;
 
@@ -468,7 +472,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
         youtubeVideoUrl: newYoutubeVideoUrl.trim() || undefined,
         retailPrice: Number(newRetailPrice),
         groupPrice: Number(newGroupPrice),
-        wholesalePrice: autoWholesalePrice,
+        wholesalePrice: Number(newWholesalePrice),
         fullBundlePricePerPiece: calculatedFullBundlePrice,
         bundleSize: finalSizes.length,
         availableSizes: finalSizes,
@@ -483,6 +487,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
         setAdditionalImages(['', '', '', '', '']);
         setNewYoutubeVideoUrl('');
         setNewRetailPrice('');
+        setNewWholesalePrice('');
         setNewGroupPrice('');
         setNewFullBundlePrice('');
         setNewDescription('');
@@ -848,6 +853,10 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                           onChange={(e) => {
                             const cat = e.target.value;
                             setNewCategory(cat);
+                            if (newWholesalePrice !== '') {
+                              const markup = getCategoryMarkup(cat);
+                              setNewGroupPrice(Math.round(Number(newWholesalePrice) * (1 + markup / 100)));
+                            }
                             if (cat === 'কাপড়') {
                               setSizeConfigs([
                                 { id: '1', size: 'M', qty: 1 },
@@ -1065,7 +1074,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                     </div>
 
                     {/* Pricing Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                       <div>
                         <label className="block text-[11px] font-bold text-stone-700 mb-1">
                           খুচরা বাজার মূল্য *
@@ -1092,9 +1101,35 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                           <input
                             type="number"
                             placeholder="100"
+                            value={newWholesalePrice}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? '' : Number(e.target.value);
+                              setNewWholesalePrice(val);
+                              if (val !== '') {
+                                const markup = getCategoryMarkup(newCategory);
+                                setNewGroupPrice(Math.round(val * (1 + markup / 100)));
+                              } else {
+                                setNewGroupPrice('');
+                              }
+                            }}
+                            className="w-full pl-6 pr-2 py-2 bg-emerald-50 border border-emerald-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-emerald-950 font-mono"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-emerald-800 mb-1">
+                          গ্রুপ বাই কাস্টমার মূল্য (Customer Price) *
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-emerald-600 text-xs">৳</span>
+                          <input
+                            type="number"
+                            placeholder="110"
                             value={newGroupPrice}
                             onChange={(e) => setNewGroupPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                            className="w-full pl-6 pr-2 py-2 bg-emerald-50 border border-emerald-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-emerald-900"
+                            className="w-full pl-6 pr-2 py-2 bg-emerald-50 border border-emerald-400 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-emerald-900"
                             required
                           />
                         </div>
@@ -1102,16 +1137,16 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                     </div>
 
                     {/* Live Category Markup Calculation Preview Box */}
-                    {newGroupPrice !== '' && Number(newGroupPrice) > 0 && (
+                    {newWholesalePrice !== '' && Number(newWholesalePrice) > 0 && (
                       <div className="p-3 bg-emerald-50/90 border border-emerald-300 rounded-xl text-xs space-y-1 shadow-2xs">
                         <div className="flex items-center justify-between font-bold text-emerald-900">
-                          <span>কাস্টমারকে দেখানো হবে (Customer Price):</span>
+                          <span>কাস্টমারকে দেখানো হবে (Calculated Price):</span>
                           <span className="text-sm font-black text-emerald-700">
-                            ৳{calculateCustomerPrice(Number(newGroupPrice), newCategory)} /পিস
+                            ৳{calculateCustomerPrice(Number(newWholesalePrice), newCategory)} /পিস
                           </span>
                         </div>
                         <p className="text-[11px] text-stone-600 font-medium">
-                          মূল কেনা দাম: ৳{newGroupPrice} + ক্যাটাগরি ({newCategory.toUpperCase()}) মার্কআপ: +{getCategoryMarkup(newCategory)}%
+                          মূল কেনা দাম: ৳{newWholesalePrice} + ক্যাটাগরি ({newCategory.toUpperCase()}) মার্কআপ: +{getCategoryMarkup(newCategory)}% (আপনি চাইলে ডানের ঘরে এটি পরিবর্তন বা এডিট করতে পারবেন)
                         </p>
                       </div>
                     )}
@@ -2504,7 +2539,14 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                   <label className="block text-xs font-bold text-stone-700 mb-1">ক্যাটাগরি *</label>
                   <select
                     value={editCategory}
-                    onChange={(e) => setEditCategory(e.target.value)}
+                    onChange={(e) => {
+                      const newCat = e.target.value;
+                      setEditCategory(newCat);
+                      if (editWholesalePrice !== '') {
+                        const markup = getCategoryMarkup(newCat);
+                        setEditGroupPrice(Math.round(Number(editWholesalePrice) * (1 + markup / 100)));
+                      }
+                    }}
                     className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
                   >
                     {categories.map((cat) => (
@@ -2574,7 +2616,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                 </div>
 
                  {/* Prices Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-stone-700 mb-1">খুচরা মূল্য (৳) *</label>
                     <input
@@ -2586,12 +2628,31 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                     />
                   </div>
                   <div>
+                    <label className="block text-xs font-bold text-emerald-800 mb-1">মূল কেনা/পাইকারি দাম (Base Price) *</label>
+                    <input
+                      type="number"
+                      value={editWholesalePrice}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? '' : Number(e.target.value);
+                        setEditWholesalePrice(val);
+                        if (val !== '') {
+                          const markup = getCategoryMarkup(editCategory);
+                          setEditGroupPrice(Math.round(val * (1 + markup / 100)));
+                        } else {
+                          setEditGroupPrice('');
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-emerald-50 border border-emerald-300 rounded-xl text-xs font-bold text-emerald-950 font-mono focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <div>
                     <label className="block text-xs font-bold text-emerald-800 mb-1">গ্রুপ বাই মূল্য/পিস (৳) *</label>
                     <input
                       type="number"
                       value={editGroupPrice}
                       onChange={(e) => setEditGroupPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-emerald-50 border border-emerald-300 rounded-xl text-xs font-bold text-emerald-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      className="w-full px-3 py-2 bg-emerald-50 border border-emerald-400 rounded-xl text-xs font-bold text-emerald-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                       required
                     />
                   </div>

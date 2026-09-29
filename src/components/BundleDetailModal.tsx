@@ -25,8 +25,7 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
   const isSaved = isProductSaved(product.id);
 
   // Calculate customer selling price with category markup
-  const baseWholesale = product.wholesalePrice || product.groupPrice;
-  const effectivePrice = calculateCustomerPrice(baseWholesale, product.category);
+  const effectivePrice = product.groupPrice || calculateCustomerPrice(product.wholesalePrice || product.groupPrice, product.category);
 
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [copiedShareLink, setCopiedShareLink] = useState(false);
