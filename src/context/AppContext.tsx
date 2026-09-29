@@ -1512,7 +1512,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const deleteProduct = async (productId: string): Promise<{ success: boolean; message: string }> => {
     const product = products.find(p => p.id === productId);
     if (product) {
-      await dbDeleteBundleFolder(product.title);
+      const urlsToDelete = [product.imageUrl, ...(product.additionalImageUrls || [])].filter(Boolean);
+      await dbDeleteBundleFolder(product.title, urlsToDelete);
     }
     setProducts(prev => prev.filter(p => p.id !== productId));
     setBundles(prev => prev.filter(b => b.productId !== productId));
@@ -1529,7 +1530,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (bundle) {
       const product = products.find(p => p.id === bundle.productId);
       if (product) {
-        await dbDeleteBundleFolder(product.title);
+        const urlsToDelete = [product.imageUrl, ...(product.additionalImageUrls || [])].filter(Boolean);
+        await dbDeleteBundleFolder(product.title, urlsToDelete);
       }
     }
     setBundles(prev => prev.filter(b => b.id !== bundleId));

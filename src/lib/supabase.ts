@@ -1111,30 +1111,58 @@ export async function dbRemoveFavoriteProduct(customerId: string, productId: str
   }
 }
 
-export async function dbDeleteBundleFolder(bundleName: string): Promise<boolean> {
+export function getStoragePathFromUrl(url: string): string | null {
+  if (!url) return null;
+  const marker = '/storage/v1/object/public/images/';
+  const index = url.indexOf(marker);
+  if (index !== -1) {
+    return decodeURIComponent(url.substring(index + marker.length));
+  }
+  return null;
+}
+
+export async function dbDeleteBundleFolder(bundleName: string, imageUrlsToDelete: string[] = []): Promise<boolean> {
   if (!supabase || !bundleName) return false;
   try {
     const cleanFolderName = bundleName.trim().replace(/[^a-zA-Z0-9_\u0980-\u09FF-]/g, '_');
     const folderPath = `bundles/${cleanFolderName}`;
 
-    // 1. List all files in the folder
-    const { data: files, error: listError } = await supabase.storage
-      .from('images')
-      .list(folderPath);
+    const pathsToDeleteSet = new Set<string>();
 
-    if (listError) {
-      console.warn('List storage files error or empty folder:', listError.message);
-      return false;
+    // 1. Add explicitly passed imageUrls if they are in our storage bucket
+    if (imageUrlsToDelete && imageUrlsToDelete.length > 0) {
+      imageUrlsToDelete.forEach(url => {
+        const path = getStoragePathFromUrl(url);
+        if (path) {
+          pathsToDeleteSet.add(path);
+        }
+      });
     }
 
-    if (!files || files.length === 0) {
+    // 2. Fallback / supplementary: List all files in the folder and add them too
+    try {
+      const { data: files, error: listError } = await supabase.storage
+        .from('images')
+        .list(folderPath);
+
+      if (!listError && files && files.length > 0) {
+        files.forEach(file => {
+          if (file.name) {
+            pathsToDeleteSet.add(`${folderPath}/${file.name}`);
+          }
+        });
+      }
+    } catch (listErr) {
+      console.warn('Supabase list files warning (non-fatal, relying on explicit URLs):', listErr);
+    }
+
+    const pathsToDelete = Array.from(pathsToDeleteSet);
+
+    if (pathsToDelete.length === 0) {
       return true;
     }
 
-    // 2. Prepare paths to delete
-    const pathsToDelete = files.map(file => `${folderPath}/${file.name}`);
-
-    // 3. Delete files
+    // 3. Delete files from storage
     const { error: deleteError } = await supabase.storage
       .from('images')
       .remove(pathsToDelete);
