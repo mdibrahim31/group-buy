@@ -1129,8 +1129,8 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
                           type="number"
                           placeholder="110"
                           value={prodGroupPrice}
-                          onChange={(e) => setProdGroupPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                          className="w-full pl-6 pr-2 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold placeholder-stone-400"
+                          readOnly
+                          className="w-full pl-6 pr-2 py-2 bg-stone-100 border border-stone-200 rounded-xl text-xs text-stone-500 font-bold cursor-not-allowed focus:outline-none"
                           required
                         />
                       </div>

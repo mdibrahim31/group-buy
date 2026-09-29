@@ -1128,8 +1128,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                             type="number"
                             placeholder="110"
                             value={newGroupPrice}
-                            onChange={(e) => setNewGroupPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                            className="w-full pl-6 pr-2 py-2 bg-emerald-50 border border-emerald-400 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-emerald-900"
+                            readOnly
+                            className="w-full pl-6 pr-2 py-2 bg-stone-100 border border-stone-200 rounded-xl text-xs font-bold text-stone-500 cursor-not-allowed focus:outline-none"
                             required
                           />
                         </div>
@@ -2651,8 +2651,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                     <input
                       type="number"
                       value={editGroupPrice}
-                      onChange={(e) => setEditGroupPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-emerald-50 border border-emerald-400 rounded-xl text-xs font-bold text-emerald-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      readOnly
+                      className="w-full px-3 py-2 bg-stone-100 border border-stone-200 rounded-xl text-xs font-bold text-stone-500 cursor-not-allowed focus:outline-none"
                       required
                     />
                   </div>
