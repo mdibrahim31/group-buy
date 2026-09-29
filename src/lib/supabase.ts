@@ -495,6 +495,12 @@ export async function dbSaveProduct(product: Product): Promise<boolean> {
 export async function dbDeleteProduct(productId: string): Promise<boolean> {
   if (!supabase) return false;
   try {
+    // Fetch product title first to locate and delete the bucket folder
+    const { data: pData } = await supabase.from('products').select('title').eq('id', productId).maybeSingle();
+    if (pData && pData.title) {
+      await dbDeleteBundleFolder(pData.title);
+    }
+
     // 1. Delete orders associated with this product
     await supabase.from('orders').delete().eq('product_id', productId);
 
@@ -1102,6 +1108,77 @@ export async function dbRemoveFavoriteProduct(customerId: string, productId: str
   } catch (err) {
     console.error('dbRemoveFavoriteProduct exception:', err);
     return false;
+  }
+}
+
+export async function dbDeleteBundleFolder(bundleName: string): Promise<boolean> {
+  if (!supabase || !bundleName) return false;
+  try {
+    const cleanFolderName = bundleName.trim().replace(/[^a-zA-Z0-9_\u0980-\u09FF-]/g, '_');
+    const folderPath = `bundles/${cleanFolderName}`;
+
+    // 1. List all files in the folder
+    const { data: files, error: listError } = await supabase.storage
+      .from('images')
+      .list(folderPath);
+
+    if (listError) {
+      console.warn('List storage files error or empty folder:', listError.message);
+      return false;
+    }
+
+    if (!files || files.length === 0) {
+      return true;
+    }
+
+    // 2. Prepare paths to delete
+    const pathsToDelete = files.map(file => `${folderPath}/${file.name}`);
+
+    // 3. Delete files
+    const { error: deleteError } = await supabase.storage
+      .from('images')
+      .remove(pathsToDelete);
+
+    if (deleteError) {
+      console.warn('Delete storage files error:', deleteError.message);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error('dbDeleteBundleFolder exception:', err);
+    return false;
+  }
+}
+
+export async function dbUploadBundleImage(file: File, bundleName: string): Promise<{ success: boolean; url?: string; error?: string }> {
+  if (!supabase) {
+    return { success: false, error: 'ডাটাবেজ কানেক্টেড নেই।' };
+  }
+  try {
+    const cleanFolderName = (bundleName || 'untitled').trim().replace(/[^a-zA-Z0-9_\u0980-\u09FF-]/g, '_');
+    const fileExt = file.name.split('.').pop() || 'jpg';
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+    const filePath = `bundles/${cleanFolderName}/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('images')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: true,
+      });
+
+    if (uploadError) {
+      return { success: false, error: `আপলোড ব্যর্থ হয়েছে: ${uploadError.message}` };
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('images')
+      .getPublicUrl(filePath);
+
+    return { success: true, url: publicUrlData.publicUrl };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'একটি ত্রুটি ঘটেছে।' };
   }
 }
 

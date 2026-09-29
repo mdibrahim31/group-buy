@@ -32,7 +32,7 @@ import {
   Palette,
 } from 'lucide-react';
 import { Order, Product, Bundle } from '../types';
-import { dbGetAllOrders, isSupabaseConfigured, dbGetAllSubAdmins } from '../lib/supabase';
+import { dbGetAllOrders, isSupabaseConfigured, dbGetAllSubAdmins, dbUploadBundleImage } from '../lib/supabase';
 
 interface AdminPanelModalProps {
   isOpen: boolean;
@@ -126,6 +126,10 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
   const [newColorsText, setNewColorsText] = useState('কালো, সাদা, ব্রাউন, নীল, লাল');
   const [newBundleColor, setNewBundleColor] = useState('কালো');
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
+
+  // Direct Gallery Upload state
+  const [isUploadingMain, setIsUploadingMain] = useState(false);
+  const [isUploadingAdditional, setIsUploadingAdditional] = useState<boolean[]>([false, false, false, false, false]);
 
   // Sync selectedColors with database colors initially or when colors update
   useEffect(() => {
@@ -883,67 +887,161 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({ isOpen, onClos
                       </div>
                     </div>
 
-                    {/* Image URL with Presets */}
+                    {/* Image Upload Feature (Replacing/improving URL paste) */}
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-xs font-bold text-stone-700">
-                          প্রধান ছবির লিংক (Main Image URL - হোম পেজের জন্য) *
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-bold text-stone-850 flex items-center gap-1.5">
+                          <ImageIcon className="w-4 h-4 text-emerald-600" />
+                          <span>প্রধান ছবি আপলোড (Upload Main Image) *</span>
                         </label>
-                        <span className="text-[11px] text-stone-400">অনলাইন ছবির সরাসরি লিংক দিন</span>
+                        <span className="text-[10px] text-stone-500 font-semibold bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-100">গ্যালারি থেকে সিলেক্ট করুন</span>
                       </div>
-                      <input
-                        type="url"
-                        placeholder="https://images.unsplash.com/..."
-                        value={newImageUrl}
-                        onChange={(e) => setNewImageUrl(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono"
-                        required
-                      />
-
-
+                      
+                      <div className="flex flex-col sm:flex-row gap-3 items-center p-4 bg-white border-2 border-dashed border-stone-200 rounded-2xl shadow-2xs hover:border-emerald-500 transition-colors">
+                        <label className="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-sm text-center shrink-0">
+                          <PlusCircle className="w-4 h-4" />
+                          <span>{isUploadingMain ? 'আপলোড হচ্ছে...' : 'ছবি সিলেক্ট করুন'}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            disabled={isUploadingMain}
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              if (!newTitle.trim()) {
+                                alert('দয়া করে প্রথমে পণ্যের নাম লিখুন। কারণ পণ্যের নামে আলাদা ফোল্ডার তৈরি হবে।');
+                                return;
+                              }
+                              setIsUploadingMain(true);
+                              try {
+                                const res = await dbUploadBundleImage(file, newTitle.trim());
+                                if (res.success && res.url) {
+                                  setNewImageUrl(res.url);
+                                } else {
+                                  alert(res.error || 'ছবি আপলোড করতে ব্যর্থ হয়েছে।');
+                                }
+                              } catch (err: any) {
+                                alert(err.message || 'আপলোড ব্যর্থ হয়েছে।');
+                              } finally {
+                                setIsUploadingMain(false);
+                              }
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                        
+                        <input
+                          type="url"
+                          placeholder="অথবা সরাসরি ছবির লিংক পেস্ট করুন..."
+                          value={newImageUrl}
+                          onChange={(e) => setNewImageUrl(e.target.value)}
+                          className="w-full flex-1 px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </div>
 
                       {/* Image Preview */}
                       {newImageUrl && (
-                        <div className="mt-2 flex items-center gap-3 p-2 bg-white rounded-xl border border-stone-200">
+                        <div className="mt-2.5 flex items-center gap-3 p-2 bg-white rounded-xl border border-stone-200">
                           <img
                             src={newImageUrl}
                             alt="Preview"
-                            className="w-12 h-12 object-cover rounded-lg border border-stone-200"
+                            className="w-12 h-12 object-cover rounded-lg border border-stone-200 shadow-3xs"
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=100';
                             }}
                           />
-                          <span className="text-[11px] text-emerald-700 font-semibold">প্রধান ছবি প্রিভিউ সফল</span>
+                          <span className="text-[11px] text-emerald-700 font-bold">প্রধান ছবি আপলোড সফল</span>
                         </div>
                       )}
                     </div>
 
-                    {/* 5 Additional Image Links (Sequential vertical scroll) */}
-                    <div className="p-3.5 bg-stone-50 border border-stone-200 rounded-2xl space-y-2.5">
+                    {/* 5 Additional Image Links with Direct File Uploads */}
+                    <div className="p-3.5 bg-stone-50 border border-stone-200 rounded-2xl space-y-3">
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-bold text-stone-800 flex items-center gap-1.5">
                           <ImageIcon className="w-4 h-4 text-emerald-600" />
-                          <span>অতিরিক্ত ৫টি ছবি লিংক (Optional - বান্ডিল ডিটেইলসে স্ক্রল করে দেখা যাবে)</span>
+                          <span>অতিরিক্ত ৫টি ছবি আপলোড (Optional - বান্ডিল ডিটেইলসে স্ক্রল করে দেখা যাবে)</span>
                         </label>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {additionalImages.map((imgUrl, imgIdx) => (
-                          <div key={imgIdx} className="flex items-center gap-2">
-                            <span className="text-[11px] font-bold text-stone-500 w-16">ছবি #{imgIdx + 1}:</span>
-                            <input
-                              type="url"
-                              placeholder={`অতিরিক্ত ছবি ${imgIdx + 1} এর লিংক...`}
-                              value={imgUrl}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setAdditionalImages((prev) => {
-                                  const updated = [...prev];
-                                  updated[imgIdx] = val;
-                                  return updated;
-                                });
-                              }}
-                              className="w-full px-3 py-1.5 bg-white border border-stone-200 rounded-lg text-xs font-mono focus:ring-1 focus:ring-emerald-500 focus:outline-none"
-                            />
+                          <div key={imgIdx} className="bg-white border border-stone-200/80 rounded-xl p-2.5 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-bold text-stone-700">অতিরিক্ত ছবি #{imgIdx + 1}:</span>
+                              {isUploadingAdditional[imgIdx] && <span className="text-[10px] text-emerald-600 font-bold animate-pulse">আপলোড হচ্ছে...</span>}
+                            </div>
+                            
+                            <div className="flex flex-col sm:flex-row items-center gap-2">
+                              <label className="w-full sm:w-auto px-3 py-1.5 bg-stone-900 hover:bg-stone-850 text-white rounded-lg text-xs font-bold cursor-pointer text-center shrink-0">
+                                <span>গ্যালারি থেকে আপলোড</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  disabled={isUploadingAdditional[imgIdx]}
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    if (!newTitle.trim()) {
+                                      alert('দয়া করে প্রথমে পণ্যের নাম লিখুন। কারণ পণ্যের নামে আলাদা ফোল্ডার তৈরি হবে।');
+                                      return;
+                                    }
+                                    setIsUploadingAdditional(prev => {
+                                      const u = [...prev];
+                                      u[imgIdx] = true;
+                                      return u;
+                                    });
+                                    try {
+                                      const res = await dbUploadBundleImage(file, newTitle.trim());
+                                      if (res.success && res.url) {
+                                        setAdditionalImages(prev => {
+                                          const updated = [...prev];
+                                          updated[imgIdx] = res.url!;
+                                          return updated;
+                                        });
+                                      } else {
+                                        alert(res.error || 'ছবি আপলোড করতে ব্যর্থ হয়েছে।');
+                                      }
+                                    } catch (err: any) {
+                                      alert(err.message || 'আপলোড ব্যর্থ হয়েছে।');
+                                    } finally {
+                                      setIsUploadingAdditional(prev => {
+                                        const u = [...prev];
+                                        u[imgIdx] = false;
+                                        return u;
+                                      });
+                                    }
+                                  }}
+                                  className="hidden"
+                                />
+                              </label>
+
+                              <input
+                                type="url"
+                                placeholder={`ছবি ${imgIdx + 1} এর লিংক পেস্ট করুন...`}
+                                value={imgUrl}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setAdditionalImages((prev) => {
+                                    const updated = [...prev];
+                                    updated[imgIdx] = val;
+                                    return updated;
+                                  });
+                                }}
+                                className="w-full flex-1 px-3 py-1.5 bg-stone-50 border border-stone-200 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                              />
+                            </div>
+
+                            {/* Mini preview for additional image */}
+                            {imgUrl && (
+                              <div className="flex items-center gap-2">
+                                <img
+                                  src={imgUrl}
+                                  alt="Preview"
+                                  className="w-10 h-10 object-cover rounded-md border border-stone-200"
+                                />
+                                <span className="text-[10px] text-emerald-600 font-bold">ছবি #{imgIdx + 1} সফলভাবে যুক্ত</span>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
