@@ -417,3 +417,20 @@ CREATE POLICY "Anyone can update saved_products" ON public.saved_products FOR UP
 DROP POLICY IF EXISTS "Anyone can delete saved_products" ON public.saved_products;
 CREATE POLICY "Anyone can delete saved_products" ON public.saved_products FOR DELETE USING (true);
 
+
+-- ==============================================================================
+-- ১৪. স্টোরেজ বাকেট পলিসি (Storage Bucket Policies for 'images')
+-- ==============================================================================
+-- Supabase-এ স্টোরেজ থেকে ইমেজ আপলোড ও ডিলিট করার পারমিশন দেওয়ার জন্য নিচের কোডটি রান করুন:
+DROP POLICY IF EXISTS "Allow public select from images bucket" ON storage.objects;
+CREATE POLICY "Allow public select from images bucket" ON storage.objects FOR SELECT USING (bucket_id = 'images');
+
+DROP POLICY IF EXISTS "Allow public insert to images bucket" ON storage.objects;
+CREATE POLICY "Allow public insert to images bucket" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'images');
+
+DROP POLICY IF EXISTS "Allow public delete from images bucket" ON storage.objects;
+CREATE POLICY "Allow public delete from images bucket" ON storage.objects FOR DELETE USING (bucket_id = 'images');
+
+DROP POLICY IF EXISTS "Allow public update to images bucket" ON storage.objects;
+CREATE POLICY "Allow public update to images bucket" ON storage.objects FOR UPDATE USING (bucket_id = 'images');
+
