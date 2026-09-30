@@ -309,18 +309,76 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Sample Video Button */}
-          {product.youtubeVideoUrl && (
-            <a
-              href={product.youtubeVideoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-3.5 px-4 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
-            >
-              <ExternalLink className="w-4 h-4 shrink-0" />
-              <span>▶ স্যাম্পল ভিডিও দেখুন</span>
-            </a>
-          )}
+          {/* Sample Video Section */}
+          {product.youtubeVideoUrl && (() => {
+            const getYoutubeId = (url: string) => {
+              if (!url) return null;
+              const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+              const match = url.match(regExp);
+              return (match && match[2].length === 11) ? match[2] : null;
+            };
+
+            const ytId = getYoutubeId(product.youtubeVideoUrl);
+            const isDirectVideo = /\.(mp4|webm|ogg)$/i.test(product.youtubeVideoUrl);
+
+            return (
+              <div className="space-y-2 bg-stone-50 border border-stone-200 rounded-2xl p-4">
+                <h4 className="text-xs font-bold text-stone-800 flex items-center gap-1.5 mb-1">
+                  <span className="w-2.5 h-2.5 bg-red-600 rounded-full animate-pulse" />
+                  <span>স্যাম্পল ভিডিও (ভিডিওটি ওয়েবসাইটেই সরাসরি প্লে করুন):</span>
+                </h4>
+                
+                {ytId ? (
+                  /* YouTube Embed Player */
+                  <div className="w-full aspect-video rounded-xl overflow-hidden border border-stone-300 bg-black shadow-xs relative">
+                    <iframe
+                      className="absolute inset-0 w-full h-full"
+                      src={`https://www.youtube.com/embed/${ytId}?rel=0`}
+                      title="Product Sample Video"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                ) : isDirectVideo ? (
+                  /* Direct Video Player */
+                  <div className="w-full aspect-video rounded-xl overflow-hidden border border-stone-300 bg-black shadow-xs">
+                    <video
+                      className="w-full h-full"
+                      src={product.youtubeVideoUrl}
+                      controls
+                      preload="metadata"
+                      poster={product.imageUrl}
+                    />
+                  </div>
+                ) : (
+                  /* External General Video Link with beautiful Thumbnail Overlay */
+                  <a
+                    href={product.youtubeVideoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group relative block w-full aspect-video rounded-xl overflow-hidden border border-stone-300 bg-stone-900 shadow-xs cursor-pointer"
+                  >
+                    <img
+                      src={product.imageUrl}
+                      alt="Video Poster"
+                      className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                      <div className="w-12 h-12 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg group-hover:bg-red-700 transition-colors animate-pulse">
+                        <svg className="w-6 h-6 fill-current ml-0.5" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </div>
+                      <span className="text-xs font-bold text-white bg-black/75 px-3 py-1 rounded-full backdrop-blur-xs flex items-center gap-1">
+                        <span>স্যাম্পল ভিডিও লিংকে যান</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </span>
+                    </div>
+                  </a>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Option 1: Group Buy Batches & Slots Section */}
           <div className="bg-emerald-50/50 border border-emerald-200 rounded-2xl p-4 sm:p-5 space-y-4">
