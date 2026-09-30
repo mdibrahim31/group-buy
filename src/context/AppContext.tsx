@@ -143,8 +143,9 @@ interface AppContextType {
   deleteBundle: (bundleId: string) => Promise<{ success: boolean; message: string }>;
   findOrderByIdOrCustomer: (query: string) => Promise<Order[]>;
   currentSubAdmin: SubAdmin | null;
+  subAdmins: SubAdmin[];
   subAdminLogin: (phone: string, pass: string) => Promise<{ success: boolean; message: string }>;
-  subAdminRegister: (phone: string, pass: string, name: string, address?: string) => Promise<{ success: boolean; message: string }>;
+  subAdminRegister: (phone: string, pass: string, name: string, address?: string, sellerType?: 'wholesaler' | 'factory') => Promise<{ success: boolean; message: string }>;
   subAdminLogout: () => void;
   reviews: Review[];
   saveReview: (review: Omit<Review, 'id' | 'createdAt'>) => Promise<{ success: boolean; message: string }>;
@@ -210,6 +211,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return null;
     }
   });
+
+  const [subAdmins, setSubAdmins] = useState<SubAdmin[]>([]);
 
   const [categoryObjects, setCategoryObjects] = useState<Category[]>(() => {
     try {
@@ -498,13 +501,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const loadSupabaseCatalog = async () => {
       if (!isSupabaseConfigured()) return;
       try {
-        const [remoteProducts, remoteBundles, remoteCategories, remoteColors, remoteOrders, remoteReviews] = await Promise.all([
+        const [remoteProducts, remoteBundles, remoteCategories, remoteColors, remoteOrders, remoteReviews, remoteSubAdmins] = await Promise.all([
           dbGetAllProducts(),
           dbGetAllBundles(),
           dbGetAllCategoryItems(),
           dbGetAllColors(),
           dbGetAllOrders(),
           dbGetAllReviews(),
+          dbGetAllSubAdmins(),
         ]);
 
         setProducts(remoteProducts);
@@ -513,6 +517,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (remoteColors.length > 0) setColors(remoteColors);
         setOrders(remoteOrders);
         setReviews(remoteReviews);
+        setSubAdmins(remoteSubAdmins);
 
         // Verify logged-in user still exists in database (Desktop Monitor rule)
         if (user && user.phone) {
@@ -742,7 +747,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const subAdminRegister = async (phone: string, pass: string, name: string, address?: string): Promise<{ success: boolean; message: string }> => {
+  const subAdminRegister = async (
+    phone: string,
+    pass: string,
+    name: string,
+    address?: string,
+    sellerType: 'wholesaler' | 'factory' = 'wholesaler'
+  ): Promise<{ success: boolean; message: string }> => {
     const cleanPhone = phone.trim();
     if (!cleanPhone || !pass || !name) {
       return { success: false, message: 'সব প্রয়োজনীয় তথ্য পূরণ করুন।' };
@@ -751,7 +762,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const existingSub = await dbGetSubAdminByPhone(cleanPhone);
       if (existingSub) {
-        return { success: false, message: 'এই ফোন নম্বরে ইতোমধ্যে সাব-অ্যাডমিন অ্যাকাউন্ট রয়েছে।' };
+        return { success: false, message: 'এই ফোন নম্বরে ইতোমধ্যে অ্যাকাউন্ট রয়েছে।' };
       }
 
       const newSub: SubAdmin = {
@@ -760,17 +771,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         password: pass,
         fullName: name.trim(),
         address: address ? address.trim() : '',
+        sellerType: sellerType,
         createdAt: new Date().toISOString(),
       };
 
       const dbResult = await dbSaveSubAdmin(newSub);
       if (!dbResult.success) {
-        return { success: false, message: dbResult.error || 'ডাটাবেজে সাব-অ্যাডমিন তথ্য সেভ করা যায়নি।' };
+        return { success: false, message: dbResult.error || 'ডাটাবেজে তথ্য সেভ করা যায়নি।' };
       }
 
       setCurrentSubAdmin(newSub);
+      setSubAdmins(prev => [newSub, ...prev]);
       localStorage.setItem(LOCAL_STORAGE_KEY_SUB_ADMIN, JSON.stringify(newSub));
-      return { success: true, message: 'সাব-অ্যাডমিন অ্যাকাউন্ট সফলভাবে তৈরি ও লগইন হয়েছে!' };
+      return { success: true, message: 'অ্যাকাউন্ট সফলভাবে তৈরি ও লগইন হয়েছে!' };
     } catch (err: any) {
       return { success: false, message: err?.message || 'রেজিস্ট্রেশনে সমস্যা হয়েছে।' };
     }
@@ -1273,6 +1286,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: newId,
       createdBySubAdminId: currentSubAdmin?.id || undefined,
       createdBySubAdminName: currentSubAdmin?.fullName || undefined,
+      createdBySubAdminType: currentSubAdmin?.sellerType || undefined,
     };
     setProducts(prev => [product, ...prev]);
 
@@ -1306,6 +1320,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       availableColors: product.availableColors,
       createdBySubAdminId: currentSubAdmin?.id || undefined,
       createdBySubAdminName: currentSubAdmin?.fullName || undefined,
+      createdBySubAdminType: currentSubAdmin?.sellerType || undefined,
     };
 
     setBundles(prev => [firstBundle, ...prev]);
@@ -1680,6 +1695,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteBundle,
         findOrderByIdOrCustomer,
         currentSubAdmin,
+        subAdmins,
         subAdminLogin,
         subAdminRegister,
         subAdminLogout,

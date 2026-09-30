@@ -27,10 +27,14 @@ const MainContent: React.FC = () => {
     setCategoryModalOpen,
     setMyBookingsOpen,
     setAuthModalOpen,
+    subAdmins,
   } = useApp();
 
   const [showSplash, setShowSplash] = useState(true);
   const [fadeOutSplash, setFadeOutSplash] = useState(false);
+  const [activeTab, setActiveTab] = useState<'products' | 'sellers'>('products');
+  const [selectedSeller, setSelectedSeller] = useState<any | null>(null);
+  const [sellerSearchQuery, setSellerSearchQuery] = useState('');
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -210,6 +214,19 @@ const MainContent: React.FC = () => {
     });
   }, [products, selectedCategory, searchQuery]);
 
+  const filteredSellers = useMemo(() => {
+    return (subAdmins || []).filter(seller => {
+      const q = sellerSearchQuery.trim().toLowerCase();
+      if (!q) return true;
+      return (
+        seller.fullName.toLowerCase().includes(q) ||
+        (seller.address || '').toLowerCase().includes(q) ||
+        seller.phone.includes(q) ||
+        (seller.sellerType || 'wholesaler').toLowerCase().includes(q)
+      );
+    });
+  }, [subAdmins, sellerSearchQuery]);
+
   const hasActiveFilters = selectedCategory !== 'সব' || searchQuery.trim() !== '';
 
   const resetFilters = () => {
@@ -267,55 +284,234 @@ const MainContent: React.FC = () => {
       )}
 
       <main className="max-w-7xl mx-auto px-4 py-4 sm:py-6 flex-1 w-full">
-        {/* Active Category Header Filter Badge */}
-        {selectedCategory !== 'সব' && (
-          <div className="mb-4 flex items-center justify-between bg-white px-4 py-2.5 rounded-2xl border border-stone-200 shadow-2xs">
-            <div className="flex items-center gap-2 text-xs font-bold text-stone-800">
-              <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
-              <span>ক্যাটাগরি: <span className="text-emerald-700 uppercase">{selectedCategory}</span></span>
-            </div>
+        {selectedSeller ? (
+          /* ==================== SELLER PROFILE PAGE (ALIBABA STYLE) ==================== */
+          <div className="space-y-6">
+            {/* Back Button */}
             <button
-              onClick={() => setSelectedCategory('সব')}
-              className="text-xs text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1 cursor-pointer"
+              onClick={() => setSelectedSeller(null)}
+              className="px-4 py-2 bg-white hover:bg-stone-200 border border-stone-200 text-stone-700 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
             >
-              <X className="w-3.5 h-3.5" />
-              <span>সব ফিল্টার সরান</span>
+              ← ডিরেক্টরিতে ফিরে যান (Back to Directory)
             </button>
-          </div>
-        )}
 
-        {/* Products Grid */}
-        {filteredProducts.length === 0 ? (
-          <div className="text-center py-16 px-4 bg-white rounded-2xl border border-stone-200 shadow-xs max-w-xl mx-auto my-8">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto mb-4 border border-emerald-100">
-              <Sparkles className="w-8 h-8" />
+            {/* Seller Hero Banner */}
+            <div className="bg-gradient-to-r from-stone-900 via-stone-850 to-stone-900 rounded-3xl p-6 sm:p-8 text-white shadow-md relative overflow-hidden border border-stone-800">
+              <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none translate-y-6 translate-x-6">
+                <Users className="w-64 h-64" />
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                      selectedSeller.sellerType === 'factory'
+                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                        : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                    }`}>
+                      {selectedSeller.sellerType === 'factory' ? '🏭 Direct Factory (উৎপাদনকারী)' : '🏢 Wholesaler (হোলসেলার)'}
+                    </span>
+                    <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-md text-[10px] font-bold">Verified Gold Seller</span>
+                  </div>
+                  <h2 className="text-xl sm:text-3xl font-black tracking-tight">{selectedSeller.fullName}</h2>
+                  <p className="text-xs text-stone-400 flex items-center gap-1">
+                    <span className="font-bold text-stone-300">ঠিকানা:</span> {selectedSeller.address || 'ঠিকানা দেওয়া হয়নি'}
+                  </p>
+                  <p className="text-xs text-stone-400 flex items-center gap-1">
+                    <span className="font-bold text-stone-300">মোবাইল:</span> {selectedSeller.phone}
+                  </p>
+                </div>
+                <div className="shrink-0 bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+                  <div className="text-xs text-stone-400 font-semibold mb-0.5">মোট আপলোডকৃত বান্ডিল</div>
+                  <div className="text-2xl font-black text-emerald-400">
+                    {products.filter(p => p.createdBySubAdminId === selectedSeller.id).length} টি
+                  </div>
+                </div>
+              </div>
             </div>
-            <h3 className="text-base font-bold text-stone-900 mb-1">
-              কোনো পণ্য পাওয়া যায়নি
-            </h3>
-            <p className="text-xs text-stone-500 mb-5 max-w-md mx-auto">
-              {hasActiveFilters
-                ? 'আপনার দেওয়া ফিল্টার বা সার্চ অনুযায়ী কোনো পণ্য মেলেনি। ফিল্টার রিসেট করে আবার চেষ্টা করুন।'
-                : 'বর্তমানে কোনো সক্রিয় পণ্য নেই। নতুন পণ্যের জন্য শীঘ্রই আবার ভিজিট করুন।'}
-            </p>
-            {hasActiveFilters && (
-              <button
-                onClick={resetFilters}
-                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
-              >
-                সব ফিল্টার মুছে ফেলুন
-              </button>
-            )}
+
+            {/* Seller Products Catalog */}
+            <div className="space-y-4">
+              <h3 className="text-base font-extrabold text-stone-800 flex items-center gap-2">
+                <span>🛍️ {selectedSeller.fullName} এর সকল এক্সক্লুসিভ বান্ডিলসমূহ:</span>
+              </h3>
+
+              {(() => {
+                const sellerProducts = products.filter(p => p.createdBySubAdminId === selectedSeller.id);
+                if (sellerProducts.length === 0) {
+                  return (
+                    <div className="text-center py-12 bg-white rounded-2xl border border-stone-200">
+                      <p className="text-xs text-stone-500 font-semibold italic">এই সেলারের বর্তমানে কোনো সক্রিয় বান্ডিল নেই।</p>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {sellerProducts.map(product => (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        onOpenBundleModal={(prod) => openBundleModal(prod)}
+                      />
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map(product => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onOpenBundleModal={(prod) => openBundleModal(prod)}
-              />
-            ))}
+          /* ==================== HOME PAGE VIEW (TAB SELECTION) ==================== */
+          <div className="space-y-6">
+            {/* Tab Selector Buttons */}
+            <div className="flex bg-white p-1.5 rounded-2xl border border-stone-200 shadow-2xs max-w-md mx-auto sm:mx-0">
+              <button
+                onClick={() => {
+                  setActiveTab('products');
+                  resetFilters();
+                }}
+                className={`flex-1 py-2.5 text-xs font-black rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5 ${
+                  activeTab === 'products'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-stone-500 hover:text-stone-900'
+                }`}
+              >
+                <span>🛍️ গ্রুপ বাই ক্যাটালগ (Bundles)</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('sellers')}
+                className={`flex-1 py-2.5 text-xs font-black rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5 ${
+                  activeTab === 'sellers'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-stone-500 hover:text-stone-900'
+                }`}
+              >
+                <span>🏭 সেলার গ্যালারি (Sellers Directory)</span>
+              </button>
+            </div>
+
+            {activeTab === 'products' ? (
+              /* ==================== PRODUCTS VIEW ==================== */
+              <div>
+                {/* Active Category Header Filter Badge */}
+                {selectedCategory !== 'সব' && (
+                  <div className="mb-4 flex items-center justify-between bg-white px-4 py-2.5 rounded-2xl border border-stone-200 shadow-2xs">
+                    <div className="flex items-center gap-2 text-xs font-bold text-stone-800">
+                      <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                      <span>ক্যাটাগরি: <span className="text-emerald-700 uppercase">{selectedCategory}</span></span>
+                    </div>
+                    <button
+                      onClick={() => setSelectedCategory('সব')}
+                      className="text-xs text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>সব ফিল্টার সরান</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Products Grid */}
+                {filteredProducts.length === 0 ? (
+                  <div className="text-center py-16 px-4 bg-white rounded-2xl border border-stone-200 shadow-xs max-w-xl mx-auto my-8">
+                    <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto mb-4 border border-emerald-100">
+                      <Sparkles className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-base font-bold text-stone-900 mb-1">
+                      কোনো পণ্য পাওয়া যায়নি
+                    </h3>
+                    <p className="text-xs text-stone-500 mb-5 max-w-md mx-auto">
+                      {hasActiveFilters
+                        ? 'আপনার দেওয়া ফিল্টার বা সার্চ অনুযায়ী কোনো পণ্য মেলেনি। ফিল্টার রিসেট করে আবার চেষ্টা করুন।'
+                        : 'বর্তমানে কোনো সক্রিয় পণ্য নেই। নতুন পণ্যের জন্য শীঘ্রই আবার ভিজিট করুন।'}
+                    </p>
+                    {hasActiveFilters && (
+                      <button
+                        onClick={resetFilters}
+                        className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+                      >
+                        সব ফিল্টার মুছে ফেলুন
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredProducts.map(product => (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        onOpenBundleModal={(prod) => openBundleModal(prod)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* ==================== SELLERS DIRECTORY VIEW ==================== */
+              <div className="space-y-5">
+                {/* Directory Description & Search */}
+                <div className="p-5 bg-white border border-stone-200 rounded-2xl space-y-4">
+                  <div>
+                    <h3 className="text-sm font-extrabold text-stone-800">🏭 সরাসরি উৎপাদনকারী ও পাইকারি বিক্রেতা খুঁজুন</h3>
+                    <p className="text-[11px] text-stone-500 mt-0.5">
+                      আলিবাবার মতো ফ্যাক্টরি বা হোলোসেলারের পেজে ঢুকে সরাসরি তাদের আপলোডকৃত সমস্ত হোলসেল বান্ডিল দেখতে পারবেন।
+                    </p>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="নাম, ঠিকানা বা ধরন দিয়ে ফ্যাক্টরি/হোলসেলার সার্চ করুন (যেমন: ঢাকা, Factory, Wholesaler)..."
+                    value={sellerSearchQuery}
+                    onChange={(e) => setSellerSearchQuery(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+                  />
+                </div>
+
+                {/* Sellers Grid */}
+                {filteredSellers.length === 0 ? (
+                  <div className="text-center py-12 bg-white rounded-2xl border border-stone-200">
+                    <p className="text-xs text-stone-500 font-semibold italic">কোনো ফ্যাক্টরি বা হোলসেলার পাওয়া যায়নি।</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredSellers.map(seller => {
+                      const sellerProdsCount = products.filter(p => p.createdBySubAdminId === seller.id).length;
+                      return (
+                        <div
+                          key={seller.id}
+                          className="bg-white border border-stone-200 rounded-2xl p-4.5 space-y-3.5 shadow-2xs hover:shadow-xs transition-shadow flex flex-col justify-between"
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider ${
+                                seller.sellerType === 'factory'
+                                  ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                  : 'bg-blue-100 text-blue-800 border border-blue-200'
+                              }`}>
+                                {seller.sellerType === 'factory' ? '🏭 Factory' : '🏢 Wholesaler'}
+                              </span>
+                              <span className="text-[10px] font-bold text-stone-400">Verified</span>
+                            </div>
+                            <h4 className="text-xs font-black text-stone-900 leading-snug">{seller.fullName}</h4>
+                            <p className="text-[10px] text-stone-500 leading-relaxed">
+                              <span className="font-bold text-stone-600">ঠিকানা:</span> {seller.address || 'ঠিকানা দেওয়া হয়নি'}
+                            </p>
+                          </div>
+
+                          <div className="pt-3 border-t border-stone-100 flex items-center justify-between gap-2">
+                            <span className="text-[10px] font-extrabold text-emerald-800 bg-emerald-50 px-2 py-1 rounded-lg">
+                              পণ্য: {sellerProdsCount} টি
+                            </span>
+                            <button
+                              onClick={() => setSelectedSeller(seller)}
+                              className="px-3.5 py-1.5 bg-stone-900 hover:bg-emerald-600 text-white rounded-xl text-[10px] font-bold transition-all cursor-pointer"
+                            >
+                              ভিজিট শপ (View Shop) →
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </main>

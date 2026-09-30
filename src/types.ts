@@ -24,6 +24,7 @@ export interface SubAdmin {
   password?: string;
   fullName: string;
   address?: string;
+  sellerType?: 'wholesaler' | 'factory';
   createdAt?: string;
 }
 
@@ -46,6 +47,7 @@ export interface Product {
   isSingleBuyAvailable?: boolean; // একক ক্রয় (Single Buy) অ্যাভেইলেবল নাকি আনঅ্যাভেইলেবল (ডিফল্ট: true)
   createdBySubAdminId?: string;
   createdBySubAdminName?: string;
+  createdBySubAdminType?: 'wholesaler' | 'factory';
 }
 
 export interface BundleSlot {
@@ -74,6 +76,7 @@ export interface Bundle {
   availableColors?: string[];
   createdBySubAdminId?: string;
   createdBySubAdminName?: string;
+  createdBySubAdminType?: 'wholesaler' | 'factory';
 }
 
 export interface Order {

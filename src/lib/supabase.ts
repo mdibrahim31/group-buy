@@ -425,6 +425,7 @@ export async function dbGetAllProducts(): Promise<Product[]> {
         isAvailable: p.is_available !== false && p.isAvailable !== false && p.status !== 'unavailable' && p.status !== 'inactive' && p.is_active !== false,
         createdBySubAdminId: p.created_by_sub_admin_id || undefined,
         createdBySubAdminName: p.created_by_sub_admin_name || undefined,
+        createdBySubAdminType: p.created_by_sub_admin_type || undefined,
       };
     });
   } catch (err) {
@@ -463,6 +464,7 @@ export async function dbSaveProduct(product: Product): Promise<boolean> {
       status: isAvail ? 'active' : 'inactive',
       created_by_sub_admin_id: product.createdBySubAdminId || null,
       created_by_sub_admin_name: product.createdBySubAdminName || null,
+      created_by_sub_admin_type: product.createdBySubAdminType || null,
       updated_at: new Date().toISOString(),
     };
 
@@ -476,6 +478,7 @@ export async function dbSaveProduct(product: Product): Promise<boolean> {
       delete payload.color;
       delete payload.colors;
       delete payload.is_available;
+      delete payload.created_by_sub_admin_type;
       const fallbackResult = await supabase
         .from('products')
         .upsert(payload, { onConflict: 'id' });
@@ -613,6 +616,7 @@ export async function dbGetAllBundles(): Promise<Bundle[]> {
         availableColors: b.available_colors || undefined,
         createdBySubAdminId: b.created_by_sub_admin_id || undefined,
         createdBySubAdminName: b.created_by_sub_admin_name || undefined,
+        createdBySubAdminType: b.created_by_sub_admin_type || undefined,
       };
     });
   } catch (err) {
@@ -634,6 +638,7 @@ export async function dbSaveBundle(bundle: Bundle): Promise<boolean> {
       expires_at: bundle.expiresAt,
       created_by_sub_admin_id: bundle.createdBySubAdminId || null,
       created_by_sub_admin_name: bundle.createdBySubAdminName || null,
+      created_by_sub_admin_type: bundle.createdBySubAdminType || null,
       updated_at: new Date().toISOString(),
     };
 
@@ -651,17 +656,14 @@ export async function dbSaveBundle(bundle: Bundle): Promise<boolean> {
     if (bundleErr) {
       console.warn('Supabase dbSaveBundle with color notice, retrying fallback:', bundleErr.message);
       // Fallback in case columns don't exist yet
-      if (payload.color || payload.available_colors) {
-        delete payload.color;
-        delete payload.available_colors;
-        const { error: retryErr } = await supabase
-          .from('bundles')
-          .upsert(payload, { onConflict: 'id' });
-        if (retryErr) {
-          console.error('Supabase dbSaveBundle retry error:', retryErr.message);
-          return false;
-        }
-      } else {
+      delete payload.color;
+      delete payload.available_colors;
+      delete payload.created_by_sub_admin_type;
+      const { error: retryErr } = await supabase
+        .from('bundles')
+        .upsert(payload, { onConflict: 'id' });
+      if (retryErr) {
+        console.error('Supabase dbSaveBundle retry error:', retryErr.message);
         return false;
       }
     }
@@ -888,6 +890,7 @@ export async function dbGetSubAdminByPhone(phone: string): Promise<any | null> {
       password: data.password,
       fullName: data.full_name || data.fullName,
       address: data.address || '',
+      sellerType: data.seller_type || 'wholesaler',
       createdAt: data.created_at,
     };
   } catch (err) {
@@ -910,12 +913,17 @@ export async function dbSaveSubAdmin(subAdmin: any): Promise<{ success: boolean;
       password: subAdmin.password,
       full_name: subAdmin.fullName.trim(),
       address: subAdmin.address ? subAdmin.address.trim() : '',
+      seller_type: subAdmin.sellerType || 'wholesaler',
       created_at: subAdmin.createdAt || new Date().toISOString(),
     };
 
     const { error: insertError } = await supabase.from('sub_admins').insert(payload);
     if (!insertError) {
       return { success: true };
+    }
+
+    if (insertError.message.includes('seller_type')) {
+      delete (payload as any).seller_type;
     }
 
     // fallback upsert
@@ -946,6 +954,7 @@ export async function dbGetAllSubAdmins(): Promise<any[]> {
       password: d.password,
       fullName: d.full_name || d.fullName || '',
       address: d.address || '',
+      sellerType: d.seller_type || 'wholesaler',
       createdAt: d.created_at,
     }));
   } catch {

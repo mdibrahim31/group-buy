@@ -25,7 +25,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 
-interface SubAdminPanelModalProps {
+interface FactoryPanelModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
@@ -36,7 +36,7 @@ interface SizeConfigItem {
   qty: number | '';
 }
 
-export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, onClose }) => {
+export const FactoryPanelModal: React.FC<FactoryPanelModalProps> = ({ isOpen, onClose }) => {
   const {
     products,
     bundles,
@@ -253,7 +253,7 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
       return;
     }
 
-    const res = await subAdminRegister(phone, password, fullName, subAdminAddress, 'wholesaler');
+    const res = await subAdminRegister(phone, password, fullName, subAdminAddress, 'factory');
     if (res.success) {
       setAuthSuccess(res.message);
       setAuthMode('login');
@@ -383,7 +383,7 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
           <div className="w-7 h-7 bg-emerald-600 text-white rounded-lg flex items-center justify-center font-bold text-xs">
             GB
           </div>
-          <span className="text-xs font-black text-stone-800">হোলসেলার ড্যাশবোর্ড (Wholesaler Dashboard)</span>
+          <span className="text-xs font-black text-stone-800">ফ্যাক্টরি ড্যাশবোর্ড (Factory Dashboard)</span>
         </div>
         <button
           onClick={onClose}
@@ -412,9 +412,9 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
               <div className="w-14 h-14 bg-emerald-100 text-emerald-700 rounded-3xl flex items-center justify-center mx-auto mb-3 shadow-xs">
                 <Layers className="w-7 h-7" />
               </div>
-              <h3 className="text-lg font-black text-stone-900">হোলসেলার পোর্টাল (Wholesaler Portal)</h3>
+              <h3 className="text-lg font-black text-stone-900">ফ্যাক্টরি পোর্টাল (Factory Portal)</h3>
               <p className="text-xs text-stone-500 mt-1">
-                গ্রুপবাই হোলসেল বান্ডিল পোস্ট ও পরিচালনা করার গেটওয়ে (হোলসেলার মোড)
+                গ্রুপবাই হোলসেল বান্ডিল সরাসরি ফ্যাক্টরি থেকে পোস্ট ও পরিচালনা করার গেটওয়ে (ফ্যাক্টরি মোড)
               </p>
             </div>
 
@@ -430,7 +430,7 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
                 }`}
               >
                 <LogIn className="w-3.5 h-3.5 inline-block mr-1.5" />
-                <span>হোলসেলার লগইন</span>
+                <span>ফ্যাক্টরি লগইন</span>
               </button>
               <button
                 onClick={() => {
@@ -508,12 +508,12 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
                     required
                   />
                   <p className="text-[10px] text-amber-700 mt-1 leading-tight">
-                    * অ্যাডমিনের অনুমোদিত সিক্রেট পিন ছাড়া নতুন হোলসেলার একাউন্ট রেজিস্ট্রেশন সফল হবে না।
+                    * অ্যাডমিনের অনুমোদিত সিক্রেট পিন ছাড়া নতুন সাব-অ্যাডমিন একাউন্ট রেজিস্ট্রেশন সফল হবে না।
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-stone-600 mb-1.5">হোলসেলার নাম (Full Name):</label>
+                  <label className="block text-xs font-bold text-stone-600 mb-1.5">সাব-অ্যাডমিন নাম (Full Name):</label>
                   <input
                     type="text"
                     placeholder="যেমন: আবরার রহমান"
@@ -579,7 +579,7 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
                     <span>স্বাগতম, {currentSubAdmin.fullName}!</span>
                     <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
                       <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                      <span>হোলসেলার</span>
+                      <span>সাব-অ্যাডমিন</span>
                     </span>
                   </h4>
                   <p className="text-[10px] text-stone-500 mt-0.5">মোবাইল: {currentSubAdmin.phone} | আইডি: {currentSubAdmin.id}</p>
@@ -612,7 +612,7 @@ export const SubAdminPanelModal: React.FC<SubAdminPanelModalProps> = ({ isOpen, 
                       <p className="text-[10px] text-stone-500 mt-0.5">
                         {ownerFilter === 'my' 
                           ? 'আপনি শুধুমাত্র আপনার নিজের আপলোড করা পণ্যসমূহ এডিট বা আপডেট করতে পারবেন।'
-                          : 'সকল হোলসেলার এবং অ্যাডমিনের আপলোডকৃত বান্ডিলগুলোর প্রগ্রেস দেখুন।'}
+                          : 'সকল সাব-অ্যাডমিন এবং অ্যাডমিনের আপলোডকৃত বান্ডিলগুলোর প্রগ্রেস দেখুন।'}
                       </p>
                     </div>
 
