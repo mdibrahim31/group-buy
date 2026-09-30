@@ -313,12 +313,60 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
           {product.youtubeVideoUrl && (() => {
             const getYoutubeId = (url: string) => {
               if (!url) return null;
+              try {
+                const cleanUrl = url.trim();
+                
+                // Shorts
+                if (cleanUrl.includes('/shorts/')) {
+                  const parts = cleanUrl.split('/shorts/');
+                  if (parts[1]) return parts[1].split(/[?#&]/)[0];
+                }
+                
+                // Live
+                if (cleanUrl.includes('/live/')) {
+                  const parts = cleanUrl.split('/live/');
+                  if (parts[1]) return parts[1].split(/[?#&]/)[0];
+                }
+
+                // Youtu.be
+                if (cleanUrl.includes('youtu.be/')) {
+                  const parts = cleanUrl.split('youtu.be/');
+                  if (parts[1]) return parts[1].split(/[?#&]/)[0];
+                }
+
+                // standard v= or embed
+                if (cleanUrl.includes('/embed/')) {
+                  const parts = cleanUrl.split('/embed/');
+                  if (parts[1]) return parts[1].split(/[?#&]/)[0];
+                }
+
+                if (cleanUrl.includes('watch?v=')) {
+                  const parts = cleanUrl.split('watch?v=');
+                  if (parts[1]) return parts[1].split(/[?#&]/)[0];
+                }
+                
+                const urlObj = new URL(cleanUrl);
+                if (urlObj.searchParams.has('v')) {
+                  return urlObj.searchParams.get('v');
+                }
+              } catch (e) {}
+              
               const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
               const match = url.match(regExp);
-              return (match && match[2].length === 11) ? match[2] : null;
+              return (match && match[2] && match[2].trim().length === 11) ? match[2].trim() : null;
+            };
+
+            const getDriveId = (url: string) => {
+              if (!url) return null;
+              if (url.includes('drive.google.com')) {
+                const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+                return match ? match[1] : null;
+              }
+              return null;
             };
 
             const ytId = getYoutubeId(product.youtubeVideoUrl);
+            const driveId = getDriveId(product.youtubeVideoUrl);
             const isDirectVideo = /\.(mp4|webm|ogg)$/i.test(product.youtubeVideoUrl);
 
             return (
@@ -329,12 +377,23 @@ export const BundleDetailModal: React.FC<BundleDetailModalProps> = ({
                 </h4>
                 
                 {ytId ? (
-                  /* YouTube Embed Player */
+                  /* YouTube Embed Player with full standard fullscreen allowances */
                   <div className="w-full aspect-video rounded-xl overflow-hidden border border-stone-300 bg-black shadow-xs relative">
                     <iframe
                       className="absolute inset-0 w-full h-full"
-                      src={`https://www.youtube.com/embed/${ytId}?rel=0`}
+                      src={`https://www.youtube.com/embed/${ytId}?rel=0&autoplay=0`}
                       title="Product Sample Video"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    />
+                  </div>
+                ) : driveId ? (
+                  /* Google Drive Embed Player with fullscreen support */
+                  <div className="w-full aspect-video rounded-xl overflow-hidden border border-stone-300 bg-black shadow-xs relative">
+                    <iframe
+                      className="absolute inset-0 w-full h-full"
+                      src={`https://drive.google.com/file/d/${driveId}/preview`}
+                      title="Product Google Drive Video"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
                     />
